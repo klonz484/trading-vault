@@ -142,10 +142,10 @@ export default function Dashboard() {
         {/* Bottom note */}
         <div className="mt-10 p-4 rounded-xl border border-[var(--border)] bg-[var(--card)]/50">
           <p className="text-sm text-[var(--muted)]">
-            <span className="text-cyan-400 font-medium">Trading Vault</span> is
-            built for single-user use only. No community, no broker integration,
-            no leaderboards. Pure analysis + signals for manual execution on
-            MT5.
+            <span className="text-cyan-400 font-medium">Trading Vault</span> gives each trader a private workspace, with shared
+            core analysis capabilities and owner-reviewed improvements. No
+            broker integration or automated execution — analysis and planning
+            for manual execution on MT5.
           </p>
         </div>
       </main>
