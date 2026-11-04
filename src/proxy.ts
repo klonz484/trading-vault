@@ -7,6 +7,7 @@ export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
+  // Keep local development usable until the Supabase environment is configured.
   if (!supabaseUrl || !supabasePublishableKey) {
     return supabaseResponse;
   }
@@ -17,12 +18,8 @@ export async function proxy(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => {
-          request.cookies.set(name, value);
-        });
-
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         supabaseResponse = NextResponse.next({ request });
-
         cookiesToSet.forEach(({ name, value, options }) => {
           supabaseResponse.cookies.set(name, value, options);
         });
@@ -30,8 +27,29 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  // Refresh and validate the auth token. Do not use getSession() here.
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  const pathname = request.nextUrl.pathname;
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
+  const isPublicPath = isAuthPage || pathname.startsWith("/auth/callback");
+
+  if (!claims && !isPublicPath) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname + request.nextUrl.search);
+    const redirect = NextResponse.redirect(loginUrl);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirect.cookies.set(cookie);
+    });
+    return redirect;
+  }
+
+  if (claims && isAuthPage) {
+    const redirect = NextResponse.redirect(new URL("/", request.url));
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirect.cookies.set(cookie);
+    });
+    return redirect;
+  }
 
   return supabaseResponse;
 }
