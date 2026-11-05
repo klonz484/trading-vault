@@ -1,0 +1,52 @@
+name: One-time Brain foundation extraction
+
+on:
+  push:
+    branches:
+      - docs/master-consolidation-2026-11-05
+
+permissions:
+  contents: write
+
+concurrency:
+  group: brain-foundation-extraction
+  cancel-in-progress: false
+
+jobs:
+  extract:
+    if: ${{ !contains(github.event.head_commit.message, 'feat(brain): add foundation v0.2') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out update branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs/master-consolidation-2026-11-05
+          fetch-depth: 0
+
+      - name: Verify archive and prevent overwrites
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f trading-vault-brain-foundation-v0.2.zip
+          unzip -t trading-vault-brain-foundation-v0.2.zip
+          if [ -e trading-vault-brain ]; then
+            echo "Refusing to overwrite existing trading-vault-brain directory."
+            exit 1
+          fi
+          mkdir -p /tmp/brain-foundation
+          unzip -q trading-vault-brain-foundation-v0.2.zip -d /tmp/brain-foundation
+          test -f /tmp/brain-foundation/trading-vault-brain/README.md
+          test -f /tmp/brain-foundation/trading-vault-brain/core/orchestrator.ts
+          test -f /tmp/brain-foundation/trading-vault-brain/contracts/engine-result.schema.json
+          cp -a /tmp/brain-foundation/trading-vault-brain ./trading-vault-brain
+
+      - name: Commit extracted foundation and remove one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add trading-vault-brain
+          git rm .github/workflows/one-time-extract-brain-foundation.yml
+          git commit -m "feat(brain): add foundation v0.2"
+          git push origin HEAD:docs/master-consolidation-2026-11-05
