@@ -189,7 +189,7 @@ export function assessRiskPlan(
     !validOrderType ||
     prices.some((price) => !isFinitePositive(price) ||
       !alignsToPrecision(price, instrument.pricePrecision) ||
-      !alignsToTick(price, instrument.tickSize)) ||
+      !alignsToTick(price, instrument.tickSize))
   ) {
     findings.push({ code: "INVALID_PLAN", message: "The plan requires a supported direction/order type and positive entry, stop and target prices aligned to declared precision and tick size." });
     return makeResult(input, findings, assessment, "REJECTED", "INCOMPLETE");
