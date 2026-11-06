@@ -72,6 +72,13 @@ test("parses offset-free provider timestamps as UTC, independent of host locale"
   );
 });
 
+test("parses date-only daily candles as UTC midnight", () => {
+  assert.equal(
+    parseTwelveDataTimestamp("2026-11-06"),
+    "2026-11-06T00:00:00.000Z",
+  );
+});
+
 test("normalizes explicit timezone offsets to UTC", () => {
   assert.equal(
     parseTwelveDataTimestamp("2026-11-06T14:30:00+02:00"),
@@ -92,7 +99,7 @@ test("accepts structurally valid OHLC and non-negative volume", () => {
 });
 
 test("flags future-dated candles and prevents READY status", () => {
-  const future = candle({ timestamp: "2026-11-06T12:10:00.000Z" });
+  const future = candle({ timestamp: "2026-11-06T12:02:01.000Z" });
   const result = validateCandles([future], {
     now: new Date("2026-11-06T12:02:00.000Z"),
     maxAgeSeconds: 600,
