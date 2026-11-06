@@ -296,7 +296,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     outputs: ["Round-trip cost breakdown", "Net expected edge range", "Edge-to-cost ratio", "Cost-data coverage and sensitivity warnings"],
     dependencies: ["evidence-quality", "instrument-specialist"],
     safetyRules: [...commonSafety, "Never treat candle close as an executable quote.", "Never omit spread, commission or known fees from cost totals.", "Unknown cost components must remain unknown and block a positive net-edge claim.", "Rebates count only when verified and applicable."],
-    status: "PLANNED",
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
