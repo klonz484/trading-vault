@@ -86,7 +86,9 @@ A specialist that lacks required inputs returns an explicit incomplete result. I
 - **Multi-Timeframe:** reconciles separately supplied timeframe structure assessments using an explicit highest-to-lowest priority list and maximum timestamp-skew policy. It preserves directional disagreement, marks range/unclear context as mixed, and blocks missing or stale timeframe evidence rather than manufacturing it. It does not calculate the underlying structure or create a trade signal.
 - **Forex and Gold Specialist:** validates caller-supplied symbol metadata, contract/lot fields, price precision, tick alignment, broker-defined FX pip size and live quote integrity. Quote freshness and maximum spread must be explicit policy inputs. Gold is represented as XAU/USD without assuming a universal pip definition. This module does not certify broker metadata or calculate position sizing, P/L, margin or trade signals.
 
-**Remaining Stage C work:** risk planning.
+- **Risk and Trade Planning:** validates caller-supplied BUY/SELL entry ranges, stop placement and ordered targets against the instrument specialist's READY assessment. It calculates conservative price-distance risk and per-target R:R using the worst entry in the range, with an explicit minimum R:R policy. It deliberately does not calculate lot size, account-currency pip value, margin or costs, and cannot place orders. The calculation is geometric only; it does not validate the technical quality of levels or guarantee fills.
+
+**Remaining Stage C work:** complete methodology validation, replay coverage and integration review.
 
 **Stage D — context and alternatives:** sessions, indicators, fundamentals, pattern recognition and scenario simulation.
 
