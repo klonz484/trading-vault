@@ -11,6 +11,54 @@ const EXTENSIONS: Record<string, string> = {
   "image/webp": "webp",
 };
 
+type PlanAudit = {
+  scenario: string;
+  entry: number;
+  stop: number;
+  target: number;
+  riskDistance: number;
+  rewardDistance: number;
+  riskReward: number;
+  pipSize: number | null;
+  riskPips: number | null;
+  rewardPips: number | null;
+  valid: boolean;
+  issues: string[];
+};
+
+function auditTradePlans(analysis: string, symbol: string): PlanAudit[] {
+  const pipSize = /JPY$/i.test(symbol) ? 0.01 : /^[A-Z]{6}$/i.test(symbol) ? 0.0001 : null;
+  const audits: PlanAudit[] = [];
+  const blockPattern = /TV_PLAN_AUDIT_START\\s*\\n([\\s\\S]*?)\\nTV_PLAN_AUDIT_END/gi;
+  for (const match of analysis.matchAll(blockPattern)) {
+    const block = match[1];
+    const read = (label: string) => {
+      const found = block.match(new RegExp("^\\s*" + label + "\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$", "im"));
+      return found ? Number(found[1]) : null;
+    };
+    const scenario = block.match(/^\\s*Scenario\\s*:\\s*(Bearish|Bullish|Sell|Buy)\\s*$/im)?.[1]?.toLowerCase();
+    const entry = read("Entry"), stop = read("Stop"), target = read("Target");
+    if (!scenario || entry === null || stop === null || target === null ||
+        ![entry, stop, target].every(Number.isFinite) || entry <= 0 || stop <= 0 || target <= 0) continue;
+    const bearish = scenario === "bearish" || scenario === "sell";
+    const riskDistance = Math.abs(entry - stop);
+    const rewardDistance = Math.abs(target - entry);
+    const riskReward = riskDistance > 0 ? rewardDistance / riskDistance : 0;
+    const issues: string[] = [];
+    if (riskDistance === 0) issues.push("Stop equals entry, so risk distance is zero.");
+    if (rewardDistance === 0) issues.push("Target equals entry, so reward distance is zero.");
+    if (bearish && !(stop > entry && target < entry)) issues.push("Bearish plan levels are directionally inconsistent.");
+    if (!bearish && !(stop < entry && target > entry)) issues.push("Bullish plan levels are directionally inconsistent.");
+    audits.push({
+      scenario, entry, stop, target, riskDistance, rewardDistance, riskReward,
+      pipSize, riskPips: pipSize ? riskDistance / pipSize : null,
+      rewardPips: pipSize ? rewardDistance / pipSize : null,
+      valid: issues.length === 0, issues,
+    });
+  }
+  return audits;
+}
+
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
@@ -110,6 +158,16 @@ Important rules:
 - Do not present a setup as a certainty or tell the user to enter a trade. If there is no clear setup, say “No clear setup”.
 - Do not calculate position size; the Trading Vault Risk Calculator handles that separately.
 - Prefer conditional scenarios and explicit invalidation over confident predictions.
+- Clearly label chart facts as "Visible observation", structural readings as "Interpretation", and any suggested price zone as "AI-proposed level"; never imply a proposed level is directly visible unless its exact price is legible.
+- State whether the latest candle appears forming or closed; if the screenshot cannot establish this, say unknown.
+- If and only if you propose a specific, numeric entry, stop and single target for a bullish/bearish scenario, append a compact audit block using exactly this format. Include one block per fully specified scenario; do not invent missing values:
+TV_PLAN_AUDIT_START
+Scenario: Bearish
+Entry: 1.12345
+Stop: 1.12400
+Target: 1.12200
+TV_PLAN_AUDIT_END
+Use Scenario: Bullish for a bullish plan. Replace example prices with the exact prices you proposed. If any value is unavailable, omit that scenario's audit block.
 - Keep the response concise but useful for a discretionary trader.`;
 
   try {
@@ -174,6 +232,7 @@ Important rules:
           ? "The model reached its output limit before finishing. This scan is incomplete; do not treat it as a complete trade plan."
           : "The model did not confirm a normal completion. Review this partial analysis and do not treat it as a complete trade plan."
         : null;
+    const planAudits = auditTradePlans(cleanAnalysis, symbol);
     const { error: insertError } = await supabase.from("chart_scans").insert({
       id: scanId,
       user_id: user.id,
@@ -181,7 +240,7 @@ Important rules:
       timeframe,
       image_path: imagePath,
       status: scanStatus,
-      analysis: { text: cleanAnalysis, notes, warning: completionWarning },
+      analysis: { text: cleanAnalysis, notes, warning: completionWarning, planAudits },
       model_name: model,
     });
 
@@ -191,7 +250,7 @@ Important rules:
       return jsonError("The analysis completed, but Trading Vault could not save this scan. Please try again.", 500);
     }
 
-    return NextResponse.json({ analysis: cleanAnalysis, model, scanId, status: scanStatus, warning: completionWarning });
+    return NextResponse.json({ analysis: cleanAnalysis, model, scanId, status: scanStatus, warning: completionWarning, planAudits });
   } catch (error) {
     await removeUploadedImage();
     if (error instanceof Error && error.name === "TimeoutError") {
