@@ -90,9 +90,11 @@ A specialist that lacks required inputs returns an explicit incomplete result. I
 
 **Remaining Stage C work:** complete methodology validation, replay coverage and integration review.
 
-**Stage D — context and alternatives (in progress):** session timing has a deterministic first implementation; indicators, fundamentals, pattern recognition and scenario simulation remain planned.
+**Stage D — context and alternatives (in progress):** session timing and indicator calculations have deterministic first implementations; fundamentals, pattern recognition and scenario simulation remain planned.
 
 - **Session and Timing:** evaluates explicitly supplied session schedules using IANA timezone identifiers and local wall-clock windows, including overnight sessions and daylight-saving changes. Schedule freshness and provenance are required. Sourced event windows are filtered only against caller-supplied instrument currencies and an explicit upcoming-event horizon. It does not discover market hours, holidays or economic events, infer event impact, calculate session ranges without OHLC input, or create trade signals.
+
+- **Indicator Intelligence:** calculates explicitly configured SMA, EMA, Wilder RSI, Wilder ATR and MACD values from closed candles only. It requires a COMPLETE/READY evidence gate, source identity, explicit periods, minimum history and maximum candle age. Forming candles are excluded and insufficient warm-up history is reported. It emits numerical calculations only; thresholds, directional signals and confidence are not inferred.
 
 **Stage E — quality and learning:** contradiction detection, replay/backtesting, private performance analysis, strategy discovery and confidence calibration.
 
