@@ -164,6 +164,14 @@ export function assessMarketStructure(
   }
 
   const swings: StructureSwing[] = [];
+  const addSwing = (swing: StructureSwing): void => {
+    const previous = [...swings].reverse().find((item) => item.kind === swing.kind);
+    if (
+      previous &&
+      swing.candleIndex - previous.candleIndex < policy.minimumSwingDistanceBars
+    ) return;
+    swings.push(swing);
+  };
   const firstPivotIndex = policy.leftBars;
   const lastPivotIndex = closedCandles.length - policy.rightBars - 1;
 
@@ -189,7 +197,7 @@ export function assessMarketStructure(
     };
 
     if (isSelectedExtreme(highIndexes)) {
-      swings.push({
+      addSwing({
         kind: "HIGH",
         price: candidate.high,
         timestamp: candidate.timestamp,
@@ -198,7 +206,7 @@ export function assessMarketStructure(
       });
     }
     if (isSelectedExtreme(lowIndexes)) {
-      swings.push({
+      addSwing({
         kind: "LOW",
         price: candidate.low,
         timestamp: candidate.timestamp,
