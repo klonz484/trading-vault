@@ -1,6 +1,25 @@
 # Market Data Engine Correction Plan
 
-Status: Approved for planning; implementation not yet started.
+Status: Implementation started on the isolated correction branch; local execution checks are pending.
+
+## Implementation progress (2026-11-06)
+
+Implemented in this branch:
+- UTC normalization for offset-free, date-only and explicit-offset Twelve Data timestamps, retaining original timestamp and timezone metadata.
+- Candle lifecycle flagging using the requested UTC interval boundary; this remains a documented estimate pending provider-semantic verification.
+- Structural OHLC/positive-price/volume checks, source metadata checks, future timestamp detection, duplicate detection, monotonic ordering checks in either provider order, mixed-series checks and interval-gap warnings.
+- Fail-closed service behavior: invalid or stale series expose no analytical candles; original observations remain in `rawCandles`. Valid descending provider responses are normalized to ascending order for consumers.
+- Structured provider errors for malformed responses, entitlement restrictions, invalid requests, rate limits, upstream failures and timeouts; no automatic retry or fallback is enabled.
+- Versioned snapshots, raw observation provenance, immutable in-memory correction events and deterministic validation replay using the recorded clock, threshold and validator version.
+- Independent provider close-conflict comparison requiring an explicit positive threshold; no price averaging or silent replacement.
+- Node built-in regression tests covering timestamp parsing, validation, order/gaps, provider conflict handling, correction history, replay, malformed JSON and fail-closed service behavior.
+
+Still pending:
+- Run `npm test`, `npm run lint` and `npm run build` in the Codespace.
+- Review actual provider candle-close semantics and account-specific entitlements/licensing before any live use.
+- Durable persistence, historical correction storage, provider comparison orchestration, Scanner/Brain integration and calibrated thresholds remain out of scope.
+
+No live provider credentials, provider activation, Supabase changes, deployment, merge or production activation have been performed.
 Baseline: `e56b4e05928b6e3ada21c0f18b2dfbb333a18b49`
 Working branch: `build/market-data-engine-corrections`
 Scope: Market Data Engine package only. This document does not authorize production activation, provider connections, database changes, deployment, paid services, or automated trading.
