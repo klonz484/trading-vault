@@ -311,7 +311,10 @@ export function assessSessionTiming(
     instrument: input.instrument,
     activeSessions,
     sessionState: hardBlock ? "UNAVAILABLE" : activeSessions.length > 0 ? "ACTIVE" : "OUTSIDE_DEFINED_SESSIONS",
-    relevantEvents: relevantEvents.sort((a, b) => {\n      const rank = { IN_PROGRESS: 0, UPCOMING: 1, OUTSIDE_WINDOW: 2 };\n      return rank[a.state] - rank[b.state] || a.secondsUntilStart - b.secondsUntilStart;\n    }),
+    relevantEvents: relevantEvents.sort((a, b) => {
+      const rank = { IN_PROGRESS: 0, UPCOMING: 1, OUTSIDE_WINDOW: 2 };
+      return rank[a.state] - rank[b.state] || a.secondsUntilStart - b.secondsUntilStart;
+    }),
     sessionRange: null,
     sessionRangeStatus: "NOT_CALCULATED_NO_CANDLE_INPUT",
   };
