@@ -21,6 +21,7 @@ require.extensions[".ts"] = (module, filename) => {
 const { validateCandles, isCandleStructurallyValid } = require("../src/lib/market-data/quality.ts");
 const { parseTwelveDataTimestamp, TwelveDataProvider } = require("../src/lib/market-data/providers/twelve-data.ts");
 const { compareProviderSnapshots } = require("../src/lib/market-data/provider-conflicts.ts");
+const { appendEvidenceCorrection, createEvidenceCorrection, replaySnapshotValidation } = require("../src/lib/market-data/evidence.ts");
 
 function candle(overrides = {}) {
   return {
@@ -185,6 +186,70 @@ test("Twelve Data malformed JSON becomes a structured non-retryable error", asyn
       }, "M1"),
       (error) => error.code === "INVALID_RESPONSE" && error.retryable === false,
     );
+  } finally {
+    global.fetch = previousFetch;
+    if (previousKey === undefined) delete process.env.TWELVE_DATA_API_KEY;
+    else process.env.TWELVE_DATA_API_KEY = previousKey;
+  }
+});
+
+
+test("correction history is immutable and requires a continuous version chain", () => {
+  const first = createEvidenceCorrection({
+    correctionId: "corr-1",
+    recordedAt: "2026-11-06T12:00:00.000Z",
+    reason: "Provider corrected a historical candle.",
+    supersedesVersion: "snapshot-1",
+    replacementVersion: "snapshot-2",
+  });
+  const history = appendEvidenceCorrection([], first);
+  assert.equal(history.length, 1);
+  assert.throws(() => appendEvidenceCorrection(history, {
+    correctionId: "corr-2",
+    recordedAt: "2026-11-06T12:01:00.000Z",
+    reason: "Discontinuous correction.",
+    supersedesVersion: "snapshot-x",
+    replacementVersion: "snapshot-3",
+  }));
+  assert.throws(() => appendEvidenceCorrection(history, first));
+  assert.equal(Object.isFrozen(first), true);
+});
+
+test("snapshot validation replay uses the original clock and freshness threshold", () => {
+  const raw = candle();
+  const original = validateCandles([raw], {
+    now: new Date("2026-11-06T12:02:00.000Z"),
+    maxAgeSeconds: 600,
+  });
+  const source = snapshot("twelve_data", 1.15);
+  source.rawCandles = [raw];
+  source.validation = original;
+  const replayed = replaySnapshotValidation(source);
+  assert.deepEqual(replayed, original);
+});
+
+test("service withholds all analytical candles when series validation fails", async () => {
+  const previousKey = process.env.TWELVE_DATA_API_KEY;
+  const previousFetch = global.fetch;
+  process.env.TWELVE_DATA_API_KEY = "unit-test-key";
+  const sourceTime = new Date(Date.now() - 120_000).toISOString().slice(0, 19).replace("T", " ");
+  global.fetch = async () => new Response(JSON.stringify({
+    meta: { symbol: "EUR/USD", interval: "1min" },
+    values: [{
+      datetime: sourceTime,
+      open: "1.2",
+      high: "1.1",
+      low: "1.0",
+      close: "1.05",
+      volume: "10",
+    }],
+  }), { status: 200, headers: { "content-type": "application/json" } });
+  try {
+    const { getTwelveDataSnapshot } = require("../src/lib/market-data/service.ts");
+    const result = await getTwelveDataSnapshot("EURUSD", "M1", { maxAgeSeconds: 600 });
+    assert.equal(result.rawCandles.length, 1);
+    assert.equal(result.candles.length, 0);
+    assert.equal(result.validation.status, "INCOMPLETE");
   } finally {
     global.fetch = previousFetch;
     if (previousKey === undefined) delete process.env.TWELVE_DATA_API_KEY;
