@@ -1,6 +1,6 @@
 import type { BrainSkillResult, SkillSourceReference } from "../types";
 
-export type ScalpingContextState = "ACTIVE" | "UPCOMING" | "OUTSIDE_WINDOW" | "UNAVAILABLE";
+export type ScalpingContextState = "OBSERVED" | "UPCOMING" | "OUTSIDE_WINDOW" | "UNAVAILABLE";
 export type VolatilityState = "ELEVATED" | "NOT_ELEVATED" | "UNCLASSIFIED";
 
 export interface ScalpingSessionObservation {
@@ -203,7 +203,7 @@ export function assessScalpingContext(
 
   const findings: ScalpingContextFinding[] = [];
   const validRefs = (refs: SkillSourceReference[]) => Array.isArray(refs) && refs.length > 0 &&
-    refs.every((ref) => ref.sourceId && ref.providerId && ref.instrument && ref.timeframe &&
+    refs.every((ref) => ref.sourceId && ref.providerId && ref.instrument === input.instrument && ref.timeframe &&
       Number.isFinite(timestamp(ref.observedAt)) && Number.isFinite(timestamp(ref.receivedAt)) &&
       timestamp(ref.observedAt) <= asOf && timestamp(ref.receivedAt) <= asOf);
   const fresh = (observedAt: string) => {
@@ -293,7 +293,7 @@ export function assessScalpingContext(
   const blocked = findings.length > 0 || sessionPhases.length === 0;
   const assessment: ScalpingContextAssessment = {
     instrument: input.instrument,
-    sessionState: blocked ? "UNAVAILABLE" : "ACTIVE",
+    sessionState: blocked ? "UNAVAILABLE" : "OBSERVED",
     sessionPhases,
     relevantEvents: relevantEvents.sort((a, b) => a.secondsUntilStart - b.secondsUntilStart),
     volatility,
