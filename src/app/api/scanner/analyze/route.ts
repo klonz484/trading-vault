@@ -27,7 +27,10 @@ type PlanAudit = {
 };
 
 function auditTradePlans(analysis: string, symbol: string): PlanAudit[] {
-  const pipSize = /JPY$/i.test(symbol) ? 0.01 : /^[A-Z]{6}$/i.test(symbol) ? 0.0001 : null;
+  const currencyCodes = new Set(["USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD", "ZAR", "SGD", "HKD", "NOK", "SEK", "DKK", "PLN", "TRY", "MXN", "CNH", "CNY"]);
+  const pair = symbol.match(/^([A-Z]{3})([A-Z]{3})$/);
+  const isKnownForexPair = Boolean(pair && currencyCodes.has(pair[1]) && currencyCodes.has(pair[2]));
+  const pipSize = isKnownForexPair && pair ? (pair[2] === "JPY" ? 0.01 : 0.0001) : null;
   const audits: PlanAudit[] = [];
   const blockPattern = /TV_PLAN_AUDIT_START\s*\n([\s\S]*?)\nTV_PLAN_AUDIT_END/gi;
   for (const match of analysis.matchAll(blockPattern)) {
