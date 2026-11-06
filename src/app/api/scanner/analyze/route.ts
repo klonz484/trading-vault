@@ -245,14 +245,25 @@ Use Scenario: Bullish for bullish plans. Use a separate block for every fully sp
           : "The model did not confirm a normal completion. Review this partial analysis and do not treat it as a complete trade plan."
         : null;
     const planAudits = auditTradePlans(cleanAnalysis, symbol);
+    // The existing database constraint permits pending/processing/completed/failed,
+    // but not "incomplete". Preserve the detailed completion state in analysis JSON
+    // and map non-normal provider finishes to the supported "failed" row status.
+    const persistedStatus = scanStatus === "completed" ? "completed" : "failed";
     const { error: insertError } = await supabase.from("chart_scans").insert({
       id: scanId,
       user_id: user.id,
       symbol,
       timeframe,
       image_path: imagePath,
-      status: scanStatus,
-      analysis: { text: cleanAnalysis, notes, warning: completionWarning, planAudits },
+      status: persistedStatus,
+      analysis: {
+        text: cleanAnalysis,
+        notes,
+        warning: completionWarning,
+        completionStatus: scanStatus,
+        providerFinishReason: finishReason ?? null,
+        planAudits,
+      },
       model_name: model,
     });
 
