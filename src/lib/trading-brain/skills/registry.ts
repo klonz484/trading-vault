@@ -199,7 +199,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     outputs: ["Pattern candidates", "Pattern boundaries", "Confirmation/invalidation", "Detection confidence basis"],
     dependencies: ["market-structure", "evidence-quality"],
     safetyRules: [...commonSafety, "Do not claim learned recognition until evaluated on held-out examples."],
-    status: "PLANNED",
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
