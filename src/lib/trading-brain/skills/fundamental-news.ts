@@ -180,7 +180,7 @@ export function assessFundamentalNews(
   }
   const findings: FundamentalNewsFinding[] = [];
   if (!Array.isArray(input.items) || input.items.length === 0) {
-    findings.push({ code: "ITEMS_MISSING", message: "No macro/news items were supplied; absence of input cannot establish that the calendar or news feed is clear." });
+    return buildResult(input, [{ code: "ITEMS_MISSING", message: "No macro/news items were supplied; absence of input cannot establish that the calendar or news feed is clear." }], emptyAssessment(input.instrument, input.instrumentCurrencies), "INCOMPLETE", "INCOMPLETE");
   }
   if (!Array.isArray(input.sourceReferences) || input.sourceReferences.length === 0) {
     findings.push({ code: "SOURCE_PROVENANCE_MISSING", message: "At least one top-level source reference is required." });
