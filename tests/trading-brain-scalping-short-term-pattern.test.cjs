@@ -78,7 +78,7 @@ test("blocks invalid ordering, sequence gaps, stale quotes and wide spreads", ()
   const gap = assessScalpingShortTermPattern({
     ...base,
     observations: base.observations.map((item, index) => index === 2
-      ? { ...item, timestamp: "2026-11-06T10:00:10.000Z" }
+      ? { ...item, timestamp: "2026-11-06T10:00:06.000Z" }
       : item),
   }, policy);
   assert.ok(gap.findings.some((finding) => finding.code === "EXCESSIVE_GAP"));
