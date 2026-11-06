@@ -24,13 +24,13 @@ export function compareProviderSnapshots(
 
   const secondByTimestamp = new Map(
     second.candles
-      .filter((candle) => !candle.provisional && candle.sourceTimezone === "UTC")
+      .filter((candle) => !candle.provisional && Boolean(candle.sourceTimezone))
       .map((candle) => [candle.timestamp, candle]),
   );
 
   const conflicts: ProviderConflict[] = [];
   for (const candleA of first.candles) {
-    if (candleA.provisional || candleA.sourceTimezone !== "UTC") continue;
+    if (candleA.provisional || !candleA.sourceTimezone) continue;
     const candleB = secondByTimestamp.get(candleA.timestamp);
     if (!candleB || candleB.provisional) continue;
 
