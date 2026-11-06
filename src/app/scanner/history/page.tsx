@@ -10,6 +10,7 @@ type StoredAnalysis = {
   text?: string;
   notes?: string;
   warning?: string;
+  planAudits?: Array<{ scenario: string; entry: number; stop: number; target: number; riskDistance: number; rewardDistance: number; riskReward: number; pipSize: number | null; riskPips: number | null; rewardPips: number | null; valid: boolean; issues: string[] }>;
 };
 
 async function PrivateScanHistoryContent() {
