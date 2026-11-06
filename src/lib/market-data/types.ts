@@ -74,6 +74,7 @@ export interface CandleValidation {
 
 export interface MarketDataSnapshot {
   schemaVersion: "1.0.0";
+  validatorVersion: "1.0.0";
   snapshotVersion: string;
   instrument: InstrumentId;
   timeframe: MarketDataTimeframe;
