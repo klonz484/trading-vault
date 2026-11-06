@@ -67,7 +67,7 @@ async function PrivateScanHistoryContent() {
         imageUrl = data?.signedUrl || null;
       }
       const analysis = scan.analysis as StoredAnalysis | null;
-      return { ...scan, imageUrl, analysisText: analysis?.text || "No saved analysis text.", notes: analysis?.notes || "", analysisWarning: analysis?.warning || "" };
+      return { ...scan, imageUrl, analysisText: analysis?.text || "No saved analysis text.", notes: analysis?.notes || "", analysisWarning: analysis?.warning || "", planAudits: analysis?.planAudits || [] };
     }),
   );
 
@@ -120,6 +120,17 @@ async function PrivateScanHistoryContent() {
                     {scan.analysisWarning || "This scan is marked incomplete. Do not treat it as a complete trade plan; run a fresh analysis if you need the missing sections."}
                   </div>
                 )}
+                {scan.planAudits.length > 0 && <div className="mt-4 rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-3">
+                  <p className="text-xs font-semibold text-cyan-200 mb-2">Trade-plan arithmetic check</p>
+                  <p className="text-[11px] text-[var(--muted)] mb-3">Computed from AI-proposed values; checks arithmetic and direction, not chart accuracy.</p>
+                  {scan.planAudits.map((plan, index) => <div key={index} className="text-xs mb-3 last:mb-0">
+                    <p className="font-semibold text-white capitalize">{plan.scenario} scenario — <span className={plan.valid ? "text-emerald-300" : "text-rose-300"}>{plan.valid ? "Arithmetic consistent" : "Check required"}</span></p>
+                    <p className="text-[var(--muted)]">Entry {plan.entry} · Stop {plan.stop} · Target {plan.target}</p>
+                    <p className="text-[var(--muted)]">Risk {plan.riskDistance.toFixed(5)}{plan.riskPips !== null ? ` (${plan.riskPips.toFixed(1)} pips)` : ""} · Reward {plan.rewardDistance.toFixed(5)}{plan.rewardPips !== null ? ` (${plan.rewardPips.toFixed(1)} pips)` : ""} · R:R {plan.riskReward.toFixed(2)}R</p>
+                    {plan.issues.map((issue, issueIndex) => <p key={issueIndex} className="text-rose-300 mt-1">{issue}</p>)}
+                    {plan.pipSize === null && <p className="text-amber-200 mt-1">Pip conversion is not configured for this instrument.</p>}
+                  </div>)}
+                </div>}
                 <div className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[var(--foreground)]">{scan.analysisText}</div>
                 {scan.notes && <p className="mt-3 text-xs text-[var(--muted)]">Your context: {scan.notes}</p>}
               </div>
