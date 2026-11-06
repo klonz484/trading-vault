@@ -28,8 +28,9 @@ const TIMEFRAME_SECONDS: Record<MarketDataTimeframe, number> = {
   H1: 3600, H4: 14_400, D1: 86_400, W1: 604_800,
 };
 
-function parseNumber(value: string | undefined): number {
-  if (value === undefined || value.trim() === "") return Number.NaN;
+function parseNumber(value: string | number | undefined): number {
+  if (typeof value === "number") return value;
+  if (typeof value !== "string" || value.trim() === "") return Number.NaN;
   return Number(value);
 }
 
@@ -165,13 +166,38 @@ export class TwelveDataProvider {
       );
     }
 
-    if (payload.meta?.symbol && payload.meta.symbol.toUpperCase() !== instrument.twelveDataSymbol.toUpperCase()) {
+    if (payload.meta !== undefined && (
+      payload.meta === null ||
+      typeof payload.meta !== "object" ||
+      Array.isArray(payload.meta)
+    )) {
+      throw new MarketDataProviderError(
+        "Twelve Data returned malformed response metadata.",
+        "twelve_data", "INVALID_RESPONSE", false,
+      );
+    }
+    if (payload.values.some((item) =>
+      !item || typeof item !== "object" || Array.isArray(item)
+    )) {
+      throw new MarketDataProviderError(
+        "Twelve Data returned malformed candle records.",
+        "twelve_data", "INVALID_RESPONSE", false,
+      );
+    }
+
+    const responseSymbol = typeof payload.meta?.symbol === "string"
+      ? payload.meta.symbol
+      : undefined;
+    const responseInterval = typeof payload.meta?.interval === "string"
+      ? payload.meta.interval
+      : undefined;
+    if (responseSymbol && responseSymbol.toUpperCase() !== instrument.twelveDataSymbol.toUpperCase()) {
       throw new MarketDataProviderError(
         "Twelve Data response symbol did not match the requested instrument.",
         "twelve_data", "INVALID_RESPONSE", false,
       );
     }
-    if (payload.meta?.interval && payload.meta.interval !== interval) {
+    if (responseInterval && responseInterval !== interval) {
       throw new MarketDataProviderError(
         "Twelve Data response interval did not match the requested timeframe.",
         "twelve_data", "INVALID_RESPONSE", false,
@@ -181,7 +207,7 @@ export class TwelveDataProvider {
     const retrievedAt = new Date().toISOString();
     const retrievedAtMs = Date.parse(retrievedAt);
     const candles = payload.values.map((item): NormalizedCandle => {
-      const sourceTimestamp = item.datetime ?? "";
+      const sourceTimestamp = typeof item.datetime === "string" ? item.datetime : "";
       let timestamp = sourceTimestamp;
       try {
         timestamp = parseTwelveDataTimestamp(sourceTimestamp);
