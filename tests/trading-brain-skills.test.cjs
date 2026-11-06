@@ -53,10 +53,11 @@ test("registry exposes expected core skills and group filtering", () => {
   assert.equal(getBrainSkill("fundamental-news").status, "IN_DEVELOPMENT");
   assert.equal(getBrainSkill("pattern-recognition").status, "IN_DEVELOPMENT");
   assert.equal(getBrainSkill("scalp-cost-edge").status, "IN_DEVELOPMENT");
+  assert.equal(getBrainSkill("scalp-microstructure").status, "IN_DEVELOPMENT");
   assert.equal(getBrainSkill("scalp-micro-risk").status, "IN_DEVELOPMENT");
   assert.equal(getBrainSkill("scalp-ultra-short-signals").status, "IN_DEVELOPMENT");
   assert.equal(getBrainSkill("not-a-skill"), undefined);
-  for (const id of ["scalp-microstructure", "scalp-latency-execution", "scalp-cost-edge", "scalp-context", "scalp-adaptive-strategy", "scalp-behaviour-guardrails"]) {
+  for (const id of ["scalp-latency-execution", "scalp-context", "scalp-adaptive-strategy", "scalp-behaviour-guardrails"]) {
     assert.equal(getBrainSkill(id).status, "PLANNED");
     assert.equal(getBrainSkill(id).group, "SCALPING");
   }
@@ -68,11 +69,11 @@ test("registry exposes expected core skills and group filtering", () => {
 test("planned skills are never reported as implemented, tested, or enabled", () => {
   assert.deepEqual(getBrainSkillReadiness(), {
     total: 26,
-    inDevelopment: 14,
+    inDevelopment: 15,
     implemented: 0,
     tested: 0,
     enabled: 0,
-    planned: 12,
+    planned: 11,
   });
 });
 
