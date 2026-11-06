@@ -161,7 +161,7 @@ export function validateCandles(
   ).length;
 
   let status: DataReadiness = "READY";
-  if (errors.length || eligibleCandleCount === 0) status = "INCOMPLETE";
+  if (errors.length || structurallyValidCandleCount === 0) status = "INCOMPLETE";
   else if (freshnessThresholdSeconds === null) status = "DEGRADED";
   else if (
     freshnessSeconds !== null &&
