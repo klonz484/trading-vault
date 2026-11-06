@@ -55,7 +55,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     outputs: ["Liquidity pool map", "Sweep candidates", "Objective candidates", "Contrary evidence"],
     dependencies: ["market-structure", "evidence-quality"],
     safetyRules: [...commonSafety, "Describe liquidity targets as hypotheses, not known resting orders."],
-    status: "PLANNED",
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
