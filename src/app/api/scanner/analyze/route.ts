@@ -12,51 +12,56 @@ const EXTENSIONS: Record<string, string> = {
 };
 
 type PlanAudit = {
-  scenario: string;
-  entry: number;
-  stop: number;
-  target: number;
-  riskDistance: number;
-  rewardDistance: number;
-  riskReward: number;
-  pipSize: number | null;
-  riskPips: number | null;
-  rewardPips: number | null;
-  valid: boolean;
-  issues: string[];
+  scenario: string; entryType: "exact" | "range" | "conditional_close";
+  entry: number | null; entryLow: number; entryHigh: number; stop: number; target: number;
+  riskDistanceMin: number; riskDistanceMax: number; rewardDistanceMin: number; rewardDistanceMax: number;
+  riskRewardMin: number; riskRewardMax: number; pipSize: number | null;
+  riskPipsMin: number | null; riskPipsMax: number | null; rewardPipsMin: number | null; rewardPipsMax: number | null;
+  arithmeticValid: boolean; directionValid: boolean; technicalStatus: "unverified"; valid: boolean; issues: string[];
 };
 
 function auditTradePlans(analysis: string, symbol: string): PlanAudit[] {
   const currencyCodes = new Set(["USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD", "ZAR", "SGD", "HKD", "NOK", "SEK", "DKK", "PLN", "TRY", "MXN", "CNH", "CNY"]);
   const pair = symbol.match(/^([A-Z]{3})([A-Z]{3})$/);
-  const isKnownForexPair = Boolean(pair && currencyCodes.has(pair[1]) && currencyCodes.has(pair[2]));
-  const pipSize = isKnownForexPair && pair ? (pair[2] === "JPY" ? 0.01 : 0.0001) : null;
+  const pipSize = pair && currencyCodes.has(pair[1]) && currencyCodes.has(pair[2]) ? (pair[2] === "JPY" ? 0.01 : 0.0001) : null;
   const audits: PlanAudit[] = [];
   const blockPattern = /TV_PLAN_AUDIT_START\s*\n([\s\S]*?)\nTV_PLAN_AUDIT_END/gi;
   for (const match of analysis.matchAll(blockPattern)) {
     const block = match[1];
-    const read = (label: string) => {
+    const read = (label: string): number | null => {
       const found = block.match(new RegExp("^\\s*" + label + "\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$", "im"));
       return found ? Number(found[1]) : null;
     };
     const scenario = block.match(/^\s*Scenario\s*:\s*(Bearish|Bullish|Sell|Buy)\s*$/im)?.[1]?.toLowerCase();
-    const entry = read("Entry"), stop = read("Stop"), target = read("Target");
-    if (!scenario || entry === null || stop === null || target === null ||
-        ![entry, stop, target].every(Number.isFinite) || entry <= 0 || stop <= 0 || target <= 0) continue;
+    const rawType = block.match(/^\s*EntryType\s*:\s*(exact|range|conditional_close)\s*$/im)?.[1]?.toLowerCase();
+    const entryType = (rawType || "exact") as PlanAudit["entryType"];
+    const legacyEntry = read("Entry");
+    const entryLow = entryType === "range" ? read("EntryLow") : legacyEntry;
+    const entryHigh = entryType === "range" ? read("EntryHigh") : legacyEntry;
+    const stop = read("Stop"), target = read("Target");
+    if (!scenario || entryLow === null || entryHigh === null || stop === null || target === null ||
+        ![entryLow, entryHigh, stop, target].every(Number.isFinite) || entryLow <= 0 || entryHigh <= 0 ||
+        stop <= 0 || target <= 0 || entryLow > entryHigh) continue;
     const bearish = scenario === "bearish" || scenario === "sell";
-    const riskDistance = Math.abs(entry - stop);
-    const rewardDistance = Math.abs(target - entry);
-    const riskReward = riskDistance > 0 ? rewardDistance / riskDistance : 0;
+    const risks = [Math.abs(entryLow - stop), Math.abs(entryHigh - stop)];
+    const rewards = [Math.abs(target - entryLow), Math.abs(target - entryHigh)];
+    const rr = risks.map((risk, i) => risk > 0 ? rewards[i] / risk : 0);
+    const riskDistanceMin = Math.min(...risks), riskDistanceMax = Math.max(...risks);
+    const rewardDistanceMin = Math.min(...rewards), rewardDistanceMax = Math.max(...rewards);
+    const riskRewardMin = Math.min(...rr), riskRewardMax = Math.max(...rr);
+    const directionValid = bearish ? stop > entryHigh && target < entryLow : stop < entryLow && target > entryHigh;
+    const arithmeticValid = riskDistanceMin > 0 && rewardDistanceMin > 0;
     const issues: string[] = [];
-    if (riskDistance === 0) issues.push("Stop equals entry, so risk distance is zero.");
-    if (rewardDistance === 0) issues.push("Target equals entry, so reward distance is zero.");
-    if (bearish && !(stop > entry && target < entry)) issues.push("Bearish plan levels are directionally inconsistent.");
-    if (!bearish && !(stop < entry && target > entry)) issues.push("Bullish plan levels are directionally inconsistent.");
+    if (!arithmeticValid) issues.push("At least one entry price has zero stop or target distance.");
+    if (!directionValid) issues.push(bearish
+      ? "Bearish plan requires the stop above the entire entry area and the target below it."
+      : "Bullish plan requires the stop below the entire entry area and the target above it.");
     audits.push({
-      scenario, entry, stop, target, riskDistance, rewardDistance, riskReward,
-      pipSize, riskPips: pipSize ? riskDistance / pipSize : null,
-      rewardPips: pipSize ? rewardDistance / pipSize : null,
-      valid: issues.length === 0, issues,
+      scenario, entryType, entry: entryLow === entryHigh ? entryLow : null, entryLow, entryHigh, stop, target,
+      riskDistanceMin, riskDistanceMax, rewardDistanceMin, rewardDistanceMax, riskRewardMin, riskRewardMax,
+      pipSize, riskPipsMin: pipSize ? riskDistanceMin / pipSize : null, riskPipsMax: pipSize ? riskDistanceMax / pipSize : null,
+      rewardPipsMin: pipSize ? rewardDistanceMin / pipSize : null, rewardPipsMax: pipSize ? rewardDistanceMax / pipSize : null,
+      arithmeticValid, directionValid, technicalStatus: "unverified", valid: arithmeticValid && directionValid, issues,
     });
   }
   return audits;
@@ -163,14 +168,18 @@ Important rules:
 - Prefer conditional scenarios and explicit invalidation over confident predictions.
 - Clearly label chart facts as "Visible observation", structural readings as "Interpretation", and any suggested price zone as "AI-proposed level"; never imply a proposed level is directly visible unless its exact price is legible.
 - State whether the latest candle appears forming or closed; if the screenshot cannot establish this, say unknown.
-- If and only if you propose a specific, numeric entry, stop and single target for a bullish/bearish scenario, append a compact audit block using exactly this format. Include one block per fully specified scenario; do not invent missing values:
+- For every fully specified bullish or bearish scenario, append its own audit block, including alternative momentum plans when all three prices are explicit.
+- For one exact entry, use EntryType: exact and Entry. For an entry zone, use EntryType: range and both EntryLow and EntryHigh; never collapse a zone to one price. For a close-confirmation trigger, use EntryType: conditional_close and Entry for the trigger price, while explaining the candle-close condition in the narrative.
+- Example entry-zone block (replace values with actual proposed levels):
 TV_PLAN_AUDIT_START
 Scenario: Bearish
-Entry: 1.12345
+EntryType: range
+EntryLow: 1.12300
+EntryHigh: 1.12350
 Stop: 1.12400
 Target: 1.12200
 TV_PLAN_AUDIT_END
-Use Scenario: Bullish for a bullish plan. Replace example prices with the exact prices you proposed. If any value is unavailable, omit that scenario's audit block.
+Use Scenario: Bullish for bullish plans. Use a separate block for every fully specified scenario. Never invent missing values; omit a block if any required value is unavailable.
 - Keep the response concise but useful for a discretionary trader.`;
 
   try {
