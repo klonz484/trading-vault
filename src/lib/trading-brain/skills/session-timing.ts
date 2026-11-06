@@ -92,7 +92,7 @@ const WEEKDAY_BY_NAME: Record<string, number> = {
   Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
 };
 
-function parseClock(value: string): number | null {
+function parseAbsoluteTimestamp(value: string): number {\n  if (typeof value !== "string" || !/T.*(?:Z|[+-]\\d{2}:\\d{2})$/.test(value)) return Number.NaN;\n  return Date.parse(value);\n}\n\nfunction parseClock(value: string): number | null {
   const match = /^(?:([01]\d|2[0-3])):([0-5]\d)$/.exec(value);
   return match ? Number(match[1]) * 60 + Number(match[2]) : null;
 }
@@ -205,7 +205,7 @@ export function assessSessionTiming(
     return buildResult(input, [{ code: "INVALID_POLICY", message: "Calendar age, event horizon, and event provenance requirements must be explicit and non-negative." }], emptyAssessment(input.instrument), "REJECTED", "INCOMPLETE");
   }
 
-  const asOfMs = Date.parse(input.asOf);
+  const asOfMs = parseAbsoluteTimestamp(input.asOf);
   if (!Number.isFinite(asOfMs)) {
     return buildResult(input, [{ code: "INVALID_AS_OF", message: "Evaluation time must be a valid absolute timestamp." }], emptyAssessment(input.instrument), "REJECTED", "INCOMPLETE");
   }
@@ -235,7 +235,7 @@ export function assessSessionTiming(
       findings.push({ code: "SESSION_PROVENANCE_MISSING", message: `Session ${session.id} has no schedule provenance.` });
       continue;
     }
-    const verifiedAt = Date.parse(session.verifiedAt);
+    const verifiedAt = parseAbsoluteTimestamp(session.verifiedAt);
     if (!Number.isFinite(verifiedAt) || verifiedAt > asOfMs) {
       findings.push({ code: "CALENDAR_TIMESTAMP_INVALID", message: `Session ${session.id} has an invalid or future verification timestamp.` });
       continue;
