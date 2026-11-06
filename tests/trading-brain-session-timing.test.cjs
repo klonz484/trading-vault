@@ -168,9 +168,11 @@ test("rejects invalid timezone, stale schedules, and malformed session definitio
   assert.ok(malformed.findings.some((finding) => finding.code === "INVALID_SESSION_DEFINITION"));
 });
 
-test("does not invent session ranges, trading hours, or event relevance", () => {
+test("does not infer that the market is closed when no session schedule is supplied", () => {
   const result = assessSessionTiming(input({ sessions: [], events: [] }), policy);
-  assert.equal(result.assessment.sessionState, "OUTSIDE_DEFINED_SESSIONS");
+  assert.equal(result.status, "INCOMPLETE");
+  assert.equal(result.assessment.sessionState, "UNAVAILABLE");
+  assert.ok(result.findings.some((finding) => finding.code === "SESSION_SCHEDULE_MISSING"));
   assert.equal(result.assessment.sessionRange, null);
   assert.equal(result.assessment.sessionRangeStatus, "NOT_CALCULATED_NO_CANDLE_INPUT");
   assert.deepEqual(result.assessment.relevantEvents, []);
