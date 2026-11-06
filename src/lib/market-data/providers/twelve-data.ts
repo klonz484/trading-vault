@@ -195,12 +195,20 @@ export class TwelveDataProvider {
       );
     }
 
-    const responseSymbol = typeof payload.meta?.symbol === "string"
-      ? payload.meta.symbol
-      : undefined;
-    const responseInterval = typeof payload.meta?.interval === "string"
-      ? payload.meta.interval
-      : undefined;
+    if (payload.meta?.symbol !== undefined && typeof payload.meta.symbol !== "string") {
+      throw new MarketDataProviderError(
+        "Twelve Data returned an invalid symbol metadata field.",
+        "twelve_data", "INVALID_RESPONSE", false,
+      );
+    }
+    if (payload.meta?.interval !== undefined && typeof payload.meta.interval !== "string") {
+      throw new MarketDataProviderError(
+        "Twelve Data returned an invalid interval metadata field.",
+        "twelve_data", "INVALID_RESPONSE", false,
+      );
+    }
+    const responseSymbol = payload.meta?.symbol;
+    const responseInterval = payload.meta?.interval;
     if (responseSymbol && responseSymbol.toUpperCase() !== instrument.twelveDataSymbol.toUpperCase()) {
       throw new MarketDataProviderError(
         "Twelve Data response symbol did not match the requested instrument.",
@@ -250,6 +258,6 @@ export class TwelveDataProvider {
     });
 
     // Do not sort here: preserve provider order so validation can detect it.
-    return { candles, retrievedAt, symbol: payload.meta?.symbol ?? instrument.twelveDataSymbol };
+    return { candles, retrievedAt, symbol: responseSymbol ?? instrument.twelveDataSymbol };
   }
 }
