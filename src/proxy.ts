@@ -7,9 +7,36 @@ export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  // Fail closed if Supabase is not configured.
+  // Fail closed if Supabase is not configured: never serve protected pages
+  // or API routes without being able to verify the owner's session.
   if (!supabaseUrl || !supabasePublishableKey) {
-    return supabaseResponse;
+    const pathname = request.nextUrl.pathname;
+
+    if (pathname === "/signup" || pathname.startsWith("/signup/")) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Authentication is unavailable because Supabase is not configured." },
+        { status: 503 },
+      );
+    }
+
+    const isPublicPath =
+      pathname === "/login" ||
+      pathname === "/forgot-password" ||
+      pathname === "/reset-password" ||
+      pathname === "/auth/callback";
+
+    if (isPublicPath) {
+      return supabaseResponse;
+    }
+
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("error", "owner_config_missing");
+    loginUrl.searchParams.set("next", pathname + request.nextUrl.search);
+    return NextResponse.redirect(loginUrl);
   }
 
   const supabase = createServerClient(supabaseUrl, supabasePublishableKey, {
