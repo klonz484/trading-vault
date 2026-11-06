@@ -27,8 +27,8 @@ function entryLabel(summary: ScannerSummary): string {
 
 function detailedText(value: string): string {
   return value
-    .replace(/TV_SETUP_SUMMARY_START\\s*\\n[\\s\\S]*?\\nTV_SETUP_SUMMARY_END/gi, "")
-    .replace(/TV_PLAN_AUDIT_START\\s*\\n[\\s\\S]*?\\nTV_PLAN_AUDIT_END/gi, "")
+    .replace(/TV_SETUP_SUMMARY_START\s*\n[\s\S]*?\nTV_SETUP_SUMMARY_END/gi, "")
+    .replace(/TV_PLAN_AUDIT_START\s*\n[\s\S]*?\nTV_PLAN_AUDIT_END/gi, "")
     .trim();
 }
 
