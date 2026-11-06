@@ -65,7 +65,9 @@ export function resolveCollaborativeDecision(
   let decision: CollaborativeDecision["decision"] = "NO_TRADE";
   let decisionStatus: CollaborativeDecision["decisionStatus"] = "DEGRADED";
 
-  if (!scannerComplete && brainComplete) agreementState = "BRAIN_ONLY";
+  if (conflicts.length > 0) {
+    rationale = "The collaborative decision is NO TRADE because contract validation failed.";
+  } else if (!scannerComplete && brainComplete) agreementState = "BRAIN_ONLY";
   else if (scannerComplete && !brainComplete) agreementState = "SCANNER_ONLY";
   else if (bothComplete) {
     if (request.scanner.decision !== request.brain.decision) {
