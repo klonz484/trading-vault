@@ -127,7 +127,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     outputs: ["Plan validation", "Risk/reward ranges", "Sizing calculation inputs", "Risk limitations"],
     dependencies: ["instrument-specialist", "market-structure", "evidence-quality"],
     safetyRules: [...commonSafety, "Never invent account balance or risk tolerance.", "No order placement or broker write access."],
-    status: "PLANNED",
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
