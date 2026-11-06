@@ -75,7 +75,7 @@ test("planned skills are never reported as implemented, tested, or enabled", () 
     implemented: 0,
     tested: 0,
     enabled: 0,
-    planned: 10,
+    planned: 9,
   });
 });
 
