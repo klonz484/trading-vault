@@ -21,7 +21,7 @@ const policy = { minimumSnapshots: 1, requiredDepthLevels: 2, maximumSnapshotAge
 test("summarizes venue-specific displayed depth and spread", () => {
   const result = assessScalpingMicrostructure(base, policy);
   assert.equal(result.status, "COMPLETE");
-  assert.equal(result.assessment.spreadTicks, 1);
+  assert.ok(Math.abs(result.assessment.spreadTicks - 1) < 1e-10);
   assert.equal(result.assessment.displayedBidDepth, 7);
   assert.equal(result.assessment.displayedAskDepth, 3);
   assert.equal(result.assessment.depthImbalance, 0.4);
