@@ -1,4 +1,4 @@
--- Trading Vault: least-privilege grants for the public schema.
+-- Trading Vault: least-privilege grants and private chart-image limits.
 -- RLS policies remain the row-level authorization boundary. This migration
 -- aligns SQL privileges with those policies and prevents anonymous table access.
 -- Apply as the Supabase migration owner (normally postgres).
@@ -39,5 +39,11 @@ alter default privileges for role postgres in schema public
   revoke all on tables from anon, authenticated;
 alter default privileges for role postgres in schema public
   revoke all on sequences from anon, authenticated;
+
+-- Enforce the same upload boundary as the scanner API at the Storage layer.
+update storage.buckets
+set file_size_limit = 10485760,
+    allowed_mime_types = array['image/png', 'image/jpeg', 'image/webp']
+where id = 'chart-images';
 
 commit;
