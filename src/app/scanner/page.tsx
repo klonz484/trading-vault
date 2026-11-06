@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
+import { parseScannerSummary, type ScannerSummary } from "@/lib/scanner/summary";
 
 type PlanAudit = {
   scenario: string; entryType?: "exact" | "range" | "conditional_close"; entry?: number | null; entryLow?: number; entryHigh?: number;
@@ -14,6 +15,23 @@ type PlanAudit = {
 };
 type AnalysisResponse = { analysis?: string; model?: string; status?: string; warning?: string; planAudits?: PlanAudit[]; error?: string };
 
+function formatPrice(value: number | null): string {
+  return value === null ? "—" : value.toString();
+}
+
+function entryLabel(summary: ScannerSummary): string {
+  if (summary.entryType === "range") return "Entry zone";
+  if (summary.entryType === "conditional_close") return "Close trigger";
+  return "Entry";
+}
+
+function detailedText(value: string): string {
+  return value
+    .replace(/TV_SETUP_SUMMARY_START\\s*\\n[\\s\\S]*?\\nTV_SETUP_SUMMARY_END/gi, "")
+    .replace(/TV_PLAN_AUDIT_START\\s*\\n[\\s\\S]*?\\nTV_PLAN_AUDIT_END/gi, "")
+    .trim();
+}
+
 export default function ScannerPage() {
   const [file, setFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -24,10 +42,32 @@ export default function ScannerPage() {
   const [result, setResult] = useState<string | null>(null);
   const [modelName, setModelName] = useState<string | null>(null);
   const [analysisWarning, setAnalysisWarning] = useState<string | null>(null);
+  const [scanComplete, setScanComplete] = useState(true);
   const [planAudits, setPlanAudits] = useState<PlanAudit[]>([]);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const parsedSummary = useMemo(() => result ? parseScannerSummary(result) : null, [result]);
+  const summary = useMemo(() => {
+    if (!parsedSummary || scanComplete) return parsedSummary;
+    return {
+      ...parsedSummary,
+      decision: "NO TRADE" as const,
+      orderType: "NONE" as const,
+      entryType: "none" as const,
+      entry: null,
+      entryLow: null,
+      entryHigh: null,
+      stopLoss: null,
+      takeProfit1: null,
+      takeProfit2: null,
+      takeProfit3: null,
+      invalidation: null,
+      reason: "This analysis did not finish normally. Its trade levels are hidden; run a fresh scan before considering any setup.",
+    };
+  }, [parsedSummary, scanComplete]);
 
   const selectFile = (selected: File | undefined) => {
     if (!selected) return;
@@ -36,6 +76,7 @@ export default function ScannerPage() {
     setModelName(null);
     setAnalysisWarning(null);
     setPlanAudits([]);
+    setDetailsOpen(false);
     if (!(["image/png", "image/jpeg", "image/webp"].includes(selected.type))) {
       setError("Please choose a PNG, JPG, or WebP image.");
       return;
@@ -57,6 +98,7 @@ export default function ScannerPage() {
     setResult(null);
     setAnalysisWarning(null);
     setPlanAudits([]);
+    setDetailsOpen(false);
     try {
       const body = new FormData();
       body.append("image", file);
@@ -70,6 +112,7 @@ export default function ScannerPage() {
       setResult(data.analysis || "The model did not return an analysis.");
       setModelName(data.model || "Vision model");
       setAnalysisWarning(data.warning || null);
+      setScanComplete(data.status === "completed");
       setPlanAudits(data.planAudits || []);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong. Please try again.");
@@ -78,6 +121,12 @@ export default function ScannerPage() {
     }
   };
 
+  const decisionStyle = summary?.decision === "BUY"
+    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+    : summary?.decision === "SELL"
+      ? "border-rose-500/40 bg-rose-500/10 text-rose-300"
+      : "border-slate-500/40 bg-slate-500/10 text-slate-200";
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
@@ -85,13 +134,13 @@ export default function ScannerPage() {
         <div className="mb-7">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold text-white tracking-tight">AI Chart Scanner</h1>
-            <span className="text-[10px] uppercase tracking-wider text-cyan-300 border border-cyan-500/30 bg-cyan-500/10 rounded-full px-2.5 py-1">Vision AI</span>
+            <span className="text-[10px] uppercase tracking-wider text-cyan-300 border border-cyan-500/30 bg-cyan-500/10 rounded-full px-2.5 py-1">Scanner V2</span>
           </div>
-          <p className="text-sm text-[var(--muted)] mt-1">Upload an MT5 screenshot for a structured, image-based technical read.</p>
+          <p className="text-sm text-[var(--muted)] mt-1">One clear decision first. Full chart evidence remains available when you need it.</p>
           <Link href="/scanner/history" className="inline-block mt-3 text-xs text-cyan-300 hover:text-cyan-200">View saved scan history →</Link>
         </div>
 
-        <div className="grid xl:grid-cols-2 gap-6 max-w-7xl">
+        <div className="grid xl:grid-cols-[minmax(320px,0.85fr)_minmax(0,1.15fr)] gap-6 max-w-7xl">
           <section className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 lg:p-6">
             <h2 className="font-medium text-white mb-4">Chart input</h2>
             <button
@@ -114,7 +163,7 @@ export default function ScannerPage() {
               )}
             </button>
             <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => selectFile(event.target.files?.[0])} className="hidden" />
-            {file && <div className="flex items-center justify-between gap-3 mt-2 text-xs text-[var(--muted)]"><span className="truncate">{file.name}</span><button onClick={() => { setFile(null); setImagePreview(null); setResult(null); setError(null); }} className="text-cyan-300 hover:text-cyan-200">Remove</button></div>}
+            {file && <div className="flex items-center justify-between gap-3 mt-2 text-xs text-[var(--muted)]"><span className="truncate">{file.name}</span><button type="button" onClick={() => { setFile(null); setImagePreview(null); setResult(null); setError(null); setPlanAudits([]); }} className="text-cyan-300 hover:text-cyan-200">Remove</button></div>}
 
             <div className="grid sm:grid-cols-2 gap-3 mt-5">
               <label className="text-xs text-[var(--muted)]">Instrument
@@ -136,32 +185,102 @@ export default function ScannerPage() {
 
           <section className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 lg:p-6 min-h-[420px]">
             <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="font-medium text-white">Analysis</h2>
+              <div>
+                <h2 className="font-medium text-white">Trading decision</h2>
+                <p className="text-xs text-[var(--muted)] mt-1">{symbol} · {timeframe}</p>
+              </div>
               {modelName && <span className="text-[10px] text-cyan-300 border border-cyan-500/30 rounded-full px-2 py-1">{modelName}</span>}
             </div>
-            {!result && !analyzing && !error && <div className="min-h-[330px] flex flex-col items-center justify-center text-center text-[var(--muted)] text-sm"><div className="text-3xl text-cyan-400/40 mb-3">⌁</div><p>Your chart read will appear here.</p><p className="text-xs mt-2 max-w-xs">The model will separate visible evidence from interpretation and flag anything it cannot read.</p></div>}
+
+            {!result && !analyzing && !error && <div className="min-h-[330px] flex flex-col items-center justify-center text-center text-[var(--muted)] text-sm"><div className="text-3xl text-cyan-400/40 mb-3">⌁</div><p>Your BUY, SELL or NO TRADE result will appear here.</p><p className="text-xs mt-2 max-w-xs">Upload a chart and run an analysis. Trading Vault will not force a signal when evidence is incomplete.</p></div>}
             {analyzing && <div className="min-h-[330px] flex flex-col items-center justify-center gap-3"><div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"/><p className="text-sm text-[var(--muted)]">Inspecting market structure, levels and chart context…</p></div>}
             {error && <div role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200"><p className="font-medium mb-1">Analysis unavailable</p>{error}</div>}
-            {result && analysisWarning && <div role="alert" className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">{analysisWarning}</div>}
-            {result && planAudits.length > 0 && <div className="mb-4 rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-3">
-              <p className="text-xs font-semibold text-cyan-200 mb-2">Trade-plan arithmetic check</p>
-              <p className="text-[11px] text-[var(--muted)] mb-3">Calculations use the AI-proposed values in the audit block. They check arithmetic and direction only—not whether the chart levels are accurate or tradable.</p>
-              <div className="space-y-3">{planAudits.map((plan, index) => <div key={index} className="text-xs">
-                <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-white capitalize">{plan.scenario} scenario</span><span className={plan.valid ? "text-emerald-300" : "text-rose-300"}>{plan.valid ? "Arithmetic consistent" : "Check required"}</span></div>
-                <p className="text-[var(--muted)]">{plan.entryType === "range" ? `Entry area ${plan.entryLow}–${plan.entryHigh}` : plan.entryType === "conditional_close" ? `Close trigger ${plan.entry ?? plan.entryLow}` : `Exact entry ${plan.entry ?? plan.entryLow}`} · Stop {plan.stop} · Target {plan.target}</p>
-                <p className="text-[var(--muted)]">Risk {Number(plan.riskDistanceMin ?? plan.riskDistance ?? 0).toFixed(5)}{plan.riskDistanceMax !== undefined && plan.riskDistanceMax !== plan.riskDistanceMin ? `–${plan.riskDistanceMax.toFixed(5)}` : ""}{plan.riskPipsMin != null ? ` (${plan.riskPipsMin.toFixed(1)}–${Number(plan.riskPipsMax ?? plan.riskPipsMin).toFixed(1)} pips)` : plan.riskPips != null ? ` (${plan.riskPips.toFixed(1)} pips)` : ""} · Reward {Number(plan.rewardDistanceMin ?? plan.rewardDistance ?? 0).toFixed(5)}{plan.rewardDistanceMax !== undefined && plan.rewardDistanceMax !== plan.rewardDistanceMin ? `–${plan.rewardDistanceMax.toFixed(5)}` : ""}{plan.rewardPipsMin != null ? ` (${plan.rewardPipsMin.toFixed(1)}–${Number(plan.rewardPipsMax ?? plan.rewardPipsMin).toFixed(1)} pips)` : plan.rewardPips != null ? ` (${plan.rewardPips.toFixed(1)} pips)` : ""} · R:R {Number(plan.riskRewardMin ?? plan.riskReward ?? 0).toFixed(2)}{plan.riskRewardMax !== undefined && plan.riskRewardMax !== plan.riskRewardMin ? `–${plan.riskRewardMax.toFixed(2)}` : ""}R</p>
-                <p className="text-[11px] text-amber-200 mt-1">Arithmetic: {(plan.arithmeticValid ?? plan.valid) ? "valid" : "invalid"} · Direction: {(plan.directionValid ?? plan.valid) ? "valid" : "invalid"} · Technical levels: unverified</p>
-                {plan.issues.map((issue, issueIndex) => <p key={issueIndex} className="text-rose-300 mt-1">{issue}</p>)}
-                {plan.pipSize === null && <p className="text-amber-200 mt-1">Pip conversion is not configured for this instrument; price-distance and R:R arithmetic only.</p>}
-              </div>)}</div>
-            </div>}
-            {result && <div className="whitespace-pre-wrap text-sm text-[var(--foreground)] leading-7">{result}</div>}
+
+            {summary && (
+              <div className="space-y-4">
+                {analysisWarning && <div role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">{analysisWarning}</div>}
+                <div className={`rounded-xl border p-4 sm:p-5 ${decisionStyle}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.18em] opacity-80">Trading decision</p>
+                      <h3 className="text-3xl sm:text-4xl font-bold tracking-tight mt-1">{summary.decision}</h3>
+                    </div>
+                    {summary.orderType !== "NONE" && <span className="rounded-full border border-current/30 px-3 py-1 text-xs font-semibold tracking-wide">{summary.orderType} ORDER</span>}
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-white/90">{summary.reason}</p>
+                </div>
+
+                <div className="rounded-xl border border-[var(--border)] bg-black/10 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold text-white">Trade levels</h3>
+                    <span className="text-[10px] uppercase tracking-wide text-amber-200">Technical levels unverified</span>
+                  </div>
+                  {summary.decision === "NO TRADE" ? (
+                    <p className="mt-3 text-sm text-[var(--muted)]">No entry, stop loss or targets are shown because there is no complete, validated setup.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+                      <div className="rounded-lg bg-[var(--card)] border border-[var(--border)] p-3">
+                        <p className="text-[10px] uppercase text-[var(--muted)]">{entryLabel(summary)}</p>
+                        <p className="text-base sm:text-lg font-semibold text-white mt-1">{summary.entryType === "range" ? `${formatPrice(summary.entryLow)}–${formatPrice(summary.entryHigh)}` : formatPrice(summary.entry)}</p>
+                      </div>
+                      <div className="rounded-lg bg-[var(--card)] border border-[var(--border)] p-3">
+                        <p className="text-[10px] uppercase text-[var(--muted)]">Stop loss</p>
+                        <p className="text-base sm:text-lg font-semibold text-rose-300 mt-1">{formatPrice(summary.stopLoss)}</p>
+                      </div>
+                      <div className="rounded-lg bg-[var(--card)] border border-[var(--border)] p-3">
+                        <p className="text-[10px] uppercase text-[var(--muted)]">Take profit 1</p>
+                        <p className="text-base sm:text-lg font-semibold text-emerald-300 mt-1">{formatPrice(summary.takeProfit1)}</p>
+                      </div>
+                      {summary.takeProfit2 !== null && <div className="rounded-lg bg-[var(--card)] border border-[var(--border)] p-3"><p className="text-[10px] uppercase text-[var(--muted)]">Take profit 2</p><p className="text-base sm:text-lg font-semibold text-emerald-300 mt-1">{formatPrice(summary.takeProfit2)}</p></div>}
+                      {summary.takeProfit3 !== null && <div className="rounded-lg bg-[var(--card)] border border-[var(--border)] p-3"><p className="text-[10px] uppercase text-[var(--muted)]">Take profit 3</p><p className="text-base sm:text-lg font-semibold text-emerald-300 mt-1">{formatPrice(summary.takeProfit3)}</p></div>}
+                      <div className="rounded-lg bg-[var(--card)] border border-[var(--border)] p-3">
+                        <p className="text-[10px] uppercase text-[var(--muted)]">Invalidation</p>
+                        <p className="text-sm font-semibold text-white mt-1">{formatPrice(summary.invalidation)}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-[var(--border)] p-3 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold text-white">Evidence confidence</p>
+                    <p className="text-xs text-[var(--muted)] mt-1">Not calibrated — no percentage is displayed until a validated scoring method is available.</p>
+                  </div>
+                  <span className="text-xs text-amber-200">Unrated</span>
+                </div>
+
+                <button type="button" onClick={() => setDetailsOpen((open) => !open)} aria-expanded={detailsOpen} className="w-full rounded-lg border border-cyan-500/30 px-4 py-3 text-sm font-medium text-cyan-200 hover:bg-cyan-500/5 transition-colors">
+                  {detailsOpen ? "Hide detailed analysis ↑" : "View detailed analysis ↓"}
+                </button>
+
+                {detailsOpen && (
+                  <div className="space-y-4">
+                    {planAudits.length > 0 && <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-3">
+                      <p className="text-xs font-semibold text-cyan-200 mb-2">Trade-plan arithmetic check</p>
+                      <p className="text-[11px] text-[var(--muted)] mb-3">These checks validate price-distance arithmetic and direction only. They do not prove that chart levels are accurate or tradable.</p>
+                      <div className="space-y-3">{planAudits.map((plan, index) => <div key={index} className="text-xs">
+                        <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-white capitalize">{plan.scenario} scenario</span><span className={plan.valid ? "text-emerald-300" : "text-rose-300"}>{plan.valid ? "Arithmetic consistent" : "Check required"}</span></div>
+                        <p className="text-[var(--muted)]">{plan.entryType === "range" ? `Entry area ${plan.entryLow}–${plan.entryHigh}` : plan.entryType === "conditional_close" ? `Close trigger ${plan.entry ?? plan.entryLow}` : `Exact entry ${plan.entry ?? plan.entryLow}`} · Stop {plan.stop} · Target {plan.target}</p>
+                        <p className="text-[var(--muted)]">Risk {Number(plan.riskDistanceMin ?? plan.riskDistance ?? 0).toFixed(5)}{plan.riskDistanceMax !== undefined && plan.riskDistanceMax !== plan.riskDistanceMin ? `–${plan.riskDistanceMax.toFixed(5)}` : ""}{plan.riskPipsMin != null ? ` (${plan.riskPipsMin.toFixed(1)}–${Number(plan.riskPipsMax ?? plan.riskPipsMin).toFixed(1)} pips)` : plan.riskPips != null ? ` (${plan.riskPips.toFixed(1)} pips)` : ""} · Reward {Number(plan.rewardDistanceMin ?? plan.rewardDistance ?? 0).toFixed(5)}{plan.rewardDistanceMax !== undefined && plan.rewardDistanceMax !== plan.rewardDistanceMin ? `–${plan.rewardDistanceMax.toFixed(5)}` : ""}{plan.rewardPipsMin != null ? ` (${plan.rewardPipsMin.toFixed(1)}–${Number(plan.rewardPipsMax ?? plan.rewardPipsMin).toFixed(1)} pips)` : plan.rewardPips != null ? ` (${plan.rewardPips.toFixed(1)} pips)` : ""} · R:R {Number(plan.riskRewardMin ?? plan.riskReward ?? 0).toFixed(2)}{plan.riskRewardMax !== undefined && plan.riskRewardMax !== plan.riskRewardMin ? `–${plan.riskRewardMax.toFixed(2)}` : ""}R</p>
+                        <p className="text-[11px] text-amber-200 mt-1">Arithmetic: {(plan.arithmeticValid ?? plan.valid) ? "valid" : "invalid"} · Direction: {(plan.directionValid ?? plan.valid) ? "valid" : "invalid"} · Technical levels: unverified</p>
+                        {plan.issues.map((issue, issueIndex) => <p key={issueIndex} className="text-rose-300 mt-1">{issue}</p>)}
+                        {plan.pipSize === null && <p className="text-amber-200 mt-1">Pip conversion is not configured for this instrument; price-distance and R:R arithmetic only.</p>}
+                      </div>)}</div>
+                    </div>}
+                    <div className="rounded-lg border border-[var(--border)] bg-black/10 p-4">
+                      <h3 className="text-sm font-semibold text-white mb-3">Full chart analysis</h3>
+                      <div className="whitespace-pre-wrap text-sm text-[var(--foreground)] leading-7">{detailedText(result || "")}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         </div>
 
         <div className="mt-6 p-4 rounded-xl border border-[var(--border)] bg-[var(--card)]/50 max-w-7xl">
-          <p className="text-xs text-[var(--muted)] leading-5"><span className="text-cyan-400">Model:</span> Groq-hosted Qwen 3.8 27B Vision. It accepts image and text inputs; free-tier usage is subject to account rate limits and model availability. Your API key stays on the server and is never sent to the browser.</p>
-          <p className="text-xs text-[var(--muted)] leading-5 mt-2">Trading risk notice: image-based chart reads can be wrong or miss context. Treat outputs as research support, verify every level in MT5, and make all execution decisions manually.</p>
+          <p className="text-xs text-[var(--muted)] leading-5"><span className="text-cyan-400">Model:</span> Groq-hosted Qwen 3.8 27B Vision. Your API key stays on the server and is never sent to the browser.</p>
+          <p className="text-xs text-[var(--muted)] leading-5 mt-2">Image-based chart reads can be wrong or miss context. Verify every level in MT5. Trading Vault provides research support only; all execution remains manual.</p>
         </div>
       </main>
     </div>
