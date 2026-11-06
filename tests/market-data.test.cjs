@@ -46,6 +46,7 @@ function snapshot(provider, close) {
   const item = candle({ provider, close });
   return {
     schemaVersion: "1.0.0",
+    validatorVersion: "1.0.0",
     snapshotVersion: `test:${provider}`,
     instrument: "EURUSD",
     timeframe: "M1",
