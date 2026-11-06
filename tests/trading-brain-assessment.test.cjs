@@ -1,4 +1,6 @@
 /* global require, module */
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const ts = require("typescript");
 
