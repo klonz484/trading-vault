@@ -41,7 +41,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     purpose: "Classify swings, trend/range state, BOS, CHoCH/MSS, displacement, retests, and structural invalidation.",
     requiredEvidence: ["Timestamped OHLC candles", "Closed-candle state", "Swing classification rules", "Instrument precision"],
     outputs: ["Swing map", "Structure state", "Confirmed/provisional breaks", "Invalidation evidence"],
-    dependencies: ["evidence-quality", "multi-timeframe"],
+    dependencies: ["evidence-quality"],
     safetyRules: [...commonSafety, "Never promote a provisional forming-candle event to confirmed structure."],
     status: "IN_DEVELOPMENT",
     version: "0.1.0",
