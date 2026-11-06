@@ -175,7 +175,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     outputs: ["Evidence readiness", "Data-quality findings", "Provenance map", "Unresolved conflicts"],
     dependencies: [],
     safetyRules: [...commonSafety, "Never mark data READY unless every required validation and entitlement gate passes."],
-    status: "PLANNED",
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
