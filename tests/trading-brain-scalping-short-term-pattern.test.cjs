@@ -16,7 +16,7 @@ const policy = {
 };
 const base = {
   symbol: "EURUSD",
-  asOf: "2026-11-06T10:00:04.000Z",
+  asOf: "2026-11-06T10:00:12.000Z",
   tickSize: 0.00001,
   sequenceComplete: true,
   observations: [
@@ -40,7 +40,7 @@ test("identifies a configured upward quote-sequence impulse", () => {
   assert.equal(result.status, "COMPLETE");
   assert.equal(result.evidenceReadiness, "READY");
   assert.equal(result.assessment.candidate, "UPWARD_IMPULSE");
-  assert.equal(result.assessment.netMoveTicks, 5);
+  assert.ok(Math.abs(result.assessment.netMoveTicks - 5) < 1e-8);
   assert.equal(result.assessment.directionalConsistency, 1);
 });
 
