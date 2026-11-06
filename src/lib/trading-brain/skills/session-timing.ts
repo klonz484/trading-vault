@@ -214,7 +214,7 @@ export function assessSessionTiming(
   if (!Number.isFinite(asOfMs)) {
     return buildResult(input, [{ code: "INVALID_AS_OF", message: "Evaluation time must be a valid absolute timestamp." }], emptyAssessment(input.instrument), "REJECTED", "INCOMPLETE");
   }
-  if (!Array.isArray(input.instrumentCurrencies) || input.instrumentCurrencies.length === 0) {
+  if (!Array.isArray(input.instrumentCurrencies) || input.instrumentCurrencies.length === 0 || input.instrumentCurrencies.some((currency) => typeof currency !== "string" || currency.trim().length === 0)) {
     return buildResult(input, [{ code: "INSTRUMENT_CURRENCIES_MISSING", message: "Explicit instrument currency relevance is required before filtering economic events." }], emptyAssessment(input.instrument), "INCOMPLETE", "INCOMPLETE");
   }
 
@@ -311,7 +311,7 @@ export function assessSessionTiming(
     instrument: input.instrument,
     activeSessions,
     sessionState: hardBlock ? "UNAVAILABLE" : activeSessions.length > 0 ? "ACTIVE" : "OUTSIDE_DEFINED_SESSIONS",
-    relevantEvents: relevantEvents.sort((a, b) => a.secondsUntilStart - b.secondsUntilStart),
+    relevantEvents: relevantEvents.sort((a, b) => {\n      const rank = { IN_PROGRESS: 0, UPCOMING: 1, OUTSIDE_WINDOW: 2 };\n      return rank[a.state] - rank[b.state] || a.secondsUntilStart - b.secondsUntilStart;\n    }),
     sessionRange: null,
     sessionRangeStatus: "NOT_CALCULATED_NO_CANDLE_INPUT",
   };
