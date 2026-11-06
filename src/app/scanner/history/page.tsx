@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
+import { parseScannerSummary } from "@/lib/scanner/summary";
 
 export const instant = false;
 
@@ -68,7 +69,10 @@ async function PrivateScanHistoryContent() {
         imageUrl = data?.signedUrl || null;
       }
       const analysis = scan.analysis as StoredAnalysis | null;
-      return { ...scan, imageUrl, analysisText: analysis?.text || "No saved analysis text.", notes: analysis?.notes || "", analysisWarning: analysis?.warning || "", planAudits: analysis?.planAudits || [] };
+      const analysisText = analysis?.text || "No saved analysis text.";
+      const parsedSummary = parseScannerSummary(analysisText);
+      const setupSummary = scan.status === "completed" ? parsedSummary : { ...parsedSummary, decision: "NO TRADE" as const, orderType: "NONE" as const, entryType: "none" as const, entry: null, entryLow: null, entryHigh: null, stopLoss: null, takeProfit1: null, takeProfit2: null, takeProfit3: null, invalidation: null, reason: "This scan did not finish normally. Its trade levels are hidden; run a fresh scan before considering a setup." };
+      return { ...scan, imageUrl, analysisText, setupSummary, notes: analysis?.notes || "", analysisWarning: analysis?.warning || "", planAudits: analysis?.planAudits || [] };
     }),
   );
 
@@ -116,6 +120,21 @@ async function PrivateScanHistoryContent() {
                   <span className="text-xs text-[var(--muted)]">{new Date(scan.created_at).toLocaleString()}</span>
                 </div>
                 <p className="text-xs text-[var(--muted)] mt-1">Model: {scan.model_name || "Not recorded"} · Status: {scan.status}</p>
+                <div className={`mt-4 rounded-xl border p-4 ${scan.setupSummary.decision === "BUY" ? "border-emerald-500/40 bg-emerald-500/10" : scan.setupSummary.decision === "SELL" ? "border-rose-500/40 bg-rose-500/10" : "border-slate-500/40 bg-slate-500/10"}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-2xl font-bold text-white">{scan.setupSummary.decision}</p>
+                    {scan.setupSummary.orderType !== "NONE" && <span className="text-xs text-white border border-white/20 rounded-full px-2 py-1">{scan.setupSummary.orderType} ORDER</span>}
+                  </div>
+                  <p className="text-sm text-[var(--foreground)] mt-2">{scan.setupSummary.reason}</p>
+                  {scan.setupSummary.decision !== "NO TRADE" && <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 text-xs">
+                    <div className="rounded bg-black/20 p-2"><span className="text-[var(--muted)]">Entry</span><p className="text-white font-semibold">{scan.setupSummary.entryType === "range" ? `${scan.setupSummary.entryLow}–${scan.setupSummary.entryHigh}` : scan.setupSummary.entry}</p></div>
+                    <div className="rounded bg-black/20 p-2"><span className="text-[var(--muted)]">Stop loss</span><p className="text-rose-300 font-semibold">{scan.setupSummary.stopLoss}</p></div>
+                    <div className="rounded bg-black/20 p-2"><span className="text-[var(--muted)]">Take profit 1</span><p className="text-emerald-300 font-semibold">{scan.setupSummary.takeProfit1}</p></div>
+                    {scan.setupSummary.takeProfit2 !== null && <div className="rounded bg-black/20 p-2"><span className="text-[var(--muted)]">Take profit 2</span><p className="text-emerald-300 font-semibold">{scan.setupSummary.takeProfit2}</p></div>}
+                    {scan.setupSummary.takeProfit3 !== null && <div className="rounded bg-black/20 p-2"><span className="text-[var(--muted)]">Take profit 3</span><p className="text-emerald-300 font-semibold">{scan.setupSummary.takeProfit3}</p></div>}
+                  </div>}
+                  <p className="text-[11px] text-amber-200 mt-3">Confidence not calibrated · Technical levels unverified</p>
+                </div>
                 {scan.status !== "completed" && (
                   <div role="alert" className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-5 text-amber-200">
                     {scan.analysisWarning || "This scan is marked incomplete. Do not treat it as a complete trade plan; run a fresh analysis if you need the missing sections."}
@@ -133,7 +152,7 @@ async function PrivateScanHistoryContent() {
                     {plan.pipSize === null && <p className="text-amber-200 mt-1">Pip conversion is not configured for this instrument.</p>}
                   </div>)}
                 </div>}
-                <div className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[var(--foreground)]">{scan.analysisText}</div>
+                <details className="mt-4 rounded-lg border border-[var(--border)] p-3"><summary className="cursor-pointer text-sm font-medium text-cyan-200">View detailed analysis</summary><div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--foreground)]">{scan.analysisText.replace(/TV_SETUP_SUMMARY_START\\s*\\n[\\s\\S]*?\\nTV_SETUP_SUMMARY_END/gi, "").replace(/TV_PLAN_AUDIT_START\\s*\\n[\\s\\S]*?\\nTV_PLAN_AUDIT_END/gi, "").trim()}</div></details>
                 {scan.notes && <p className="mt-3 text-xs text-[var(--muted)]">Your context: {scan.notes}</p>}
               </div>
             </article>
