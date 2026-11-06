@@ -91,6 +91,8 @@ export interface MarketDataSnapshot {
   candles: NormalizedCandle[];
   /** Original normalized provider observations, including invalid records for audit. */
   rawCandles: NormalizedCandle[];
+  /** Immutable correction events carried with the snapshot; persistence is a separate approved layer. */
+  correctionHistory: EvidenceCorrection[];
   validation: CandleValidation;
   limitations: string[];
 }
