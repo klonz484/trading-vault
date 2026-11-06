@@ -229,6 +229,9 @@ export class TwelveDataProvider {
         !Number.isFinite(timestampMs) ||
         timestampMs + TIMEFRAME_SECONDS[timeframe] * 1000 > retrievedAtMs;
 
+      const explicitTimezone = /(?:Z|[+-]\\d{2}:?\\d{2})$/i.exec(sourceTimestamp)?.[0];
+      const sourceTimezone = explicitTimezone ?? "UTC (requested)";
+
       return {
         instrument: instrument.id,
         timeframe,
@@ -241,7 +244,7 @@ export class TwelveDataProvider {
         provider: "twelve_data",
         retrievedAt,
         sourceTimestamp,
-        sourceTimezone: "UTC",
+        sourceTimezone,
         provisional,
       };
     });
