@@ -93,7 +93,7 @@ const WEEKDAY_BY_NAME: Record<string, number> = {
 };
 
 function parseAbsoluteTimestamp(value: string): number {
-  if (typeof value !== "string" || !/T.*(?:Z|[+-]\\d{2}:\\d{2})$/.test(value)) return Number.NaN;
+  if (typeof value !== "string" || !/T.*(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return Number.NaN;
   return Date.parse(value);
 }
 
@@ -153,8 +153,8 @@ function buildResult(
   readiness: BrainSkillResult<SessionTimingFinding>["evidenceReadiness"],
 ): BrainSkillResult<SessionTimingFinding> & { assessment: SessionTimingAssessment } {
   const references = [
-    ...input.sessions.flatMap((session) => session.sourceReferences),
-    ...input.events.flatMap((event) => event.sourceReferences),
+    ...input.sessions.flatMap((session) => Array.isArray(session.sourceReferences) ? session.sourceReferences : []),
+    ...input.events.flatMap((event) => Array.isArray(event.sourceReferences) ? event.sourceReferences : []),
   ];
   return {
     skillId: "session-timing",
@@ -270,9 +270,11 @@ export function assessSessionTiming(
 
   const relevantEvents: RelevantSessionEvent[] = [];
   for (const event of input.events) {
-    const startsAt = Date.parse(event.startsAt);
-    const endsAt = Date.parse(event.endsAt);
-    if (!event.id || !event.title || !Number.isFinite(startsAt) || !Number.isFinite(endsAt) || endsAt <= startsAt) {
+    const startsAt = parseAbsoluteTimestamp(event.startsAt);
+    const endsAt = parseAbsoluteTimestamp(event.endsAt);
+    const validImpact = ["LOW", "MEDIUM", "HIGH", "UNSPECIFIED"].includes(event.impact);
+    const validCurrencies = Array.isArray(event.currencies) && event.currencies.length > 0 && event.currencies.every((currency) => typeof currency === "string" && currency.trim().length > 0);
+    if (!event.id || !event.title || !Number.isFinite(startsAt) || !Number.isFinite(endsAt) || endsAt <= startsAt || !validImpact || !validCurrencies) {
       findings.push({ code: "INVALID_EVENT_WINDOW", message: `Event ${event.id || "(unnamed)"} has an invalid time window.` });
       continue;
     }
@@ -280,8 +282,9 @@ export function assessSessionTiming(
       findings.push({ code: "EVENT_PROVENANCE_MISSING", message: `Event ${event.id} has no source provenance.` });
       continue;
     }
+    const instrumentCurrencies = input.instrumentCurrencies.map((value) => value.toUpperCase());
     const matchedCurrencies = [...new Set(event.currencies.map((currency) => currency.toUpperCase()))]
-      .filter((currency) => input.instrumentCurrencies.map((value) => value.toUpperCase()).includes(currency));
+      .filter((currency) => instrumentCurrencies.includes(currency));
     if (matchedCurrencies.length === 0) continue;
     const secondsUntilStart = (startsAt - asOfMs) / 1000;
     const inProgress = asOfMs >= startsAt && asOfMs < endsAt;
