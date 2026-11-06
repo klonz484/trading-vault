@@ -178,6 +178,10 @@ export function assessRiskPlan(
     return makeResult(input, findings, assessment, "REJECTED", "INCOMPLETE");
   }
 
+  if (!Array.isArray(plan.takeProfits)) {
+    findings.push({ code: "INVALID_PLAN", message: "Take-profit levels must be supplied as an array." });
+    return makeResult(input, findings, assessment, "REJECTED", "INCOMPLETE");
+  }
   const prices = [plan.entry.low, plan.entry.high, plan.stopLoss, ...plan.takeProfits];
   const validOrderType = ["MARKET", "LIMIT", "STOP"].includes(plan.entry.type);
   if (
@@ -186,7 +190,6 @@ export function assessRiskPlan(
     prices.some((price) => !isFinitePositive(price) ||
       !alignsToPrecision(price, instrument.pricePrecision) ||
       !alignsToTick(price, instrument.tickSize)) ||
-    !Array.isArray(plan.takeProfits)
   ) {
     findings.push({ code: "INVALID_PLAN", message: "The plan requires a supported direction/order type and positive entry, stop and target prices aligned to declared precision and tick size." });
     return makeResult(input, findings, assessment, "REJECTED", "INCOMPLETE");
