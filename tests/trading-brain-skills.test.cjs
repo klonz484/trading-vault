@@ -61,10 +61,6 @@ test("registry exposes expected core skills and group filtering", () => {
   assert.equal(getBrainSkill("scalp-ultra-short-signals").status, "IN_DEVELOPMENT");
   assert.equal(getBrainSkill("not-a-skill"), undefined);
   assert.equal(getBrainSkill("scalp-context").status, "IN_DEVELOPMENT");
-  for (const id of []) {
-    assert.equal(getBrainSkill(id).status, "PLANNED");
-    assert.equal(getBrainSkill(id).group, "SCALPING");
-  }
   assert.equal(getBrainSkillsByGroup("SCALPING").length, 8);
   assert.ok(getBrainSkillsByGroup("QUALITY").some((skill) => skill.id === "evidence-quality"));
   assert.ok(getBrainSkillsByGroup("LEARNING").some((skill) => skill.id === "backtesting"));
