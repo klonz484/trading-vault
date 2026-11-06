@@ -16,7 +16,7 @@ const policy = {
 };
 const base = {
   symbol: "EURUSD",
-  asOf: "2026-11-06T10:00:12.000Z",
+  asOf: "2026-11-06T10:00:04.000Z",
   tickSize: 0.00001,
   sequenceComplete: true,
   observations: [
@@ -79,7 +79,9 @@ test("blocks invalid ordering, sequence gaps, stale quotes and wide spreads", ()
     ...base,
     observations: base.observations.map((item, index) => index === 2
       ? { ...item, timestamp: "2026-11-06T10:00:06.000Z" }
-      : item),
+      : index === 3 ? { ...item, timestamp: "2026-11-06T10:00:07.000Z" } : item),
+    asOf: "2026-11-06T10:00:08.000Z",
+    sourceReferences: [{ ...base.sourceReferences[0], observedAt: "2026-11-06T10:00:07.000Z", receivedAt: "2026-11-06T10:00:07.100Z" }],
   }, policy);
   assert.ok(gap.findings.some((finding) => finding.code === "EXCESSIVE_GAP"));
 
