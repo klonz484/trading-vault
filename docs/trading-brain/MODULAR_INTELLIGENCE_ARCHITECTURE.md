@@ -2,7 +2,7 @@
 
 **Branch:** `feat/trading-brain-foundation`  
 **Registry version:** `0.1.0`  
-**Scope:** Approved 18-skill architecture. This is a design and implementation registry, not a claim that the skills are already active.
+**Scope:** Approved 26-skill architecture, including an eight-specialist Scalping Intelligence domain. This is a design and implementation registry, not a claim that the skills are already active.
 
 ## Operating model
 
@@ -32,6 +32,14 @@ The Scanner remains a separate system. Scanner output may be an input to collabo
 | 16 | Contradiction Detection Intelligence | Challenges inconsistent evidence and conclusions |
 | 17 | Confidence Calibration Intelligence | Out-of-sample calibration and uncertainty reporting |
 | 18 | Knowledge Management Intelligence | Methodology versions, experiments, approvals and rollback |
+| 19 | Scalping Microstructure Perception | Venue-specific depth, spread, observable order-book and tape evidence |
+| 20 | Ultra-Short-Term Intelligence | Tick/sub-minute patterns, volume flow and micro-regimes |
+| 21 | Scalping Latency and Execution Intelligence | Measured latency, slippage and fill-quality analysis; no routing |
+| 22 | Scalping Micro Risk and Inventory Intelligence | Tick-based risk limits, inventory and session exposure |
+| 23 | Scalping Cost-Aware Edge Intelligence | Round-trip costs and net expected edge after costs |
+| 24 | Scalping Session and Context Intelligence | Session phase, news, volatility and cross-asset context |
+| 25 | Scalping Adaptive Strategy Intelligence | Research-mode suitability for momentum, mean reversion and market making |
+| 26 | Scalping Behaviour and Discipline Intelligence | Private overtrading, size escalation and discipline observations |
 
 The canonical IDs, dependencies, evidence requirements, outputs, safety rules, and lifecycle statuses are maintained in `src/lib/trading-brain/skills/registry.ts`.
 
@@ -98,7 +106,7 @@ A specialist that lacks required inputs returns an explicit incomplete result. I
 
 - **Fundamental and News Intelligence:** validates and organizes caller/provider-supplied scheduled events, released data, central-bank communications and macro commentary. It filters only by explicitly supplied instrument currencies, checks publication freshness and event horizons, and preserves source attribution plus actual/forecast/previous values verbatim. Missing feeds remain incomplete; provider impact labels are not treated as price direction. It does not fetch or invent news, infer economic surprises, forecast direction, or override provider licensing.
 
-**Stage E — quality and learning:** contradiction detection, replay/backtesting, private performance analysis, strategy discovery and confidence calibration.
+**Scalping Intelligence domain (approved; planned):** eight independent specialists are registered separately from the existing 18 core specialists. The domain is designed for tick/sub-minute analysis but is not enabled and cannot claim microstructure visibility until eligible venue-specific feeds, licensing, clock quality, sequencing, and freshness are validated. Spot Forex depth is fragmented; one broker/venue feed must never be represented as a consolidated market book. Cost-aware edge is a required gate for any future scalping suitability assessment. Latency work is measurement and analysis only; smart order routing and broker actions are excluded. Inventory and behaviour controls produce warnings only and cannot automatically change positions, lock accounts, or execute trades. Unknown cost inputs or incomplete tick sequences block positive edge claims.\n\n**Stage E — quality and learning:** contradiction detection, replay/backtesting, private performance analysis, strategy discovery and confidence calibration.
 
 **Stage F — knowledge governance and collaboration:** controlled methodology versions, experiment approval, Scanner–Brain integration and acceptance evaluation.
 
@@ -106,7 +114,7 @@ This sequence is intentional: downstream intelligence must not be built on unval
 
 ## Explicit non-goals
 
-- No broker order placement or automated execution.
+- No broker order placement or automated execution, including scalping order routing, queue actions or automatic strategy switching.
 - No automatic provider activation or paid API usage.
 - No database/schema/RLS/storage changes in this stage.
 - No automatic pooling of private user information.
