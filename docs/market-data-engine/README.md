@@ -7,9 +7,26 @@ This package is the first modular code foundation for the approved Market Data E
 - Canonical registry for EURUSD, XAUUSD, GBPUSD, USDJPY, USDCHF, USDCAD, AUDUSD and NZDUSD.
 - Twelve Data REST time-series adapter.
 - Alpha Vantage fiat-FX reference-rate adapter.
-- OHLC/timestamp/duplicate validation.
-- Explicit readiness states and a deliberately uncalibrated confidence score.
-- A provider-agnostic service entry point.
+- UTC-normalized timestamps with original source timestamp and timezone provenance.
+- OHLC, positive-price, volume, ordering, duplicate, future-time and interval-gap validation.
+- Explicit provisional candle state; no silent claim that every provider candle is closed.
+- Raw provider observations separated from the fail-closed analytically eligible candle collection.
+- Structured provider errors for malformed payloads, timeouts, quota limits and entitlement restrictions.
+- Versioned snapshot metadata and explicit unverified licence/entitlement status.
+- Independent provider close comparison with caller-supplied thresholds; conflicts are preserved, never averaged.
+- A provider-agnostic service entry point and deterministic regression tests.
+
+## Validation and tests
+
+Run the local regression suite with:
+
+```bash
+npm test
+```
+
+The suite uses Node’s built-in test runner and the project TypeScript compiler; it does not require live provider credentials or network access. The current conflict helper compares matching confirmed UTC candle closes only and requires an instrument-calibrated threshold supplied by its caller.
+
+The current snapshot version is an in-memory evidence identifier, not durable version history. Raw observations and correction history are not persisted. Provider entitlement and licence status remain `UNVERIFIED` until independently checked.
 
 ## Deliberately not activated
 
