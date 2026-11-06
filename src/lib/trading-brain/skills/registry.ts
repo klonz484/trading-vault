@@ -43,7 +43,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     outputs: ["Swing map", "Structure state", "Confirmed/provisional breaks", "Invalidation evidence"],
     dependencies: ["evidence-quality", "multi-timeframe"],
     safetyRules: [...commonSafety, "Never promote a provisional forming-candle event to confirmed structure."],
-    status: "PLANNED",
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
