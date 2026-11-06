@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 
@@ -10,7 +11,7 @@ type StoredAnalysis = {
   notes?: string;
 };
 
-export default async function ScannerHistoryPage() {
+async function PrivateScanHistoryContent() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -102,5 +103,24 @@ export default async function ScannerHistoryPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+
+export default function ScannerHistoryPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen">
+          <Sidebar />
+          <main className="flex-1 p-6 lg:p-8">
+            <h1 className="text-2xl font-semibold text-white">Scan history</h1>
+            <p className="mt-3 text-sm text-[var(--muted)]">Loading your private scans…</p>
+          </main>
+        </div>
+      }
+    >
+      <PrivateScanHistoryContent />
+    </Suspense>
   );
 }
