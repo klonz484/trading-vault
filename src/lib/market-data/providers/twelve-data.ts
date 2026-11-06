@@ -48,9 +48,16 @@ export function parseTwelveDataTimestamp(sourceTimestamp: string): string {
   if (hasExplicitZone) {
     parsed = new Date(value);
   } else {
+    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
     const match = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/.exec(value);
-    if (!match) throw new Error("timestamp does not match the documented UTC format");
-    const [, year, month, day, hour, minute, second, fraction = "0"] = match;
+    if (!dateOnly && !match) throw new Error("timestamp does not match the documented UTC format");
+    const year = dateOnly?.[1] ?? match?.[1] ?? "";
+    const month = dateOnly?.[2] ?? match?.[2] ?? "";
+    const day = dateOnly?.[3] ?? match?.[3] ?? "";
+    const hour = dateOnly ? "0" : match?.[4] ?? "0";
+    const minute = dateOnly ? "0" : match?.[5] ?? "0";
+    const second = dateOnly ? "0" : match?.[6] ?? "0";
+    const fraction = dateOnly ? "0" : match?.[7] ?? "0";
     const milliseconds = Number(fraction.padEnd(3, "0"));
     parsed = new Date(Date.UTC(
       Number(year), Number(month) - 1, Number(day),
