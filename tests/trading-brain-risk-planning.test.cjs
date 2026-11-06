@@ -103,3 +103,15 @@ test("no account balance or pip value is required or inferred; sizing remains un
   assert.equal(result.assessment.sizing, "NOT_CALCULATED");
   assert.ok(result.assessment.limitations.some((item) => item.includes("Position size")));
 });
+
+test("malformed or missing nested plan inputs fail closed instead of throwing", () => {
+  const missingEntry = assessRiskPlan(input({
+    plan: { ...input().plan, entry: null },
+  }), policy);
+  assert.equal(missingEntry.status, "REJECTED");
+  assert.ok(missingEntry.findings.some((finding) => finding.code === "INVALID_PLAN"));
+
+  const missingAssessment = assessRiskPlan(input({ instrumentAssessment: null }), policy);
+  assert.equal(missingAssessment.status, "INCOMPLETE");
+  assert.equal(missingAssessment.assessment.planValid, false);
+});
