@@ -29,6 +29,7 @@ function detailedText(value: string): string {
   return value
     .replace(/TV_SETUP_SUMMARY_START\s*\n[\s\S]*?\nTV_SETUP_SUMMARY_END/gi, "")
     .replace(/TV_PLAN_AUDIT_START\s*\n[\s\S]*?\nTV_PLAN_AUDIT_END/gi, "")
+    .replace(/^([ \t]*\*\*?\s*5\.\s*)Bullish\/bullish(\s+conditions\s*\*\*?)/gim, "$1Bullish/bearish$2")
     .trim();
 }
 
@@ -257,10 +258,14 @@ export default function ScannerPage() {
                 {detailsOpen && (
                   <div className="space-y-4">
                     {planAudits.length > 0 && <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-3">
-                      <p className="text-xs font-semibold text-cyan-200 mb-2">Trade-plan arithmetic check</p>
+                      <p className="text-xs font-semibold text-cyan-200 mb-2">{summary.decision === "NO TRADE" ? "Conditional scenario arithmetic check" : "Trade-plan arithmetic check"}</p>
+                      {summary.decision === "NO TRADE" && <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 mb-3">
+                        <p className="text-xs font-semibold text-amber-200">Conditional scenario — not an active trade</p>
+                        <p className="text-[11px] text-amber-100/80 mt-1">The current decision remains NO TRADE. This scenario describes a possible future setup only; wait for its stated trigger and confirmation. Do not treat these levels as an entry instruction.</p>
+                      </div>}
                       <p className="text-[11px] text-[var(--muted)] mb-3">These checks validate price-distance arithmetic and direction only. They do not prove that chart levels are accurate or tradable.</p>
                       <div className="space-y-3">{planAudits.map((plan, index) => <div key={index} className="text-xs">
-                        <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-white capitalize">{plan.scenario} scenario</span><span className={plan.valid ? "text-emerald-300" : "text-rose-300"}>{plan.valid ? "Arithmetic consistent" : "Check required"}</span></div>
+                        <div className="flex flex-wrap items-center gap-2 mb-1"><span className="font-semibold text-white capitalize">{plan.scenario} scenario</span>{summary.decision === "NO TRADE" && <span className="rounded border border-amber-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-amber-200">Conditional · inactive</span>}<span className={plan.valid ? "text-emerald-300" : "text-rose-300"}>{plan.valid ? "Arithmetic consistent" : "Check required"}</span></div>
                         <p className="text-[var(--muted)]">{plan.entryType === "range" ? `Entry area ${plan.entryLow}–${plan.entryHigh}` : plan.entryType === "conditional_close" ? `Close trigger ${plan.entry ?? plan.entryLow}` : `Exact entry ${plan.entry ?? plan.entryLow}`} · Stop {plan.stop} · Target {plan.target}</p>
                         <p className="text-[var(--muted)]">Risk {Number(plan.riskDistanceMin ?? plan.riskDistance ?? 0).toFixed(5)}{plan.riskDistanceMax !== undefined && plan.riskDistanceMax !== plan.riskDistanceMin ? `–${plan.riskDistanceMax.toFixed(5)}` : ""}{plan.riskPipsMin != null ? ` (${plan.riskPipsMin.toFixed(1)}–${Number(plan.riskPipsMax ?? plan.riskPipsMin).toFixed(1)} pips)` : plan.riskPips != null ? ` (${plan.riskPips.toFixed(1)} pips)` : ""} · Reward {Number(plan.rewardDistanceMin ?? plan.rewardDistance ?? 0).toFixed(5)}{plan.rewardDistanceMax !== undefined && plan.rewardDistanceMax !== plan.rewardDistanceMin ? `–${plan.rewardDistanceMax.toFixed(5)}` : ""}{plan.rewardPipsMin != null ? ` (${plan.rewardPipsMin.toFixed(1)}–${Number(plan.rewardPipsMax ?? plan.rewardPipsMin).toFixed(1)} pips)` : plan.rewardPips != null ? ` (${plan.rewardPips.toFixed(1)} pips)` : ""} · R:R {Number(plan.riskRewardMin ?? plan.riskReward ?? 0).toFixed(2)}{plan.riskRewardMax !== undefined && plan.riskRewardMax !== plan.riskRewardMin ? `–${plan.riskRewardMax.toFixed(2)}` : ""}R</p>
                         <p className="text-[11px] text-amber-200 mt-1">Arithmetic: {(plan.arithmeticValid ?? plan.valid) ? "valid" : "invalid"} · Direction: {(plan.directionValid ?? plan.valid) ? "valid" : "invalid"} · Technical levels: unverified</p>
