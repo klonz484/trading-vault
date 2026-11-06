@@ -56,7 +56,7 @@ test("summarizes sourced session, event, volatility and correlation context", ()
   const result = assessScalpingContext(input, policy);
   assert.equal(result.status, "COMPLETE");
   assert.equal(result.evidenceReadiness, "READY");
-  assert.equal(result.assessment.sessionState, "ACTIVE");
+  assert.equal(result.assessment.sessionState, "OBSERVED");
   assert.equal(result.assessment.sessionPhases[0].phase, "OVERLAP");
   assert.equal(result.assessment.relevantEvents[0].state, "UPCOMING");
   assert.equal(result.assessment.volatility[0].state, "ELEVATED");
@@ -80,5 +80,5 @@ test("does not infer missing event coverage or turn context into trade instructi
   assert.ok(result.uncertainties.some((item) => item.includes("does not establish that no event risk exists")));
   assert.deepEqual(result.assessment.relevantEvents, []);
   assert.ok(result.limitations.some((item) => item.includes("does not generate BUY, SELL")));
-  assert.equal(result.assessment.sessionState, "ACTIVE");
+  assert.equal(result.assessment.sessionState, "OBSERVED");
 });
