@@ -24,10 +24,10 @@ const {
   getBrainSkillReadiness,
 } = require("../src/lib/trading-brain/skills/registry.ts");
 
-test("registry contains all 27 approved specialist skills with unique stable IDs", () => {
-  assert.equal(TRADING_BRAIN_SKILLS.length, 27);
+test("registry contains all 26 approved specialist skills with unique stable IDs", () => {
+  assert.equal(TRADING_BRAIN_SKILLS.length, 26);
   const ids = TRADING_BRAIN_SKILLS.map((skill) => skill.id);
-  assert.equal(new Set(ids).size, 27);
+  assert.equal(new Set(ids).size, 26);
   for (const skill of TRADING_BRAIN_SKILLS) {
     assert.ok(skill.name.length > 0);
     assert.ok(skill.purpose.length > 0);
@@ -70,7 +70,7 @@ test("registry exposes expected core skills and group filtering", () => {
 
 test("planned skills are never reported as implemented, tested, or enabled", () => {
   assert.deepEqual(getBrainSkillReadiness(), {
-    total: 27,
+    total: 26,
     inDevelopment: 17,
     implemented: 0,
     tested: 0,
