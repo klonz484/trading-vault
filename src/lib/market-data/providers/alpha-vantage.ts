@@ -72,6 +72,13 @@ async function request(params: Record<string, string>): Promise<AlphaVantageResp
     );
   }
 
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new MarketDataProviderError(
+      "Alpha Vantage returned a malformed response payload.",
+      "alpha_vantage", "INVALID_RESPONSE", false,
+    );
+  }
+
   if (payload.Note) {
     throw new MarketDataProviderError(
       "Alpha Vantage reported a usage or quota limit. Automatic retry is disabled.",
