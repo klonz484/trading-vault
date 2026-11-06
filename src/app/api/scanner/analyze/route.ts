@@ -33,7 +33,7 @@ function auditTradePlans(analysis: string, symbol: string): PlanAudit[] {
   for (const match of analysis.matchAll(blockPattern)) {
     const block = match[1];
     const read = (label: string) => {
-      const found = block.match(new RegExp("^\s*" + label + "\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*$", "im"));
+      const found = block.match(new RegExp("^\\s*" + label + "\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$", "im"));
       return found ? Number(found[1]) : null;
     };
     const scenario = block.match(/^\s*Scenario\s*:\s*(Bearish|Bullish|Sell|Buy)\s*$/im)?.[1]?.toLowerCase();
