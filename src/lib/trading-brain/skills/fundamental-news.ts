@@ -258,7 +258,7 @@ export function assessFundamentalNews(
       continue;
     }
 
-    let eventAt: string | null = item.eventAt ?? null;
+    const eventAt: string | null = item.eventAt ?? null;
     if (item.eventAt) {
       const eventTimestamp = parseAbsoluteTimestamp(item.eventAt);
       if (!Number.isFinite(eventTimestamp)) {
