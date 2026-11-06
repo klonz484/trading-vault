@@ -66,6 +66,7 @@ export function validateCandles(
   const firstInstrument = candles[0]?.instrument;
   const intervalSeconds = firstTimeframe ? TIMEFRAME_SECONDS[firstTimeframe] : null;
   let previousTimestamp: number | null = null;
+  let sourceOrder: "ASC" | "DESC" | null = null;
 
   for (const candle of candles) {
     const timestampMs = Date.parse(candle.timestamp);
@@ -79,15 +80,18 @@ export function validateCandles(
         futureTimestamps.push(candle.timestamp);
         errors.push(`Future-dated provider observation at ${candle.timestamp}.`);
       }
-      if (previousTimestamp !== null) {
-        if (timestampMs < previousTimestamp) {
+      if (previousTimestamp !== null && timestampMs !== previousTimestamp) {
+        const currentDirection = timestampMs > previousTimestamp ? "ASC" : "DESC";
+        if (sourceOrder === null) sourceOrder = currentDirection;
+        else if (sourceOrder !== currentDirection) {
           outOfOrderTimestamps.push(candle.timestamp);
-        } else if (
+        }
+        if (
           intervalSeconds !== null &&
-          timestampMs - previousTimestamp > intervalSeconds * 1.5
+          Math.abs(timestampMs - previousTimestamp) > intervalSeconds * 1.5
         ) {
           missingIntervals.push(
-            `${new Date(previousTimestamp).toISOString()} -> ${candle.timestamp}`,
+            `${new Date(previousTimestamp).toISOString()} <-> ${candle.timestamp}`,
           );
         }
       }
