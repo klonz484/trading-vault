@@ -35,8 +35,9 @@ export function isCandleStructurallyValid(candle: NormalizedCandle): boolean {
   const retrievedAtMs = Date.parse(candle.retrievedAt);
   const validRetrievalTime = Number.isFinite(retrievedAtMs);
   const validSourceTimestamp = typeof candle.sourceTimestamp === "string" && candle.sourceTimestamp.trim().length > 0;
+  const validSourceTimezone = typeof candle.sourceTimezone === "string" && candle.sourceTimezone.trim().length > 0;
 
-  return canonicalUtc && validPrices && validVolume && Boolean(candle.sourceTimezone) && validRetrievalTime && validSourceTimestamp;
+  return canonicalUtc && validPrices && validVolume && validSourceTimezone && validRetrievalTime && validSourceTimestamp;
 }
 
 /**
@@ -64,6 +65,7 @@ export function validateCandles(
 
   const firstTimeframe = candles[0]?.timeframe;
   const firstInstrument = candles[0]?.instrument;
+  const firstProvider = candles[0]?.provider;
   const intervalSeconds = firstTimeframe ? TIMEFRAME_SECONDS[firstTimeframe] : null;
   let previousTimestamp: number | null = null;
   let sourceOrder: "ASC" | "DESC" | null = null;
@@ -105,6 +107,9 @@ export function validateCandles(
     }
     if (candle.instrument !== firstInstrument) {
       errors.push("Mixed instrument observations were returned in one series.");
+    }
+    if (candle.provider !== firstProvider) {
+      errors.push("Mixed provider observations were returned in one series.");
     }
   }
 
