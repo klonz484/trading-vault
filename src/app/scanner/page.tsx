@@ -62,7 +62,8 @@ export default function ScannerPage() {
       if (!response.ok) throw new Error(data.error || "Analysis failed. Please try again.");
       setResult(data.analysis || "The model did not return an analysis.");
       setModelName(data.model || "Vision model");
-      setAnalysisWarning(data.warning || null);\n      setPlanAudits(data.planAudits || []);
+      setAnalysisWarning(data.warning || null);
+      setPlanAudits(data.planAudits || []);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong. Please try again.");
     } finally {
