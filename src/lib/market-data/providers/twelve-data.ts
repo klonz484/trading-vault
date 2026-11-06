@@ -23,9 +23,51 @@ type TwelveDataTimeSeriesResponse = {
   message?: string;
 };
 
+const TIMEFRAME_SECONDS: Record<MarketDataTimeframe, number> = {
+  M1: 60, M5: 300, M15: 900, M30: 1800,
+  H1: 3600, H4: 14_400, D1: 86_400, W1: 604_800,
+};
+
 function parseNumber(value: string | undefined): number {
   if (value === undefined || value.trim() === "") return Number.NaN;
   return Number(value);
+}
+
+/**
+ * The request explicitly asks Twelve Data for UTC. Offset-free timestamps are
+ * therefore interpreted as UTC by contract, never using the server locale.
+ * The exact source string is retained separately on every candle.
+ */
+export function parseTwelveDataTimestamp(sourceTimestamp: string): string {
+  const value = sourceTimestamp.trim();
+  if (!value) throw new Error("empty timestamp");
+
+  const hasExplicitZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
+  let parsed: Date;
+
+  if (hasExplicitZone) {
+    parsed = new Date(value);
+  } else {
+    const match = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/.exec(value);
+    if (!match) throw new Error("timestamp does not match the documented UTC format");
+    const [, year, month, day, hour, minute, second, fraction = "0"] = match;
+    const milliseconds = Number(fraction.padEnd(3, "0"));
+    parsed = new Date(Date.UTC(
+      Number(year), Number(month) - 1, Number(day),
+      Number(hour), Number(minute), Number(second), milliseconds,
+    ));
+    if (
+      parsed.getUTCFullYear() !== Number(year) ||
+      parsed.getUTCMonth() !== Number(month) - 1 ||
+      parsed.getUTCDate() !== Number(day) ||
+      parsed.getUTCHours() !== Number(hour) ||
+      parsed.getUTCMinutes() !== Number(minute) ||
+      parsed.getUTCSeconds() !== Number(second)
+    ) throw new Error("timestamp contains an invalid calendar date");
+  }
+
+  if (!Number.isFinite(parsed.getTime())) throw new Error("timestamp is not parseable");
+  return parsed.toISOString();
 }
 
 export class TwelveDataProvider {
@@ -39,9 +81,7 @@ export class TwelveDataProvider {
     if (!this.apiKey) {
       throw new MarketDataProviderError(
         "Twelve Data is not configured. Add TWELVE_DATA_API_KEY to the server environment.",
-        "twelve_data",
-        "MISSING_CREDENTIAL",
-        false,
+        "twelve_data", "MISSING_CREDENTIAL", false,
       );
     }
 
@@ -61,51 +101,90 @@ export class TwelveDataProvider {
         cache: "no-store",
         signal: AbortSignal.timeout(15_000),
       });
-    } catch {
+    } catch (error) {
+      const timedOut = (error as { name?: string })?.name === "TimeoutError";
       throw new MarketDataProviderError(
-        "Twelve Data could not be reached. Retry after checking connectivity.",
-        "twelve_data",
-        "UPSTREAM_ERROR",
-        true,
+        timedOut ? "Twelve Data request timed out." : "Twelve Data could not be reached.",
+        "twelve_data", timedOut ? "TIMEOUT" : "UPSTREAM_ERROR", true,
       );
     }
 
     if (response.status === 429) {
+      const retryAfter = Number(response.headers.get("retry-after"));
       throw new MarketDataProviderError(
-        "Twelve Data rate limit reached. Back off and preserve remaining quota.",
-        "twelve_data",
-        "RATE_LIMITED",
-        true,
+        "Twelve Data rate limit reached. Respect the provider retry window.",
+        "twelve_data", "RATE_LIMITED", true,
+        Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
       );
     }
-
+    if (response.status === 401 || response.status === 403) {
+      throw new MarketDataProviderError(
+        "Twelve Data rejected the account credential or entitlement.",
+        "twelve_data", "ENTITLEMENT", false,
+      );
+    }
+    if (response.status === 400) {
+      throw new MarketDataProviderError(
+        "Twelve Data rejected the requested symbol or interval.",
+        "twelve_data", "INVALID_REQUEST", false,
+      );
+    }
     if (!response.ok) {
       throw new MarketDataProviderError(
         `Twelve Data returned HTTP ${response.status}.`,
-        "twelve_data",
-        "UPSTREAM_ERROR",
-        response.status >= 500,
+        "twelve_data", "UPSTREAM_ERROR", response.status >= 500,
       );
     }
 
-    const payload = (await response.json()) as TwelveDataTimeSeriesResponse;
-    if (!Array.isArray(payload.values)) {
-      const message = payload.message || "Twelve Data returned an unexpected response.";
+    let payload: TwelveDataTimeSeriesResponse;
+    try {
+      payload = await response.json() as TwelveDataTimeSeriesResponse;
+    } catch {
       throw new MarketDataProviderError(
-        message,
-        "twelve_data",
-        "INVALID_RESPONSE",
-        false,
+        "Twelve Data returned malformed JSON.",
+        "twelve_data", "INVALID_RESPONSE", false,
+      );
+    }
+
+    if (!Array.isArray(payload.values)) {
+      const code = payload.code;
+      const isEntitlement = code === 401 || code === 403 ||
+        /permission|subscription|entitlement|plan/i.test(payload.message ?? "");
+      throw new MarketDataProviderError(
+        isEntitlement
+          ? "Twelve Data account entitlement does not permit this request."
+          : "Twelve Data returned an unexpected or unsuccessful response.",
+        "twelve_data", isEntitlement ? "ENTITLEMENT" : "INVALID_RESPONSE", false,
+      );
+    }
+
+    if (payload.meta?.symbol && payload.meta.symbol.toUpperCase() !== instrument.twelveDataSymbol.toUpperCase()) {
+      throw new MarketDataProviderError(
+        "Twelve Data response symbol did not match the requested instrument.",
+        "twelve_data", "INVALID_RESPONSE", false,
+      );
+    }
+    if (payload.meta?.interval && payload.meta.interval !== interval) {
+      throw new MarketDataProviderError(
+        "Twelve Data response interval did not match the requested timeframe.",
+        "twelve_data", "INVALID_RESPONSE", false,
       );
     }
 
     const retrievedAt = new Date().toISOString();
-    const candles = payload.values.map((item) => {
+    const retrievedAtMs = Date.parse(retrievedAt);
+    const candles = payload.values.map((item): NormalizedCandle => {
       const sourceTimestamp = item.datetime ?? "";
-      const parsedTime = new Date(sourceTimestamp);
-      const timestamp = Number.isNaN(parsedTime.getTime())
-        ? sourceTimestamp
-        : parsedTime.toISOString();
+      let timestamp = sourceTimestamp;
+      try {
+        timestamp = parseTwelveDataTimestamp(sourceTimestamp);
+      } catch {
+        // Preserve the unparseable source value; validation will quarantine it.
+      }
+      const timestampMs = Date.parse(timestamp);
+      const provisional =
+        !Number.isFinite(timestampMs) ||
+        timestampMs + TIMEFRAME_SECONDS[timeframe] * 1000 > retrievedAtMs;
 
       return {
         instrument: instrument.id,
@@ -116,13 +195,15 @@ export class TwelveDataProvider {
         low: parseNumber(item.low),
         close: parseNumber(item.close),
         volume: item.volume === undefined ? null : parseNumber(item.volume),
-        provider: "twelve_data" as const,
+        provider: "twelve_data",
         retrievedAt,
         sourceTimestamp,
-        provisional: false,
+        sourceTimezone: "UTC",
+        provisional,
       };
-    }).sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+    });
 
+    // Do not sort here: preserve provider order so validation can detect it.
     return { candles, retrievedAt, symbol: payload.meta?.symbol ?? instrument.twelveDataSymbol };
   }
 }
