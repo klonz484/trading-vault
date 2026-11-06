@@ -123,6 +123,7 @@ test("detects duplicate and out-of-order timestamps", () => {
   assert.equal(result.duplicateTimestamps.length, 1);
   assert.equal(result.outOfOrderTimestamps.length, 1);
   assert.equal(result.status, "INCOMPLETE");
+  assert.equal(result.eligibleCandleCount, 0);
 });
 
 
