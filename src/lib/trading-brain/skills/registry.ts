@@ -260,7 +260,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     outputs: ["Short-horizon pattern candidates", "Micro-regime classification", "Flow and volume observations", "Invalidation and evidence limitations"],
     dependencies: ["evidence-quality", "scalp-microstructure", "pattern-recognition"],
     safetyRules: [...commonSafety, "Never infer tick-level behaviour from ordinary OHLC candles.", "No signal without explicit horizon, sampling and confirmation rules.", "Treat news-driven or incomplete sequences as degraded."],
-    status: "PLANNED",
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
