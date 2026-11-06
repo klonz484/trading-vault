@@ -2,7 +2,6 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 
-export const dynamic = "force-dynamic";
 
 type StoredAnalysis = {
   text?: string;
