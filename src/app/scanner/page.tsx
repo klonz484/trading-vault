@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 
-type AnalysisResponse = { analysis?: string; model?: string; error?: string };
+type AnalysisResponse = { analysis?: string; model?: string; status?: string; warning?: string; error?: string };
 
 export default function ScannerPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -15,6 +15,7 @@ export default function ScannerPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [modelName, setModelName] = useState<string | null>(null);
+  const [analysisWarning, setAnalysisWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -24,6 +25,7 @@ export default function ScannerPage() {
     setError(null);
     setResult(null);
     setModelName(null);
+    setAnalysisWarning(null);
     if (!(["image/png", "image/jpeg", "image/webp"].includes(selected.type))) {
       setError("Please choose a PNG, JPG, or WebP image.");
       return;
@@ -43,6 +45,7 @@ export default function ScannerPage() {
     setAnalyzing(true);
     setError(null);
     setResult(null);
+    setAnalysisWarning(null);
     try {
       const body = new FormData();
       body.append("image", file);
@@ -55,6 +58,7 @@ export default function ScannerPage() {
       if (!response.ok) throw new Error(data.error || "Analysis failed. Please try again.");
       setResult(data.analysis || "The model did not return an analysis.");
       setModelName(data.model || "Vision model");
+      setAnalysisWarning(data.warning || null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong. Please try again.");
     } finally {
@@ -126,6 +130,7 @@ export default function ScannerPage() {
             {!result && !analyzing && !error && <div className="min-h-[330px] flex flex-col items-center justify-center text-center text-[var(--muted)] text-sm"><div className="text-3xl text-cyan-400/40 mb-3">⌁</div><p>Your chart read will appear here.</p><p className="text-xs mt-2 max-w-xs">The model will separate visible evidence from interpretation and flag anything it cannot read.</p></div>}
             {analyzing && <div className="min-h-[330px] flex flex-col items-center justify-center gap-3"><div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"/><p className="text-sm text-[var(--muted)]">Inspecting market structure, levels and chart context…</p></div>}
             {error && <div role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200"><p className="font-medium mb-1">Analysis unavailable</p>{error}</div>}
+            {result && analysisWarning && <div role="alert" className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">{analysisWarning}</div>}
             {result && <div className="whitespace-pre-wrap text-sm text-[var(--foreground)] leading-7">{result}</div>}
           </section>
         </div>

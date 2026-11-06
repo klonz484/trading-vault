@@ -9,6 +9,7 @@ export const instant = false;
 type StoredAnalysis = {
   text?: string;
   notes?: string;
+  warning?: string;
 };
 
 async function PrivateScanHistoryContent() {
@@ -66,7 +67,7 @@ async function PrivateScanHistoryContent() {
         imageUrl = data?.signedUrl || null;
       }
       const analysis = scan.analysis as StoredAnalysis | null;
-      return { ...scan, imageUrl, analysisText: analysis?.text || "No saved analysis text.", notes: analysis?.notes || "" };
+      return { ...scan, imageUrl, analysisText: analysis?.text || "No saved analysis text.", notes: analysis?.notes || "", analysisWarning: analysis?.warning || "" };
     }),
   );
 
@@ -114,6 +115,11 @@ async function PrivateScanHistoryContent() {
                   <span className="text-xs text-[var(--muted)]">{new Date(scan.created_at).toLocaleString()}</span>
                 </div>
                 <p className="text-xs text-[var(--muted)] mt-1">Model: {scan.model_name || "Not recorded"} · Status: {scan.status}</p>
+                {scan.status !== "completed" && (
+                  <div role="alert" className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-5 text-amber-200">
+                    {scan.analysisWarning || "This scan is marked incomplete. Do not treat it as a complete trade plan; run a fresh analysis if you need the missing sections."}
+                  </div>
+                )}
                 <div className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[var(--foreground)]">{scan.analysisText}</div>
                 {scan.notes && <p className="mt-3 text-xs text-[var(--muted)]">Your context: {scan.notes}</p>}
               </div>

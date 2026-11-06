@@ -134,7 +134,7 @@ Important rules:
           },
         ],
         temperature: 0.2,
-        max_completion_tokens: 1800,
+        max_completion_tokens: 3200,
         reasoning_effort: "low",
       }),
       signal: AbortSignal.timeout(55_000),
@@ -156,21 +156,32 @@ Important rules:
     }
 
     const payload = await response.json();
-    const analysis = payload?.choices?.[0]?.message?.content;
+    const choice = payload?.choices?.[0];
+    const analysis = choice?.message?.content;
+    const finishReason = choice?.finish_reason;
     if (typeof analysis !== "string" || !analysis.trim()) {
       await removeUploadedImage();
       return jsonError("The model returned an empty analysis. Please try another screenshot.", 502);
     }
 
     const cleanAnalysis = analysis.trim();
+    // Only a normal provider stop is considered complete. A token-limit stop
+    // must remain visibly incomplete in both the API response and scan history.
+    const scanStatus = finishReason === "stop" ? "completed" : "incomplete";
+    const completionWarning =
+      scanStatus === "incomplete"
+        ? finishReason === "length"
+          ? "The model reached its output limit before finishing. This scan is incomplete; do not treat it as a complete trade plan."
+          : "The model did not confirm a normal completion. Review this partial analysis and do not treat it as a complete trade plan."
+        : null;
     const { error: insertError } = await supabase.from("chart_scans").insert({
       id: scanId,
       user_id: user.id,
       symbol,
       timeframe,
       image_path: imagePath,
-      status: "completed",
-      analysis: { text: cleanAnalysis, notes },
+      status: scanStatus,
+      analysis: { text: cleanAnalysis, notes, warning: completionWarning },
       model_name: model,
     });
 
@@ -180,7 +191,7 @@ Important rules:
       return jsonError("The analysis completed, but Trading Vault could not save this scan. Please try again.", 500);
     }
 
-    return NextResponse.json({ analysis: cleanAnalysis, model, scanId });
+    return NextResponse.json({ analysis: cleanAnalysis, model, scanId, status: scanStatus, warning: completionWarning });
   } catch (error) {
     await removeUploadedImage();
     if (error instanceof Error && error.name === "TimeoutError") {
