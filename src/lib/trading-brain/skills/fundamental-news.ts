@@ -71,6 +71,8 @@ export interface FundamentalNewsFinding {
     | "INSTRUMENT_CURRENCIES_MISSING"
     | "SOURCE_PROVENANCE_MISSING"
     | "SOURCE_IDENTITY_MISMATCH"
+    | "SOURCE_TIMESTAMP_INVALID"
+    | "SOURCE_TIMESTAMP_IN_FUTURE"
     | "ITEMS_MISSING"
     | "INVALID_ITEM"
     | "INVALID_PUBLICATION_TIMESTAMP"
@@ -96,6 +98,25 @@ const IMPACT_LABELS: MacroImpactLabel[] = ["LOW", "MEDIUM", "HIGH", "UNSPECIFIED
 function parseAbsoluteTimestamp(value: string): number {
   if (typeof value !== "string" || !/T.*(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return Number.NaN;
   return Date.parse(value);
+}
+
+function validateSourceTimestamps(
+  references: SkillSourceReference[],
+  asOf: number,
+): FundamentalNewsFinding[] {
+  const findings: FundamentalNewsFinding[] = [];
+  for (const reference of references) {
+    const observedAt = parseAbsoluteTimestamp(reference.observedAt);
+    const receivedAt = parseAbsoluteTimestamp(reference.receivedAt);
+    if (!Number.isFinite(observedAt) || !Number.isFinite(receivedAt)) {
+      findings.push({ code: "SOURCE_TIMESTAMP_INVALID", message: "Source observed/received timestamps must be absolute timestamps with timezone information." });
+      continue;
+    }
+    if (observedAt > asOf || receivedAt > asOf) {
+      findings.push({ code: "SOURCE_TIMESTAMP_IN_FUTURE", message: "Source observed/received timestamps cannot be later than evaluation time." });
+    }
+  }
+  return findings;
 }
 
 function emptyAssessment(instrument: string, currencies: string[]): FundamentalNewsAssessment {
@@ -184,12 +205,15 @@ export function assessFundamentalNews(
   }
   if (!Array.isArray(input.sourceReferences) || input.sourceReferences.length === 0) {
     findings.push({ code: "SOURCE_PROVENANCE_MISSING", message: "At least one top-level source reference is required." });
-  } else if (policy.requireInstrumentSourceIdentity && input.sourceReferences.some((reference) =>
-    reference.instrument !== input.instrument ||
-    !reference.sourceId ||
-    !reference.providerId
-  )) {
-    findings.push({ code: "SOURCE_IDENTITY_MISMATCH", message: "Top-level source references must identify this instrument and a source/provider." });
+  } else {
+    if (policy.requireInstrumentSourceIdentity && input.sourceReferences.some((reference) =>
+      reference.instrument !== input.instrument ||
+      !reference.sourceId ||
+      !reference.providerId
+    )) {
+      findings.push({ code: "SOURCE_IDENTITY_MISMATCH", message: "Top-level source references must identify this instrument and a source/provider." });
+    }
+    findings.push(...validateSourceTimestamps(input.sourceReferences, asOf));
   }
 
   const currencies = [...new Set(input.instrumentCurrencies.map((currency) => currency.trim().toUpperCase()))];
@@ -216,6 +240,17 @@ export function assessFundamentalNews(
     if (publishedAt > asOf) {
       findings.push({ code: "PUBLICATION_IN_FUTURE", message: `Item ${item.id} is marked as published after the evaluation time.` });
       continue;
+    }
+    if (item.updatedAt) {
+      const updatedAt = parseAbsoluteTimestamp(item.updatedAt);
+      if (!Number.isFinite(updatedAt)) {
+        findings.push({ code: "INVALID_PUBLICATION_TIMESTAMP", message: `Item ${item.id} has an invalid or timezone-less update timestamp.` });
+        continue;
+      }
+      if (updatedAt > asOf) {
+        findings.push({ code: "PUBLICATION_IN_FUTURE", message: `Item ${item.id} has an update timestamp later than the evaluation time.` });
+        continue;
+      }
     }
     const ageSeconds = (asOf - publishedAt) / 1000;
     if (ageSeconds > policy.maximumPublicationAgeSeconds) {
@@ -250,6 +285,11 @@ export function assessFundamentalNews(
       reference.instrument !== input.instrument
     )) {
       findings.push({ code: "ITEM_SOURCE_IDENTITY_MISMATCH", message: `Item ${item.id} has a source reference with missing or mismatched instrument identity.` });
+      continue;
+    }
+    const sourceTimestampFindings = validateSourceTimestamps(itemSources, asOf);
+    if (sourceTimestampFindings.length > 0) {
+      findings.push(...sourceTimestampFindings);
       continue;
     }
 
@@ -294,6 +334,8 @@ export function assessFundamentalNews(
     "INVALID_POLICY",
     "INSTRUMENT_CURRENCIES_MISSING",
     "SOURCE_IDENTITY_MISMATCH",
+    "SOURCE_TIMESTAMP_INVALID",
+    "SOURCE_TIMESTAMP_IN_FUTURE",
     "ITEMS_MISSING",
     "INVALID_ITEM",
     "INVALID_PUBLICATION_TIMESTAMP",
