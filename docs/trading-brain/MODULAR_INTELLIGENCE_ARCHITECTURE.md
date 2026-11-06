@@ -84,8 +84,9 @@ A specialist that lacks required inputs returns an explicit incomplete result. I
 - **Liquidity:** candidate equal-high/equal-low pools are grouped from classified swings using an explicit tolerance and minimum-touch policy. Sweep candidates require a later closed candle to wick through the reference level and close back across it. The module does not claim knowledge of actual resting orders or institutional intent.
 - **Institutional Concepts:** a three-closed-candle rule identifies FVG candidates; the last opposing candle before a supplied confirmed structure break can qualify as an order-block candidate. Later overlap is recorded as mitigation; a close beyond the zone boundary can mark invalidation and a breaker candidate. All thresholds are explicit. These simplified definitions are not yet approved for live decision use and do not prove institutional activity.
 - **Multi-Timeframe:** reconciles separately supplied timeframe structure assessments using an explicit highest-to-lowest priority list and maximum timestamp-skew policy. It preserves directional disagreement, marks range/unclear context as mixed, and blocks missing or stale timeframe evidence rather than manufacturing it. It does not calculate the underlying structure or create a trade signal.
+- **Forex and Gold Specialist:** validates caller-supplied symbol metadata, contract/lot fields, price precision, tick alignment, broker-defined FX pip size and live quote integrity. Quote freshness and maximum spread must be explicit policy inputs. Gold is represented as XAU/USD without assuming a universal pip definition. This module does not certify broker metadata or calculate position sizing, P/L, margin or trade signals.
 
-**Remaining Stage C work:** instrument specialist and risk planning.
+**Remaining Stage C work:** risk planning.
 
 **Stage D — context and alternatives:** sessions, indicators, fundamentals, pattern recognition and scenario simulation.
 
