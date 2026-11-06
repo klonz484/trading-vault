@@ -92,7 +92,12 @@ const WEEKDAY_BY_NAME: Record<string, number> = {
   Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
 };
 
-function parseAbsoluteTimestamp(value: string): number {\n  if (typeof value !== "string" || !/T.*(?:Z|[+-]\\d{2}:\\d{2})$/.test(value)) return Number.NaN;\n  return Date.parse(value);\n}\n\nfunction parseClock(value: string): number | null {
+function parseAbsoluteTimestamp(value: string): number {
+  if (typeof value !== "string" || !/T.*(?:Z|[+-]\\d{2}:\\d{2})$/.test(value)) return Number.NaN;
+  return Date.parse(value);
+}
+
+function parseClock(value: string): number | null {
   const match = /^(?:([01]\d|2[0-3])):([0-5]\d)$/.exec(value);
   return match ? Number(match[1]) * 60 + Number(match[2]) : null;
 }
