@@ -78,6 +78,8 @@ A specialist that lacks required inputs returns an explicit incomplete result. I
 
 **Stage B — evidence foundation (in progress):** a deterministic candle-quality gate now checks explicitly supplied policy thresholds, OHLC integrity, timestamps, candle closure, gaps, freshness, provenance presence, provider conflicts, and provider entitlement/licence flags. Instrument metadata and broader timestamp alignment remain open. The gate does not invent thresholds and is not yet certified for live data.
 
+**Stage C — market structure (in progress):** a conservative swing and close-break candidate detector has been added. It requires an upstream READY evidence gate and explicit caller-supplied swing windows, minimum swing spacing, equal-extreme handling, and break buffer. It excludes forming candles from confirmed calculations and does not claim full BOS/CHoCH/MSS methodology, displacement, retests, or trade signals.
+
 **Stage C — deterministic core analysis:** market structure, liquidity, institutional concepts, multi-timeframe, instrument specialist and risk planning.
 
 **Stage D — context and alternatives:** sessions, indicators, fundamentals, pattern recognition and scenario simulation.
