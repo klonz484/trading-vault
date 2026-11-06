@@ -80,11 +80,12 @@ test("detects stale snapshots and invalid OHLC", () => {
   const data = input({
     candles: [
       { ...input().candles[0], timestamp: "2026-11-06T08:00:00.000Z", high: 1.09 },
-      input().candles[1],
+      { ...input().candles[1], timestamp: "2026-11-06T09:00:00.000Z" },
     ],
   });
   const result = assessEvidenceQuality(data, policy);
   const codes = result.findings.map((finding) => finding.code);
   assert.ok(codes.includes("INVALID_OHLC"));
-  assert.equal(result.evidenceReadiness, "INCOMPLETE");
+  assert.ok(codes.includes("STALE_DATA"));
+  assert.equal(result.evidenceReadiness, "STALE");
 });
