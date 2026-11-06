@@ -71,6 +71,7 @@ export interface FundamentalNewsFinding {
     | "INSTRUMENT_CURRENCIES_MISSING"
     | "SOURCE_PROVENANCE_MISSING"
     | "SOURCE_IDENTITY_MISMATCH"
+    | "ITEMS_MISSING"
     | "INVALID_ITEM"
     | "INVALID_PUBLICATION_TIMESTAMP"
     | "PUBLICATION_IN_FUTURE"
@@ -178,6 +179,9 @@ export function assessFundamentalNews(
     return buildResult(input, [{ code: "INVALID_PUBLICATION_TIMESTAMP", message: "Evaluation time must be an absolute timestamp with a timezone." }], emptyAssessment(input.instrument, input.instrumentCurrencies), "REJECTED", "INCOMPLETE");
   }
   const findings: FundamentalNewsFinding[] = [];
+  if (!Array.isArray(input.items) || input.items.length === 0) {
+    findings.push({ code: "ITEMS_MISSING", message: "No macro/news items were supplied; absence of input cannot establish that the calendar or news feed is clear." });
+  }
   if (!Array.isArray(input.sourceReferences) || input.sourceReferences.length === 0) {
     findings.push({ code: "SOURCE_PROVENANCE_MISSING", message: "At least one top-level source reference is required." });
   } else if (policy.requireInstrumentSourceIdentity && input.sourceReferences.some((reference) =>
@@ -290,6 +294,7 @@ export function assessFundamentalNews(
     "INVALID_POLICY",
     "INSTRUMENT_CURRENCIES_MISSING",
     "SOURCE_IDENTITY_MISMATCH",
+    "ITEMS_MISSING",
     "INVALID_ITEM",
     "INVALID_PUBLICATION_TIMESTAMP",
     "PUBLICATION_IN_FUTURE",
