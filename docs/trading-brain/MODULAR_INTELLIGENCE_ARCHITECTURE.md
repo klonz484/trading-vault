@@ -1,0 +1,98 @@
+# Trading Brain Modular Intelligence Architecture
+
+**Branch:** `feat/trading-brain-foundation`  
+**Registry version:** `0.1.0`  
+**Scope:** Approved 18-skill architecture. This is a design and implementation registry, not a claim that the skills are already active.
+
+## Operating model
+
+The Brain is a coordinator of independent specialist services. Each specialist returns a typed result with its own rule version, source references, observations, interpretations, contrary evidence, uncertainties, and validation status. The coordinator preserves the outputs and evaluates conflicts. It does not use a majority vote or average incompatible trade plans.
+
+The Scanner remains a separate system. Scanner output may be an input to collaboration, but it cannot be relabelled as independent Brain evidence.
+
+## Approved specialist catalogue
+
+| # | Skill | Responsibility |
+|---:|---|---|
+| 1 | Market Structure Intelligence | Swings, BOS, CHoCH/MSS, displacement, retests and invalidation |
+| 2 | Liquidity Intelligence | Equal highs/lows, liquidity pools, sweeps and objectives |
+| 3 | Institutional Concepts Intelligence | OB, FVG, breakers, mitigation/rejection blocks and liquidity voids |
+| 4 | Multi-Timeframe Intelligence | Higher/lower timeframe context and conflict handling |
+| 5 | Session and Timing Intelligence | Session ranges, timing, volatility and event proximity |
+| 6 | Indicator Intelligence | Reproducible indicator calculations as supporting evidence |
+| 7 | Forex and Gold Specialist Intelligence | Instrument precision, pip/tick/lot conventions, spreads and volatility |
+| 8 | Risk and Trade Planning Intelligence | Entry/stop/target geometry, risk/reward and sizing inputs |
+| 9 | Backtesting and Learning Intelligence | Historical replay, costs, bias controls and performance |
+| 10 | Performance and Behaviour Intelligence | Private journal analysis and recurring execution patterns |
+| 11 | Fundamental and News Intelligence | Licensed economic events, central-bank and macro context |
+| 12 | Evidence and Quality-Control Intelligence | Freshness, completeness, timestamps, source reliability and conflicts |
+| 13 | Strategy Discovery Intelligence | Candidate hypotheses for controlled testing |
+| 14 | Pattern Recognition Intelligence | Measurable chart-pattern detection |
+| 15 | Scenario Simulation Intelligence | Bullish, bearish and range-bound conditional scenarios |
+| 16 | Contradiction Detection Intelligence | Challenges inconsistent evidence and conclusions |
+| 17 | Confidence Calibration Intelligence | Out-of-sample calibration and uncertainty reporting |
+| 18 | Knowledge Management Intelligence | Methodology versions, experiments, approvals and rollback |
+
+The canonical IDs, dependencies, evidence requirements, outputs, safety rules, and lifecycle statuses are maintained in `src/lib/trading-brain/skills/registry.ts`.
+
+## Skill lifecycle
+
+- `PLANNED`: catalogued and approved; no executable skill.
+- `IN_DEVELOPMENT`: implementation underway; not eligible to influence a decision.
+- `IMPLEMENTED`: code exists; not yet accepted as reliable.
+- `TESTED`: required deterministic and replay tests pass; still not automatically enabled.
+- `ENABLED`: explicitly accepted for its permitted runtime role after evidence and governance gates.
+
+A status change must reflect actual evidence. A Vercel build alone does not qualify a skill as TESTED.
+
+## Shared result envelope
+
+Every specialist must return:
+- skill ID and skill/rule-set version;
+- execution status and evidence readiness;
+- source references, timestamps, instrument and timeframe;
+- observations separated from interpretations;
+- supporting and contrary evidence;
+- assumptions, uncertainties and limitations;
+- findings and invalidation conditions;
+- deterministic validation/test provenance where applicable.
+
+A specialist that lacks required inputs returns an explicit incomplete result. It must not fill gaps with inferred prices or invented context.
+
+## Coordination and safety
+
+1. Evidence Quality validates source eligibility before downstream skills consume market data.
+2. Skills run only when their declared dependencies and required inputs are available.
+3. Specialist outputs remain separate and inspectable.
+4. Contradiction Detection identifies conflicts; material unresolved conflicts block directional approval.
+5. Scenario Simulation keeps alternative outcomes conditional until their triggers are evidenced.
+6. Risk and Trade Planning validates geometry independently of directional analysis.
+7. Confidence Calibration remains withheld until adequate out-of-sample outcome data exists.
+8. Knowledge Management versions proposed changes; shared Core Brain changes require controlled experiments and owner approval.
+9. Individual journals, experiments and performance records remain private to their owners.
+10. Final Scanner–Brain collaboration retains NO TRADE authority. No automated order execution is permitted.
+
+## Implementation order
+
+**Stage A — registry and governance:** stable IDs, skill contract, dependency graph, lifecycle statuses and tests.
+
+**Stage B — evidence foundation:** market-data provenance, candle-state validation, instrument metadata and timestamp alignment.
+
+**Stage C — deterministic core analysis:** market structure, liquidity, institutional concepts, multi-timeframe, instrument specialist and risk planning.
+
+**Stage D — context and alternatives:** sessions, indicators, fundamentals, pattern recognition and scenario simulation.
+
+**Stage E — quality and learning:** contradiction detection, replay/backtesting, private performance analysis, strategy discovery and confidence calibration.
+
+**Stage F — knowledge governance and collaboration:** controlled methodology versions, experiment approval, Scanner–Brain integration and acceptance evaluation.
+
+This sequence is intentional: downstream intelligence must not be built on unvalidated inputs.
+
+## Explicit non-goals
+
+- No broker order placement or automated execution.
+- No automatic provider activation or paid API usage.
+- No database/schema/RLS/storage changes in this stage.
+- No automatic pooling of private user information.
+- No claims of model training, calibrated confidence, live intelligence, or trading profitability.
+- No Production activation before separate review and approval.
