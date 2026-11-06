@@ -32,7 +32,11 @@ export function isCandleStructurallyValid(candle: NormalizedCandle): boolean {
     candle.volume === null ||
     (Number.isFinite(candle.volume) && candle.volume >= 0);
 
-  return canonicalUtc && validPrices && validVolume && Boolean(candle.sourceTimezone);
+  const retrievedAtMs = Date.parse(candle.retrievedAt);
+  const validRetrievalTime = Number.isFinite(retrievedAtMs);
+  const validSourceTimestamp = typeof candle.sourceTimestamp === "string" && candle.sourceTimestamp.trim().length > 0;
+
+  return canonicalUtc && validPrices && validVolume && Boolean(candle.sourceTimezone) && validRetrievalTime && validSourceTimestamp;
 }
 
 /**
@@ -45,7 +49,7 @@ export function validateCandles(
   options: { maxAgeSeconds?: number; now?: Date } = {},
 ): CandleValidation {
   const now = options.now ?? new Date();
-  const checkedAt = now.toISOString();
+  const checkedAt = Number.isFinite(now.getTime()) ? now.toISOString() : new Date(0).toISOString();
   const errors: string[] = [];
   const warnings: string[] = [];
   const duplicateTimestamps: string[] = [];
@@ -71,7 +75,7 @@ export function validateCandles(
     }
 
     if (Number.isFinite(timestampMs)) {
-      if (timestampMs > now.getTime() + 60_000) {
+      if (timestampMs > now.getTime()) {
         futureTimestamps.push(candle.timestamp);
         errors.push(`Future-dated provider observation at ${candle.timestamp}.`);
       }
