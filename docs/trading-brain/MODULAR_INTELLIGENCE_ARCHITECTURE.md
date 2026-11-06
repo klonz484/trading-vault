@@ -82,8 +82,9 @@ A specialist that lacks required inputs returns an explicit incomplete result. I
 
 - **Market Structure:** a conservative swing and close-break candidate detector has been added. It requires an upstream READY evidence gate and explicit caller-supplied swing windows, minimum swing spacing, equal-extreme handling, and break buffer. It excludes forming candles from confirmed calculations and does not claim full BOS/CHoCH/MSS methodology, displacement, retests, or trade signals.
 - **Liquidity:** candidate equal-high/equal-low pools are grouped from classified swings using an explicit tolerance and minimum-touch policy. Sweep candidates require a later closed candle to wick through the reference level and close back across it. The module does not claim knowledge of actual resting orders or institutional intent.
+- **Institutional Concepts:** a three-closed-candle rule identifies FVG candidates; the last opposing candle before a supplied confirmed structure break can qualify as an order-block candidate. Later overlap is recorded as mitigation; a close beyond the zone boundary can mark invalidation and a breaker candidate. All thresholds are explicit. These simplified definitions are not yet approved for live decision use and do not prove institutional activity.
 
-**Stage C — deterministic core analysis:** market structure, liquidity, institutional concepts, multi-timeframe, instrument specialist and risk planning.
+**Remaining Stage C work:** multi-timeframe, instrument specialist and risk planning.
 
 **Stage D — context and alternatives:** sessions, indicators, fundamentals, pattern recognition and scenario simulation.
 
