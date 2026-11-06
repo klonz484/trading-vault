@@ -51,7 +51,8 @@ const base = {
 };
 
 test("requires explicit policy and complete READY evidence", () => {
-  const { policy, ...withoutPolicy } = base;
+  const withoutPolicy = { ...base };
+  delete withoutPolicy.policy;
   assert.equal(assessScalpingCostEdge(withoutPolicy).findings[0].code, "POLICY_MISSING");
   assert.equal(assessScalpingCostEdge({ ...base, evidenceGate: { status: "INCOMPLETE", evidenceReadiness: "INCOMPLETE" } }).findings[0].code, "EVIDENCE_NOT_READY");
   assert.equal(assessScalpingCostEdge({ ...base, policy: { ...base.policy, minimumEdgeToCostRatio: 0 } }).findings[0].code, "INVALID_POLICY");
