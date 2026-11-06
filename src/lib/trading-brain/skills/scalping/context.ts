@@ -221,7 +221,7 @@ export function assessScalpingContext(
 
   const sessionPhases: ScalpingContextAssessment["sessionPhases"] = [];
   for (const item of input.sessions) {
-    if (!item.id || !item.name || !item.phase || !fresh(item.observedAt)) {
+    if (!item.id || !item.name || !item.phase || !Number.isFinite(timestamp(item.observedAt)) || timestamp(item.observedAt) > asOf) {
       findings.push({ code: "INVALID_OBSERVATION", message: `Session observation ${item.id || "(unnamed)"} is invalid or has a future timestamp.` });
       continue;
     }
