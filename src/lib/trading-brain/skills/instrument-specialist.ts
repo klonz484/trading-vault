@@ -67,6 +67,13 @@ export interface InstrumentSpecialistFinding {
 const SKILL_VERSION = "0.1.0";
 const RULE_SET_VERSION = "instrument-specialist/0.1.0";
 
+function isAlignedToInteger(value: number): boolean {
+  if (!Number.isFinite(value)) return false;
+  const nearest = Math.round(value);
+  const tolerance = Number.EPSILON * Math.max(1, Math.abs(value)) * 8;
+  return Math.abs(value - nearest) <= tolerance;
+}
+
 function emptyAssessment(input: InstrumentSpecialistInput): InstrumentSpecialistAssessment {
   return {
     symbol: input.specification.symbol,
@@ -154,14 +161,14 @@ export function assessInstrumentSpecialist(
     spec.pricePrecision <= 12 &&
     Number.isFinite(spec.tickSize) &&
     spec.tickSize > 0 &&
-    Number.isInteger(spec.tickSize * precisionScale) &&
+    isAlignedToInteger(spec.tickSize * precisionScale) &&
     Number.isFinite(spec.contractSize) &&
     spec.contractSize > 0 &&
     Number.isFinite(spec.minimumLot) &&
     spec.minimumLot > 0 &&
     Number.isFinite(spec.lotStep) &&
     spec.lotStep > 0 &&
-    Number.isInteger(spec.minimumLot / spec.lotStep);
+    isAlignedToInteger(spec.minimumLot / spec.lotStep);
 
   if (!validSpecification) {
     findings.push({
@@ -178,7 +185,7 @@ export function assessInstrumentSpecialist(
       spec.baseAsset !== spec.quoteAsset &&
       Number.isFinite(spec.pipSize) &&
       (spec.pipSize as number) > 0 &&
-      Number.isInteger((spec.pipSize as number) / spec.tickSize);
+      isAlignedToInteger((spec.pipSize as number) / spec.tickSize);
     if (!validCurrencies) {
       findings.push({
         code: "INVALID_FX_CURRENCY_PAIR",
@@ -229,10 +236,10 @@ export function assessInstrumentSpecialist(
     input.quote.bid <= 0 ||
     input.quote.ask <= 0 ||
     input.quote.ask < input.quote.bid ||
-    !Number.isInteger(input.quote.bid * precisionScale) ||
-    !Number.isInteger(input.quote.ask * precisionScale) ||
-    !Number.isInteger(input.quote.bid / spec.tickSize) ||
-    !Number.isInteger(input.quote.ask / spec.tickSize)
+    !isAlignedToInteger(input.quote.bid * precisionScale) ||
+    !isAlignedToInteger(input.quote.ask * precisionScale) ||
+    !isAlignedToInteger(input.quote.bid / spec.tickSize) ||
+    !isAlignedToInteger(input.quote.ask / spec.tickSize)
   ) {
     findings.push({
       code: "INVALID_QUOTE",
