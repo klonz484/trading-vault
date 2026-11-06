@@ -113,7 +113,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     purpose: "Apply instrument-specific precision, pip/tick, spread, session, volatility, and contract conventions.",
     requiredEvidence: ["Validated instrument metadata", "Quote currency/base currency", "Tick and lot specifications", "Current spread provenance"],
     outputs: ["Instrument profile", "Precision rules", "Cost and volatility context", "Unsupported-instrument warnings"],
-    dependencies: ["evidence-quality", "risk-planning"],
+    dependencies: ["evidence-quality"],
     safetyRules: [...commonSafety, "Never assume a universal pip, tick, lot, or contract size."],
     status: "IN_DEVELOPMENT",
     version: "0.1.0",
