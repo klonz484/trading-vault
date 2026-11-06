@@ -33,7 +33,7 @@ function textField(block: string, label: string): string {
 }
 
 export function parseScannerSummary(analysis: string): ScannerSummary {
-  const match = analysis.match(/TV_SETUP_SUMMARY_START\\s*\\n([\\s\\S]*?)\\nTV_SETUP_SUMMARY_END/i);
+  const match = analysis.match(/TV_SETUP_SUMMARY_START\s*\n([\s\S]*?)\nTV_SETUP_SUMMARY_END/i);
   if (!match) {
     return {
       decision: "NO TRADE", orderType: "NONE", entryType: "none",
