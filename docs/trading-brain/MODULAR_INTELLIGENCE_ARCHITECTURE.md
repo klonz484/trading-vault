@@ -88,7 +88,7 @@ A specialist that lacks required inputs returns an explicit incomplete result. I
 
 - **Risk and Trade Planning:** validates caller-supplied BUY/SELL entry ranges, stop placement and ordered targets against the instrument specialist's READY assessment. It calculates conservative price-distance risk and per-target R:R using the worst entry in the range, with an explicit minimum R:R policy. It deliberately does not calculate lot size, account-currency pip value, margin or costs, and cannot place orders. The calculation is geometric only; it does not validate the technical quality of levels or guarantee fills.
 
-**Remaining Stage C work:** complete methodology validation, replay coverage and integration review.
+- **Pattern Recognition:** detects explicitly configured bullish/bearish engulfing, inside/outside bars, doji and pin-bar candidates from validated closed candles. It requires a READY evidence gate, source identity, explicit lookback and wick/body thresholds, and ordered timestamped OHLC. Results preserve candle boundaries and invalidation candidates; no confidence score, trade plan or directional recommendation is produced.\n\n**Remaining Stage C work:** complete methodology validation, replay coverage and integration review.
 
 **Stage D — context and alternatives (in progress):** session timing and indicator calculations have deterministic first implementations; pattern recognition and scenario simulation remain planned; fundamental/news evidence has a deterministic first implementation.
 
