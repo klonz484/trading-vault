@@ -73,7 +73,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // An owner with a valid session should not remain on login/recovery screens.
-  if (isOwner && (isLoginPage || isPasswordRecoveryPage)) {
+  if (isOwner && isLoginPage) {
     const redirect = NextResponse.redirect(new URL("/", request.url));
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       redirect.cookies.set(cookie);
