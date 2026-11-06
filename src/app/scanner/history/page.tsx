@@ -10,7 +10,7 @@ type StoredAnalysis = {
   text?: string;
   notes?: string;
   warning?: string;
-  planAudits?: Array<{ scenario: string; entry: number; stop: number; target: number; riskDistance: number; rewardDistance: number; riskReward: number; pipSize: number | null; riskPips: number | null; rewardPips: number | null; valid: boolean; issues: string[] }>;
+  planAudits?: Array<{ scenario: string; entryType?: "exact" | "range" | "conditional_close"; entry?: number | null; entryLow?: number; entryHigh?: number; stop: number; target: number; riskDistanceMin?: number; riskDistanceMax?: number; rewardDistanceMin?: number; rewardDistanceMax?: number; riskRewardMin?: number; riskRewardMax?: number; riskDistance?: number; rewardDistance?: number; riskReward?: number; pipSize: number | null; riskPipsMin?: number | null; riskPipsMax?: number | null; rewardPipsMin?: number | null; rewardPipsMax?: number | null; riskPips?: number | null; rewardPips?: number | null; arithmeticValid?: boolean; directionValid?: boolean; technicalStatus?: "unverified"; valid: boolean; issues: string[] }>;
 };
 
 async function PrivateScanHistoryContent() {
@@ -126,8 +126,9 @@ async function PrivateScanHistoryContent() {
                   <p className="text-[11px] text-[var(--muted)] mb-3">Computed from AI-proposed values; checks arithmetic and direction, not chart accuracy.</p>
                   {scan.planAudits.map((plan, index) => <div key={index} className="text-xs mb-3 last:mb-0">
                     <p className="font-semibold text-white capitalize">{plan.scenario} scenario — <span className={plan.valid ? "text-emerald-300" : "text-rose-300"}>{plan.valid ? "Arithmetic consistent" : "Check required"}</span></p>
-                    <p className="text-[var(--muted)]">Entry {plan.entry} · Stop {plan.stop} · Target {plan.target}</p>
-                    <p className="text-[var(--muted)]">Risk {plan.riskDistance.toFixed(5)}{plan.riskPips !== null ? ` (${plan.riskPips.toFixed(1)} pips)` : ""} · Reward {plan.rewardDistance.toFixed(5)}{plan.rewardPips !== null ? ` (${plan.rewardPips.toFixed(1)} pips)` : ""} · R:R {plan.riskReward.toFixed(2)}R</p>
+                    <p className="text-[var(--muted)]">{plan.entryType === "range" ? `Entry area ${plan.entryLow}–${plan.entryHigh}` : plan.entryType === "conditional_close" ? `Close trigger ${plan.entry ?? plan.entryLow}` : `Exact entry ${plan.entry ?? plan.entryLow}`} · Stop {plan.stop} · Target {plan.target}</p>
+                    <p className="text-[var(--muted)]">Risk {Number(plan.riskDistanceMin ?? plan.riskDistance ?? 0).toFixed(5)}{plan.riskDistanceMax !== undefined && plan.riskDistanceMax !== plan.riskDistanceMin ? `–${plan.riskDistanceMax.toFixed(5)}` : ""}{plan.riskPipsMin != null ? ` (${plan.riskPipsMin.toFixed(1)}–${Number(plan.riskPipsMax ?? plan.riskPipsMin).toFixed(1)} pips)` : plan.riskPips != null ? ` (${plan.riskPips.toFixed(1)} pips)` : ""} · Reward {Number(plan.rewardDistanceMin ?? plan.rewardDistance ?? 0).toFixed(5)}{plan.rewardDistanceMax !== undefined && plan.rewardDistanceMax !== plan.rewardDistanceMin ? `–${plan.rewardDistanceMax.toFixed(5)}` : ""}{plan.rewardPipsMin != null ? ` (${plan.rewardPipsMin.toFixed(1)}–${Number(plan.rewardPipsMax ?? plan.rewardPipsMin).toFixed(1)} pips)` : plan.rewardPips != null ? ` (${plan.rewardPips.toFixed(1)} pips)` : ""} · R:R {Number(plan.riskRewardMin ?? plan.riskReward ?? 0).toFixed(2)}{plan.riskRewardMax !== undefined && plan.riskRewardMax !== plan.riskRewardMin ? `–${plan.riskRewardMax.toFixed(2)}` : ""}R</p>
+                    <p className="text-[11px] text-amber-200 mt-1">Arithmetic: {(plan.arithmeticValid ?? plan.valid) ? "valid" : "invalid"} · Direction: {(plan.directionValid ?? plan.valid) ? "valid" : "invalid"} · Technical levels: unverified</p>
                     {plan.issues.map((issue, issueIndex) => <p key={issueIndex} className="text-rose-300 mt-1">{issue}</p>)}
                     {plan.pipSize === null && <p className="text-amber-200 mt-1">Pip conversion is not configured for this instrument.</p>}
                   </div>)}
