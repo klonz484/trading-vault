@@ -115,7 +115,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     outputs: ["Instrument profile", "Precision rules", "Cost and volatility context", "Unsupported-instrument warnings"],
     dependencies: ["evidence-quality", "risk-planning"],
     safetyRules: [...commonSafety, "Never assume a universal pip, tick, lot, or contract size."],
-    status: "PLANNED",
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
