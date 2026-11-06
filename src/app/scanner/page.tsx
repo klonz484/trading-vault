@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 
 type AnalysisResponse = { analysis?: string; model?: string; error?: string };
@@ -71,6 +72,7 @@ export default function ScannerPage() {
             <span className="text-[10px] uppercase tracking-wider text-cyan-300 border border-cyan-500/30 bg-cyan-500/10 rounded-full px-2.5 py-1">Vision AI</span>
           </div>
           <p className="text-sm text-[var(--muted)] mt-1">Upload an MT5 screenshot for a structured, image-based technical read.</p>
+          <Link href="/scanner/history" className="inline-block mt-3 text-xs text-cyan-300 hover:text-cyan-200">View saved scan history →</Link>
         </div>
 
         <div className="grid xl:grid-cols-2 gap-6 max-w-7xl">
