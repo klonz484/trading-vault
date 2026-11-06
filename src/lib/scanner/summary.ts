@@ -81,10 +81,14 @@ export function parseScannerSummary(analysis: string): ScannerSummary {
   const validDirection =
     low !== null && high !== null && stopLoss !== null && takeProfit1 !== null &&
     (isBuy ? stopLoss < low && takeProfit1 > high : stopLoss > high && takeProfit1 < low);
+  const validOrderForTrigger = entryType !== "conditional_close" || requestedOrder === "PENDING";
+  const validTargetSequence =
+    (takeProfit2 === null || (isBuy ? takeProfit2 > takeProfit1! : takeProfit2 < takeProfit1!)) &&
+    (takeProfit3 === null || (isBuy ? takeProfit3 > (takeProfit2 ?? takeProfit1!) : takeProfit3 < (takeProfit2 ?? takeProfit1!)));
 
   if (
     (requestedDecision !== "BUY" && requestedDecision !== "SELL") ||
-    !validOrder || !validEntry || !validDirection
+    !validOrder || !validEntry || !validDirection || !validOrderForTrigger || !validTargetSequence
   ) {
     return {
       decision: "NO TRADE", orderType: "NONE", entryType: "none",
