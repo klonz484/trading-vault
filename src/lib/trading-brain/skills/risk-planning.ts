@@ -86,8 +86,8 @@ function alignsToTick(value: number, tickSize: number): boolean {
 function emptyAssessment(input: RiskPlanningInput): RiskPlanningAssessment {
   return {
     planValid: false,
-    symbol: input.plan.symbol,
-    direction: input.plan.direction,
+    symbol: input.plan?.symbol ?? "UNKNOWN",
+    direction: input.plan?.direction === "SELL" ? "SELL" : "BUY",
     entryWorstCase: null,
     riskDistance: null,
     targets: [],
@@ -128,7 +128,7 @@ function makeResult(
       "A geometrically valid plan is not a trade recommendation and does not prove the entry trigger will occur.",
       "Execution prices may differ because of spread, slippage, gaps and broker execution rules.",
     ],
-    sourceReferences: input.sourceReferences,
+    sourceReferences: input.sourceReferences ?? [],
     limitations: assessment.limitations,
     ruleSetVersion: RULE_SET_VERSION,
     assessment,
@@ -161,6 +161,8 @@ export function assessRiskPlan(
     return makeResult(input, findings, assessment, "REJECTED", "INCOMPLETE");
   }
   if (
+    !input.instrument ||
+    !input.instrumentAssessment ||
     !input.instrumentAssessment.metadataValid ||
     !input.instrumentAssessment.quoteValid ||
     input.instrumentAssessment.spreadWithinPolicy !== true
@@ -173,15 +175,15 @@ export function assessRiskPlan(
   }
 
   const { plan, instrument } = input;
+  if (!plan || !plan.entry || !Array.isArray(plan.takeProfits)) {
+    findings.push({ code: "INVALID_PLAN", message: "A plan, entry object and take-profit array must be supplied." });
+    return makeResult(input, findings, assessment, "REJECTED", "INCOMPLETE");
+  }
   if (plan.symbol !== instrument.symbol || input.instrumentAssessment.symbol !== instrument.symbol) {
     findings.push({ code: "SYMBOL_MISMATCH", message: "Plan, instrument metadata and instrument assessment must refer to the same symbol." });
     return makeResult(input, findings, assessment, "REJECTED", "INCOMPLETE");
   }
 
-  if (!Array.isArray(plan.takeProfits)) {
-    findings.push({ code: "INVALID_PLAN", message: "Take-profit levels must be supplied as an array." });
-    return makeResult(input, findings, assessment, "REJECTED", "INCOMPLETE");
-  }
   const prices = [plan.entry.low, plan.entry.high, plan.stopLoss, ...plan.takeProfits];
   const validOrderType = ["MARKET", "LIMIT", "STOP"].includes(plan.entry.type);
   if (
