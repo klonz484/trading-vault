@@ -179,6 +179,23 @@ test("does not treat an empty feed as proof of no macro or news risk", () => {
   assert.ok(result.uncertainties.some((uncertainty) => uncertainty.includes("empty item list")));
 });
 
+test("validates source observed/received timestamps and item update times", () => {
+  const badSource = assessFundamentalNews(input({
+    sourceReferences: [{ ...source, receivedAt: "2026-11-06T14:30:00.000Z" }],
+  }), policy);
+  assert.ok(badSource.findings.some((finding) => finding.code === "SOURCE_TIMESTAMP_IN_FUTURE"));
+
+  const invalidSource = assessFundamentalNews(input({
+    sourceReferences: [{ ...source, observedAt: "not-a-date" }],
+  }), policy);
+  assert.ok(invalidSource.findings.some((finding) => finding.code === "SOURCE_TIMESTAMP_INVALID"));
+
+  const futureUpdate = assessFundamentalNews(input({
+    items: [item({ updatedAt: "2026-11-06T15:00:00.000Z" })],
+  }), policy);
+  assert.ok(futureUpdate.findings.some((finding) => finding.code === "PUBLICATION_IN_FUTURE"));
+});
+
 test("preserves impact labels and does not infer market direction or surprise", () => {
   const result = assessFundamentalNews(input({
     items: [item({ impact: "HIGH" })],
