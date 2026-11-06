@@ -29,7 +29,6 @@ export default function AuthForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    setMessage("");
     setLoading(true);
 
     try {
