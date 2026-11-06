@@ -113,13 +113,26 @@ test("flags future-dated candles and prevents READY status", () => {
 test("detects duplicate and out-of-order timestamps", () => {
   const first = candle({ timestamp: "2026-11-06T12:00:00.000Z" });
   const second = candle({ timestamp: "2026-11-06T12:01:00.000Z" });
-  const result = validateCandles([second, first, first], {
+  const third = candle({ timestamp: "2026-11-06T12:02:00.000Z" });
+  const result = validateCandles([second, first, first, third], {
     now: new Date("2026-11-06T12:02:00.000Z"),
     maxAgeSeconds: 600,
   });
   assert.equal(result.duplicateTimestamps.length, 1);
   assert.equal(result.outOfOrderTimestamps.length, 1);
   assert.equal(result.status, "INCOMPLETE");
+});
+
+
+test("accepts a consistently descending provider response order", () => {
+  const newest = candle({ timestamp: "2026-11-06T12:02:00.000Z" });
+  const older = candle({ timestamp: "2026-11-06T12:01:00.000Z" });
+  const result = validateCandles([newest, older], {
+    now: new Date("2026-11-06T12:03:00.000Z"),
+    maxAgeSeconds: 600,
+  });
+  assert.equal(result.outOfOrderTimestamps.length, 0);
+  assert.equal(result.status, "READY");
 });
 
 test("reports interval gaps without assuming a market-session calendar", () => {
