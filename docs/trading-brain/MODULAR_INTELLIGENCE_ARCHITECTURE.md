@@ -90,7 +90,9 @@ A specialist that lacks required inputs returns an explicit incomplete result. I
 
 **Remaining Stage C work:** complete methodology validation, replay coverage and integration review.
 
-**Stage D — context and alternatives:** sessions, indicators, fundamentals, pattern recognition and scenario simulation.
+**Stage D — context and alternatives (in progress):** session timing has a deterministic first implementation; indicators, fundamentals, pattern recognition and scenario simulation remain planned.
+
+- **Session and Timing:** evaluates explicitly supplied session schedules using IANA timezone identifiers and local wall-clock windows, including overnight sessions and daylight-saving changes. Schedule freshness and provenance are required. Sourced event windows are filtered only against caller-supplied instrument currencies and an explicit upcoming-event horizon. It does not discover market hours, holidays or economic events, infer event impact, calculate session ranges without OHLC input, or create trade signals.
 
 **Stage E — quality and learning:** contradiction detection, replay/backtesting, private performance analysis, strategy discovery and confidence calibration.
 
