@@ -45,6 +45,9 @@ export function appendEvidenceCorrection(
 export function replaySnapshotValidation(
   snapshot: MarketDataSnapshot,
 ): CandleValidation {
+  if (snapshot.validatorVersion !== "1.0.0") {
+    throw new Error(`Unsupported validator version: ${snapshot.validatorVersion}`);
+  }
   return validateCandles(snapshot.rawCandles, {
     now: new Date(snapshot.validation.checkedAt),
     maxAgeSeconds: snapshot.validation.freshnessThresholdSeconds ?? undefined,
