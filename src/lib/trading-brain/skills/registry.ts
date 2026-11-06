@@ -272,7 +272,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     outputs: ["Latency distributions", "Observed slippage and fill-quality summaries", "Execution-quality warnings", "Measurement uncertainty"],
     dependencies: ["evidence-quality", "instrument-specialist", "scalp-cost-edge"],
     safetyRules: [...commonSafety, "Do not claim predictive venue latency without adequate measured history.", "No smart order routing, queue joining, IOC submission or broker write access.", "Separate measured execution facts from hypothetical estimates."],
-    status: "PLANNED",
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
