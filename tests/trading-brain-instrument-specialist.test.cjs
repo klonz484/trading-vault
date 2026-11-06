@@ -63,7 +63,7 @@ test("validates broker-supplied Forex metadata and a fresh quote", () => {
   assert.equal(result.evidenceReadiness, "READY");
   assert.equal(result.assessment.metadataValid, true);
   assert.equal(result.assessment.quoteValid, true);
-  assert.equal(result.assessment.spreadInPrice, 0.0002);
+  assert.ok(Math.abs(result.assessment.spreadInPrice - 0.0002) < 1e-12);
   assert.equal(result.assessment.pipDefinition, "BROKER_DEFINED");
 });
 
