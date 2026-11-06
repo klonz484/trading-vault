@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
-  const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -32,10 +30,6 @@ export default function ResetPasswordPage() {
       setMessage("Your password has been updated. You can now sign in with your new password.");
       setPassword("");
       setConfirmPassword("");
-      window.setTimeout(() => {
-        router.replace("/login");
-        router.refresh();
-      }, 1200);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to update your password. Request a new reset link and try again.");
     } finally {
