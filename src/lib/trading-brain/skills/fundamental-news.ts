@@ -330,7 +330,7 @@ export function assessFundamentalNews(
     centralBankCommunicationCount: relevantItems.filter((item) => item.kind === "CENTRAL_BANK_COMMUNICATION").length,
     macroCommentaryCount: relevantItems.filter((item) => item.kind === "MACRO_COMMENTARY").length,
   };
-  const blocked = findings.some((finding) => [
+  const blockingCodes: string[] = [
     "INVALID_POLICY",
     "INSTRUMENT_CURRENCIES_MISSING",
     "SOURCE_IDENTITY_MISMATCH",
@@ -344,7 +344,8 @@ export function assessFundamentalNews(
     "ITEM_SOURCE_IDENTITY_MISMATCH",
     "INVALID_EVENT_TIMESTAMP",
     "EVENT_OUTSIDE_HORIZON",
-  ].includes(finding.code));
+  ];
+  const blocked = findings.some((finding) => blockingCodes.includes(finding.code));
   const incomplete = findings.length > 0;
   return buildResult(
     input,
