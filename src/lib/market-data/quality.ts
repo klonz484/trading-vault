@@ -1,13 +1,44 @@
 import type {
   CandleValidation,
   DataReadiness,
+  MarketDataTimeframe,
   NormalizedCandle,
 } from "./types";
 
+const TIMEFRAME_SECONDS: Record<MarketDataTimeframe, number> = {
+  M1: 60,
+  M5: 300,
+  M15: 900,
+  M30: 1800,
+  H1: 3600,
+  H4: 14_400,
+  D1: 86_400,
+  W1: 604_800,
+};
+
+/** True only when the observation is structurally safe for analytical consumption. */
+export function isCandleStructurallyValid(candle: NormalizedCandle): boolean {
+  const timestampMs = Date.parse(candle.timestamp);
+  const canonicalUtc =
+    Number.isFinite(timestampMs) &&
+    new Date(timestampMs).toISOString() === candle.timestamp;
+  const prices = [candle.open, candle.high, candle.low, candle.close];
+  const validPrices =
+    prices.every((value) => Number.isFinite(value) && value > 0) &&
+    candle.high >= Math.max(candle.open, candle.close) &&
+    candle.low <= Math.min(candle.open, candle.close) &&
+    candle.high >= candle.low;
+  const validVolume =
+    candle.volume === null ||
+    (Number.isFinite(candle.volume) && candle.volume >= 0);
+
+  return canonicalUtc && validPrices && validVolume && Boolean(candle.sourceTimezone);
+}
+
 /**
- * Validates source observations without inventing or repairing price values.
- * A READY result is impossible until the caller supplies a calibrated freshness
- * threshold. Numerical thresholds must be tested and approved per instrument.
+ * Validates observations without repairing or silently discarding source evidence.
+ * Gaps are warnings because market closures and provider-specific calendars must
+ * be considered before a gap can safely be classified as missing market data.
  */
 export function validateCandles(
   candles: NormalizedCandle[],
@@ -18,32 +49,63 @@ export function validateCandles(
   const errors: string[] = [];
   const warnings: string[] = [];
   const duplicateTimestamps: string[] = [];
+  const outOfOrderTimestamps: string[] = [];
+  const missingIntervals: string[] = [];
+  const futureTimestamps: string[] = [];
   const seen = new Set<string>();
   let invalidCandles = 0;
 
+  if (!Number.isFinite(now.getTime())) errors.push("Validation clock is invalid.");
   if (candles.length === 0) errors.push("Provider returned no candle observations.");
+
+  const firstTimeframe = candles[0]?.timeframe;
+  const intervalSeconds = firstTimeframe ? TIMEFRAME_SECONDS[firstTimeframe] : null;
+  let previousTimestamp: number | null = null;
 
   for (const candle of candles) {
     const timestampMs = Date.parse(candle.timestamp);
-    const numbers = [candle.open, candle.high, candle.low, candle.close];
-    const validNumbers = numbers.every(Number.isFinite);
-    const validOhlc =
-      validNumbers &&
-      candle.high >= candle.low &&
-      candle.high >= Math.max(candle.open, candle.close) &&
-      candle.low <= Math.min(candle.open, candle.close);
-
-    if (!Number.isFinite(timestampMs) || !validOhlc) {
+    if (!isCandleStructurallyValid(candle)) {
       invalidCandles += 1;
-      errors.push(`Invalid timestamp or OHLC relationship at ${candle.timestamp}.`);
+      errors.push(`Invalid timestamp, price, volume or timezone metadata at ${candle.timestamp}.`);
+    }
+
+    if (Number.isFinite(timestampMs)) {
+      if (timestampMs > now.getTime() + 60_000) {
+        futureTimestamps.push(candle.timestamp);
+        errors.push(`Future-dated provider observation at ${candle.timestamp}.`);
+      }
+      if (previousTimestamp !== null) {
+        if (timestampMs < previousTimestamp) {
+          outOfOrderTimestamps.push(candle.timestamp);
+        } else if (
+          intervalSeconds !== null &&
+          timestampMs - previousTimestamp > intervalSeconds * 1.5
+        ) {
+          missingIntervals.push(
+            `${new Date(previousTimestamp).toISOString()} -> ${candle.timestamp}`,
+          );
+        }
+      }
+      previousTimestamp = timestampMs;
     }
 
     if (seen.has(candle.timestamp)) duplicateTimestamps.push(candle.timestamp);
     seen.add(candle.timestamp);
+    if (candle.timeframe !== firstTimeframe) {
+      errors.push("Mixed timeframe observations were returned in one series.");
+    }
   }
 
+  if (outOfOrderTimestamps.length) {
+    errors.push(`${outOfOrderTimestamps.length} out-of-order candle timestamp(s) detected.`);
+  }
   if (duplicateTimestamps.length) {
     errors.push(`${duplicateTimestamps.length} duplicate candle timestamp(s) detected.`);
+  }
+  if (missingIntervals.length) {
+    warnings.push(
+      `${missingIntervals.length} interval gap(s) detected; session-calendar validation is required before classifying them as missing market data.`,
+    );
   }
 
   const newest = candles.reduce<number | null>((latest, candle) => {
@@ -51,32 +113,55 @@ export function validateCandles(
     if (!Number.isFinite(value)) return latest;
     return latest === null ? value : Math.max(latest, value);
   }, null);
-
   const freshnessSeconds =
-    newest === null ? null : Math.max(0, Math.floor((now.getTime() - newest) / 1000));
+    newest === null ? null : Math.floor((now.getTime() - newest) / 1000);
   const freshnessThresholdSeconds = options.maxAgeSeconds ?? null;
 
-  if (freshnessSeconds !== null && freshnessSeconds < 0) {
-    warnings.push("Provider timestamp is ahead of the service clock.");
+  if (
+    freshnessThresholdSeconds !== null &&
+    (!Number.isFinite(freshnessThresholdSeconds) || freshnessThresholdSeconds <= 0)
+  ) {
+    errors.push("Freshness threshold must be a finite positive number of seconds.");
+  } else if (freshnessThresholdSeconds === null) {
+    warnings.push("Freshness threshold has not yet been calibrated and approved.");
   }
 
-  if (freshnessThresholdSeconds === null) {
-    warnings.push("Freshness threshold has not yet been calibrated and approved.");
-  } else if (freshnessSeconds !== null && freshnessSeconds > freshnessThresholdSeconds) {
+  if (futureTimestamps.length) {
+    warnings.push("Provider timestamps are ahead of the service clock.");
+  }
+  if (
+    freshnessSeconds !== null &&
+    freshnessSeconds >= 0 &&
+    freshnessThresholdSeconds !== null &&
+    Number.isFinite(freshnessThresholdSeconds) &&
+    freshnessSeconds > freshnessThresholdSeconds
+  ) {
     warnings.push("Latest observation exceeds the configured freshness threshold.");
   }
 
+  const eligibleCandleCount = candles.filter(
+    (candle) => isCandleStructurallyValid(candle) && !futureTimestamps.includes(candle.timestamp),
+  ).length;
+
   let status: DataReadiness = "READY";
-  if (errors.length || candles.length === 0) status = "INCOMPLETE";
+  if (errors.length || eligibleCandleCount === 0) status = "INCOMPLETE";
   else if (freshnessThresholdSeconds === null) status = "DEGRADED";
-  else if (freshnessSeconds !== null && freshnessSeconds > freshnessThresholdSeconds) status = "STALE";
+  else if (
+    freshnessSeconds !== null &&
+    freshnessSeconds >= 0 &&
+    freshnessSeconds > freshnessThresholdSeconds
+  ) status = "STALE";
 
   return {
     status,
     checkedAt,
     candleCount: candles.length,
+    eligibleCandleCount,
     invalidCandles,
     duplicateTimestamps,
+    outOfOrderTimestamps,
+    missingIntervals,
+    futureTimestamps,
     warnings,
     errors,
     freshnessSeconds,
