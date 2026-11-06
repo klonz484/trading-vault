@@ -97,7 +97,10 @@ export class TwelveDataProvider {
     const url = new URL("/time_series", BASE_URL);
     url.searchParams.set("symbol", instrument.twelveDataSymbol);
     url.searchParams.set("interval", interval);
-    url.searchParams.set("outputsize", String(Math.min(Math.max(outputsize, 1), 500)));
+    const safeOutputsize = Number.isFinite(outputsize)
+      ? Math.min(Math.max(Math.trunc(outputsize), 1), 500)
+      : 100;
+    url.searchParams.set("outputsize", String(safeOutputsize));
     url.searchParams.set("timezone", "UTC");
     url.searchParams.set("apikey", this.apiKey);
 
@@ -150,6 +153,13 @@ export class TwelveDataProvider {
     } catch {
       throw new MarketDataProviderError(
         "Twelve Data returned malformed JSON.",
+        "twelve_data", "INVALID_RESPONSE", false,
+      );
+    }
+
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new MarketDataProviderError(
+        "Twelve Data returned a malformed response payload.",
         "twelve_data", "INVALID_RESPONSE", false,
       );
     }
