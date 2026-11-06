@@ -82,7 +82,8 @@ export interface SessionTimingFinding {
     | "CALENDAR_TIMESTAMP_INVALID"
     | "INVALID_EVENT_WINDOW"
     | "EVENT_PROVENANCE_MISSING"
-    | "INSTRUMENT_CURRENCIES_MISSING";
+    | "INSTRUMENT_CURRENCIES_MISSING"
+    | "SESSION_SCHEDULE_MISSING";
   message: string;
 }
 
@@ -178,6 +179,7 @@ function buildResult(
     contraryEvidence: [],
     uncertainties: [
       "Session schedules and event windows are caller-supplied; this module does not discover market hours, holidays, or economic events.",
+      "An empty event list is not proof that no scheduled event exists; calendar coverage must be established by the caller.",
       "Local wall-clock evaluation follows the supplied IANA timezone, including daylight-saving changes; repeated local times during a fall-back transition are not distinguished.",
     ],
     sourceReferences: references,
@@ -216,6 +218,10 @@ export function assessSessionTiming(
   }
   if (!Array.isArray(input.instrumentCurrencies) || input.instrumentCurrencies.length === 0 || input.instrumentCurrencies.some((currency) => typeof currency !== "string" || currency.trim().length === 0)) {
     return buildResult(input, [{ code: "INSTRUMENT_CURRENCIES_MISSING", message: "Explicit instrument currency relevance is required before filtering economic events." }], emptyAssessment(input.instrument), "INCOMPLETE", "INCOMPLETE");
+  }
+
+  if (!Array.isArray(input.sessions) || input.sessions.length === 0) {
+    return buildResult(input, [{ code: "SESSION_SCHEDULE_MISSING", message: "At least one explicit session schedule is required; an empty schedule cannot establish that the market is outside session hours." }], emptyAssessment(input.instrument), "INCOMPLETE", "INCOMPLETE");
   }
 
   const findings: SessionTimingFinding[] = [];
@@ -302,6 +308,7 @@ export function assessSessionTiming(
   }
 
   const hardBlock = findings.some((finding) =>
+    finding.code === "SESSION_SCHEDULE_MISSING" ||
     finding.code === "INVALID_SESSION_DEFINITION" ||
     finding.code === "INVALID_TIMEZONE" ||
     finding.code === "SESSION_PROVENANCE_MISSING" ||
