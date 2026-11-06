@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { parseScannerSummary } from "@/lib/scanner/summary";
 
 export const maxDuration = 60;
 
@@ -151,7 +152,32 @@ Context supplied by the trader:
 - Timeframe: ${timeframe}
 - Additional context: ${notes || "None"}
 
-Return a practical, clearly structured technical chart read with these headings:
+First output exactly one machine-readable summary block describing the CURRENT actionable state, not a hypothetical future scenario:
+TV_SETUP_SUMMARY_START
+Decision: BUY | SELL | NO TRADE
+OrderType: MARKET | PENDING | NONE
+EntryType: exact | range | conditional_close | none
+Entry: numeric price (exact or conditional_close only)
+EntryLow: numeric price (range only)
+EntryHigh: numeric price (range only)
+StopLoss: numeric price
+TakeProfit1: numeric price
+TakeProfit2: numeric price or leave blank
+TakeProfit3: numeric price or leave blank
+Invalidation: numeric price or leave blank
+Reason: one or two concise sentences
+TV_SETUP_SUMMARY_END
+
+Summary rules:
+- Choose NO TRADE and OrderType NONE unless the screenshot supports a complete, currently actionable setup with a clear entry or trigger, stop loss and at least one target. Do not turn a conditional future scenario into an immediate MARKET order.
+- MARKET is allowed only when visible current price is already at the proposed entry decision area and the setup is actionable now. Use PENDING for a future pullback or candle-close confirmation.
+- For a range entry, supply EntryLow and EntryHigh and leave Entry blank. For exact or conditional_close, supply Entry and leave EntryLow/EntryHigh blank.
+- For BUY, the stop must be below the full entry and TakeProfit1 above it. For SELL, the stop must be above the full entry and TakeProfit1 below it. Otherwise choose NO TRADE.
+- Never invent prices to fill missing fields. Optional targets and invalidation may be blank.
+- Do not provide a numerical confidence percentage. Trading Vault will show confidence as not calibrated until a validated scoring method exists.
+- Reason must briefly explain why the setup is or is not actionable now.
+
+After the summary block, return a practical, clearly structured technical chart read with these headings:
 1. What is visibly on the chart
 2. Market structure and directional bias
 3. Key support and resistance (only quote prices that are legible)
@@ -245,6 +271,7 @@ Use Scenario: Bullish for bullish plans. Use a separate block for every fully sp
           : "The model did not confirm a normal completion. Review this partial analysis and do not treat it as a complete trade plan."
         : null;
     const planAudits = auditTradePlans(cleanAnalysis, symbol);
+    const setupSummary = parseScannerSummary(cleanAnalysis);
     // The existing database constraint permits pending/processing/completed/failed,
     // but not "incomplete". Preserve the detailed completion state in analysis JSON
     // and map non-normal provider finishes to the supported "failed" row status.
@@ -263,6 +290,7 @@ Use Scenario: Bullish for bullish plans. Use a separate block for every fully sp
         completionStatus: scanStatus,
         providerFinishReason: finishReason ?? null,
         planAudits,
+        setupSummary,
       },
       model_name: model,
     });
@@ -273,7 +301,7 @@ Use Scenario: Bullish for bullish plans. Use a separate block for every fully sp
       return jsonError("The analysis completed, but Trading Vault could not save this scan. Please try again.", 500);
     }
 
-    return NextResponse.json({ analysis: cleanAnalysis, model, scanId, status: scanStatus, warning: completionWarning, planAudits });
+    return NextResponse.json({ analysis: cleanAnalysis, model, scanId, status: scanStatus, warning: completionWarning, planAudits, setupSummary });
   } catch (error) {
     await removeUploadedImage();
     if (error instanceof Error && error.name === "TimeoutError") {
