@@ -134,7 +134,10 @@ export function assessScalpingCostEdge(input: ScalpingCostInput): ReturnType<typ
   if (input.quote.instrument !== input.instrument || !input.quote.sourceId || !input.quote.providerId ||
     input.sourceReferences.some((source) => source.instrument !== input.instrument ||
       source.timeframe !== input.timeframe || !source.sourceId || !source.providerId ||
-      !Number.isFinite(timestamp(source.observedAt)) || !Number.isFinite(timestamp(source.receivedAt)))) {
+      !Number.isFinite(timestamp(source.observedAt)) || !Number.isFinite(timestamp(source.receivedAt))) ||
+    !input.sourceReferences.some((source) => source.sourceId === input.quote.sourceId &&
+      source.providerId === input.quote.providerId && source.instrument === input.instrument &&
+      source.timeframe === input.timeframe)) {
     return result(input, [{ code: "SOURCE_IDENTITY_MISMATCH", message: "Quote and source references must match the requested instrument/timeframe and identify their providers." }], null, "REJECTED", "INCOMPLETE");
   }
   if ((asOf - observedAt) / 1000 > input.policy.maximumQuoteAgeSeconds ||
