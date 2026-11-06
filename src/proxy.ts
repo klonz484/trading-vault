@@ -31,7 +31,10 @@ export async function proxy(request: NextRequest) {
   const claims = data?.claims;
   const pathname = request.nextUrl.pathname;
   const isAuthPage = pathname === "/login" || pathname === "/signup";
-  const isPublicPath = isAuthPage || pathname.startsWith("/auth/callback");
+  const isPasswordRecoveryPage =
+    pathname === "/forgot-password" || pathname === "/reset-password";
+  const isPublicPath =
+    isAuthPage || isPasswordRecoveryPage || pathname.startsWith("/auth/callback");
 
   if (!claims && !isPublicPath) {
     const loginUrl = new URL("/login", request.url);
