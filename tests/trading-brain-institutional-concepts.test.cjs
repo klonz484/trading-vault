@@ -94,6 +94,7 @@ test("detects a three-closed-candle bullish FVG and an order-block candidate", (
 test("identifies a breaker candidate only after closed-candle order-block invalidation", () => {
   const invalidatingCandle = {
     ...baseCandles[5],
+    open: 100.5,
     high: 101.0,
     low: 99.0,
     close: 100.0,

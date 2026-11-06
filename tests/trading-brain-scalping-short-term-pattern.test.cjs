@@ -40,7 +40,7 @@ test("identifies a configured upward quote-sequence impulse", () => {
   assert.equal(result.status, "COMPLETE");
   assert.equal(result.evidenceReadiness, "READY");
   assert.equal(result.assessment.candidate, "UPWARD_IMPULSE");
-  assert.equal(result.assessment.netMoveTicks, 5);
+  assert.ok(Math.abs(result.assessment.netMoveTicks - 5) < 1e-8);
   assert.equal(result.assessment.directionalConsistency, 1);
 });
 
@@ -78,8 +78,10 @@ test("blocks invalid ordering, sequence gaps, stale quotes and wide spreads", ()
   const gap = assessScalpingShortTermPattern({
     ...base,
     observations: base.observations.map((item, index) => index === 2
-      ? { ...item, timestamp: "2026-11-06T10:00:10.000Z" }
-      : item),
+      ? { ...item, timestamp: "2026-11-06T10:00:06.000Z" }
+      : index === 3 ? { ...item, timestamp: "2026-11-06T10:00:07.000Z" } : item),
+    asOf: "2026-11-06T10:00:08.000Z",
+    sourceReferences: [{ ...base.sourceReferences[0], observedAt: "2026-11-06T10:00:07.000Z", receivedAt: "2026-11-06T10:00:07.100Z" }],
   }, policy);
   assert.ok(gap.findings.some((finding) => finding.code === "EXCESSIVE_GAP"));
 

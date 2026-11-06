@@ -105,6 +105,14 @@ export default function AuthForm({ mode }: AuthFormProps) {
             />
           </label>
 
+          {!isSignup && (
+            <div className="text-right text-sm">
+              <Link href="/forgot-password" className="font-semibold text-cyan-300 hover:text-cyan-200">
+                Forgot password?
+              </Link>
+            </div>
+          )}
+
           {error && <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>}
           {message && <p role="status" className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 p-3 text-sm text-cyan-200">{message}</p>}
 

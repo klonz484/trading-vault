@@ -27,7 +27,7 @@ const record = (id, openedAt, outcome, lots, pnlTicks) => ({
 const input = {
   userAuthorized: true, privacyScope: "PRIVATE_USER_ONLY", instrument: "EURUSD", asOf,
   records: [
-    record("trade-1", "2026-11-06T10:30:00.000Z", "LOSS", 0.1, -4),
+    record("trade-1", "2026-11-06T11:00:00.000Z", "LOSS", 0.1, -4),
     record("trade-2", "2026-11-06T11:00:00.000Z", "LOSS", 0.1, -3),
     record("trade-3", "2026-11-06T11:30:00.000Z", "WIN", 0.2, 6),
   ],

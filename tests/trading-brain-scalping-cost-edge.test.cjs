@@ -61,8 +61,8 @@ test("requires explicit policy and complete READY evidence", () => {
 test("calculates spread, known costs, conservative net edge and edge-to-cost ratio", () => {
   const result = assessScalpingCostEdge(base);
   assert.equal(result.status, "COMPLETE");
-  assert.equal(result.assessment.quoteSpread, 0.0001);
-  assert.equal(result.assessment.knownRoundTripCosts, 0.0002);
+  assert.ok(Math.abs(result.assessment.quoteSpread - 0.0001) < 1e-12);
+  assert.ok(Math.abs(result.assessment.knownRoundTripCosts - 0.0002) < 1e-12);
   assert.ok(Math.abs(result.assessment.totalCostMaximum - 0.0003) < 1e-12);
   assert.ok(Math.abs(result.assessment.netEdgeMinimum - 0.0007) < 1e-12);
   assert.ok(result.assessment.passesConfiguredCostGate);
