@@ -29,14 +29,14 @@ type PlanAudit = {
 function auditTradePlans(analysis: string, symbol: string): PlanAudit[] {
   const pipSize = /JPY$/i.test(symbol) ? 0.01 : /^[A-Z]{6}$/i.test(symbol) ? 0.0001 : null;
   const audits: PlanAudit[] = [];
-  const blockPattern = /TV_PLAN_AUDIT_START\\s*\\n([\\s\\S]*?)\\nTV_PLAN_AUDIT_END/gi;
+  const blockPattern = /TV_PLAN_AUDIT_START\s*\n([\s\S]*?)\nTV_PLAN_AUDIT_END/gi;
   for (const match of analysis.matchAll(blockPattern)) {
     const block = match[1];
     const read = (label: string) => {
-      const found = block.match(new RegExp("^\\s*" + label + "\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$", "im"));
+      const found = block.match(new RegExp("^\s*" + label + "\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*$", "im"));
       return found ? Number(found[1]) : null;
     };
-    const scenario = block.match(/^\\s*Scenario\\s*:\\s*(Bearish|Bullish|Sell|Buy)\\s*$/im)?.[1]?.toLowerCase();
+    const scenario = block.match(/^\s*Scenario\s*:\s*(Bearish|Bullish|Sell|Buy)\s*$/im)?.[1]?.toLowerCase();
     const entry = read("Entry"), stop = read("Stop"), target = read("Target");
     if (!scenario || entry === null || stop === null || target === null ||
         ![entry, stop, target].every(Number.isFinite) || entry <= 0 || stop <= 0 || target <= 0) continue;
