@@ -284,7 +284,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     outputs: ["Risk-limit state", "Inventory/exposure summaries", "Size-reduction or pause warnings", "Circuit-breaker status"],
     dependencies: ["evidence-quality", "instrument-specialist", "risk-planning"],
     safetyRules: [...commonSafety, "Never invent balances, positions, tick values or contract specifications.", "No automatic position sizing submission, order reduction or trade shutdown action.", "Missing or stale inventory data blocks claims of current exposure."],
-    status: "PLANNED",
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
