@@ -24,10 +24,10 @@ const {
   getBrainSkillReadiness,
 } = require("../src/lib/trading-brain/skills/registry.ts");
 
-test("registry contains all 18 approved specialist skills with unique stable IDs", () => {
-  assert.equal(TRADING_BRAIN_SKILLS.length, 18);
+test("registry contains all 26 approved specialist skills with unique stable IDs", () => {
+  assert.equal(TRADING_BRAIN_SKILLS.length, 26);
   const ids = TRADING_BRAIN_SKILLS.map((skill) => skill.id);
-  assert.equal(new Set(ids).size, 18);
+  assert.equal(new Set(ids).size, 26);
   for (const skill of TRADING_BRAIN_SKILLS) {
     assert.ok(skill.name.length > 0);
     assert.ok(skill.purpose.length > 0);
@@ -53,18 +53,23 @@ test("registry exposes expected core skills and group filtering", () => {
   assert.equal(getBrainSkill("fundamental-news").status, "IN_DEVELOPMENT");
   assert.equal(getBrainSkill("pattern-recognition").status, "IN_DEVELOPMENT");
   assert.equal(getBrainSkill("not-a-skill"), undefined);
+  for (const id of ["scalp-microstructure", "scalp-ultra-short-signals", "scalp-latency-execution", "scalp-micro-risk", "scalp-cost-edge", "scalp-context", "scalp-adaptive-strategy", "scalp-behaviour-guardrails"]) {
+    assert.equal(getBrainSkill(id).status, "PLANNED");
+    assert.equal(getBrainSkill(id).group, "SCALPING");
+  }
+  assert.equal(getBrainSkillsByGroup("SCALPING").length, 8);
   assert.ok(getBrainSkillsByGroup("QUALITY").some((skill) => skill.id === "evidence-quality"));
   assert.ok(getBrainSkillsByGroup("LEARNING").some((skill) => skill.id === "backtesting"));
 });
 
 test("planned skills are never reported as implemented, tested, or enabled", () => {
   assert.deepEqual(getBrainSkillReadiness(), {
-    total: 18,
+    total: 26,
     inDevelopment: 11,
     implemented: 0,
     tested: 0,
     enabled: 0,
-    planned: 7,
+    planned: 15,
   });
 });
 
