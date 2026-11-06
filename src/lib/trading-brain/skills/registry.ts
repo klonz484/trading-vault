@@ -78,8 +78,8 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     requiredEvidence: ["Synchronized candles for each requested timeframe", "Timeframe completeness", "Timestamp alignment"],
     outputs: ["Timeframe context map", "Alignment/conflict state", "Missing timeframe warnings"],
     dependencies: ["evidence-quality"],
-    safetyRules: [...commonSafety, "Never infer an unavailable higher timeframe from a lower-timeframe screenshot."],
-    status: "PLANNED",
+    safetyRules: [...commonSafety, "Never infer an unavailable higher timeframe from a lower-timeframe screenshot.", "Preserve opposing timeframe evidence instead of forcing consensus."],
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
