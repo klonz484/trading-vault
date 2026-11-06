@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 
-type AnalysisResponse = { analysis?: string; model?: string; status?: string; warning?: string; error?: string };
+type PlanAudit = { scenario: string; entry: number; stop: number; target: number; riskDistance: number; rewardDistance: number; riskReward: number; pipSize: number | null; riskPips: number | null; rewardPips: number | null; valid: boolean; issues: string[] };
+type AnalysisResponse = { analysis?: string; model?: string; status?: string; warning?: string; planAudits?: PlanAudit[]; error?: string };
 
 export default function ScannerPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -15,7 +16,7 @@ export default function ScannerPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [modelName, setModelName] = useState<string | null>(null);
-  const [analysisWarning, setAnalysisWarning] = useState<string | null>(null);
+  const [analysisWarning, setAnalysisWarning] = useState<string | null>(null);\n  const [planAudits, setPlanAudits] = useState<PlanAudit[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,7 +59,7 @@ export default function ScannerPage() {
       if (!response.ok) throw new Error(data.error || "Analysis failed. Please try again.");
       setResult(data.analysis || "The model did not return an analysis.");
       setModelName(data.model || "Vision model");
-      setAnalysisWarning(data.warning || null);
+      setAnalysisWarning(data.warning || null);\n      setPlanAudits(data.planAudits || []);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong. Please try again.");
     } finally {
@@ -131,6 +132,17 @@ export default function ScannerPage() {
             {analyzing && <div className="min-h-[330px] flex flex-col items-center justify-center gap-3"><div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"/><p className="text-sm text-[var(--muted)]">Inspecting market structure, levels and chart context…</p></div>}
             {error && <div role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200"><p className="font-medium mb-1">Analysis unavailable</p>{error}</div>}
             {result && analysisWarning && <div role="alert" className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">{analysisWarning}</div>}
+            {result && planAudits.length > 0 && <div className="mb-4 rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-3">
+              <p className="text-xs font-semibold text-cyan-200 mb-2">Trade-plan arithmetic check</p>
+              <p className="text-[11px] text-[var(--muted)] mb-3">Calculations use the AI-proposed values in the audit block. They check arithmetic and direction only—not whether the chart levels are accurate or tradable.</p>
+              <div className="space-y-3">{planAudits.map((plan, index) => <div key={index} className="text-xs">
+                <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-white capitalize">{plan.scenario} scenario</span><span className={plan.valid ? "text-emerald-300" : "text-rose-300"}>{plan.valid ? "Arithmetic consistent" : "Check required"}</span></div>
+                <p className="text-[var(--muted)]">Entry {plan.entry} · Stop {plan.stop} · Target {plan.target}</p>
+                <p className="text-[var(--muted)]">Risk {plan.riskDistance.toFixed(5)}{plan.riskPips !== null ? ` (${plan.riskPips.toFixed(1)} pips)` : ""} · Reward {plan.rewardDistance.toFixed(5)}{plan.rewardPips !== null ? ` (${plan.rewardPips.toFixed(1)} pips)` : ""} · R:R {plan.riskReward.toFixed(2)}R</p>
+                {plan.issues.map((issue, issueIndex) => <p key={issueIndex} className="text-rose-300 mt-1">{issue}</p>)}
+                {plan.pipSize === null && <p className="text-amber-200 mt-1">Pip conversion is not configured for this instrument; price-distance and R:R arithmetic only.</p>}
+              </div>)}</div>
+            </div>}
             {result && <div className="whitespace-pre-wrap text-sm text-[var(--foreground)] leading-7">{result}</div>}
           </section>
         </div>
