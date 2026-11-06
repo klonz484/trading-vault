@@ -25,7 +25,7 @@ export function compareProviderSnapshots(
   const secondByTimestamp = new Map(
     second.candles
       .filter((candle) => !candle.provisional && Boolean(candle.sourceTimezone))
-      .map((candle) => [candle.timestamp, candle]),
+      .map((candle) => [candle.timestamp, candle] as const),
   );
 
   const conflicts: ProviderConflict[] = [];
