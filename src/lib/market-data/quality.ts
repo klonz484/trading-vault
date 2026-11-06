@@ -156,7 +156,7 @@ export function validateCandles(
     warnings.push("Latest observation exceeds the configured freshness threshold.");
   }
 
-  const eligibleCandleCount = candles.filter(
+  const structurallyValidCandleCount = candles.filter(
     (candle) => isCandleStructurallyValid(candle) && !futureTimestamps.includes(candle.timestamp),
   ).length;
 
@@ -168,6 +168,10 @@ export function validateCandles(
     freshnessSeconds >= 0 &&
     freshnessSeconds > freshnessThresholdSeconds
   ) status = "STALE";
+
+  const eligibleCandleCount = status === "READY" || status === "DEGRADED"
+    ? structurallyValidCandleCount
+    : 0;
 
   return {
     status,
