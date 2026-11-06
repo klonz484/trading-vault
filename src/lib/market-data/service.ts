@@ -28,8 +28,13 @@ export async function getTwelveDataSnapshot(
     maxAgeSeconds: options.maxAgeSeconds,
   });
   const individuallyValid = result.candles.filter(isCandleStructurallyValid);
-  const hasBlockingSeriesErrors = validation.errors.length > 0;
-  const eligibleCandles = hasBlockingSeriesErrors ? [] : individuallyValid;
+  const hasBlockingSeriesErrors = validation.errors.length > 0 ||
+    validation.status === "STALE" ||
+    validation.status === "CONFLICTED" ||
+    validation.status === "UNAVAILABLE";
+  const eligibleCandles = hasBlockingSeriesErrors
+    ? []
+    : individuallyValid.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
 
   return {
     schemaVersion: "1.0.0",
