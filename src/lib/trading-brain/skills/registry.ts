@@ -262,6 +262,7 @@ export function getBrainSkillsByGroup(group: BrainSkillGroup): BrainSkillDefinit
 
 export function getBrainSkillReadiness(): {
   total: number;
+  inDevelopment: number;
   implemented: number;
   tested: number;
   enabled: number;
@@ -269,6 +270,7 @@ export function getBrainSkillReadiness(): {
 } {
   return {
     total: TRADING_BRAIN_SKILLS.length,
+    inDevelopment: TRADING_BRAIN_SKILLS.filter((skill) => skill.status === "IN_DEVELOPMENT").length,
     implemented: TRADING_BRAIN_SKILLS.filter((skill) =>
       skill.status === "IMPLEMENTED" || skill.status === "TESTED" || skill.status === "ENABLED"
     ).length,
