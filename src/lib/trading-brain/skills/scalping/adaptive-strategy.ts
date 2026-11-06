@@ -159,6 +159,7 @@ export function assessScalpingStrategySuitability(
     return result(input, [{ code: "COST_ASSESSMENT_NOT_READY", message: "A verified cost assessment is mandatory; unknown costs block strategy suitability." }], empty, "INCOMPLETE", "DEGRADED");
   }
   if (!Array.isArray(input.observedRegimes) || input.observedRegimes.length === 0 ||
+    input.observedRegimes.some((value) => typeof value !== "string" || value.trim().length === 0) ||
     !Array.isArray(input.candidates) || input.candidates.length === 0) {
     return result(input, [{ code: "CANDIDATES_MISSING", message: "Explicit observed regimes and at least one versioned strategy candidate are required." }], empty, "INCOMPLETE", "INCOMPLETE");
   }
@@ -168,12 +169,14 @@ export function assessScalpingStrategySuitability(
     ...(Array.isArray(input.sourceReferences) ? input.sourceReferences : []),
     ...input.candidates.flatMap((candidate) => Array.isArray(candidate.sourceReferences) ? candidate.sourceReferences : []),
   ];
-  const refsValid = allRefs.length > 0 && allRefs.every((ref) =>
-    Boolean(ref.sourceId && ref.providerId && ref.instrument === input.instrument && ref.timeframe) &&
-    Number.isFinite(absoluteTimestamp(ref.observedAt)) &&
-    Number.isFinite(absoluteTimestamp(ref.receivedAt)) &&
-    absoluteTimestamp(ref.observedAt) <= asOf && absoluteTimestamp(ref.receivedAt) <= asOf
-  );
+  const refsValid = Array.isArray(input.sourceReferences) && input.sourceReferences.length > 0 &&
+    input.candidates.every((candidate) => Array.isArray(candidate.sourceReferences) && candidate.sourceReferences.length > 0) &&
+    allRefs.every((ref) =>
+      Boolean(ref.sourceId && ref.providerId && ref.instrument === input.instrument && ref.timeframe) &&
+      Number.isFinite(absoluteTimestamp(ref.observedAt)) &&
+      Number.isFinite(absoluteTimestamp(ref.receivedAt)) &&
+      absoluteTimestamp(ref.observedAt) <= asOf && absoluteTimestamp(ref.receivedAt) <= asOf
+    );
   if (policy.requireProvenance && !refsValid) {
     findings.push({ code: "PROVENANCE_MISSING", message: "Strategy and evaluation evidence must have matching instrument provenance and non-future source timestamps." });
     return result(input, findings, empty, "INCOMPLETE", "DEGRADED");
