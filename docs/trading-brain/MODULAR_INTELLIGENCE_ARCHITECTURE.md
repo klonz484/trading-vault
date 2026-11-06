@@ -76,7 +76,7 @@ A specialist that lacks required inputs returns an explicit incomplete result. I
 
 **Stage A — registry and governance:** stable IDs, skill contract, dependency graph, lifecycle statuses and tests.
 
-**Stage B — evidence foundation:** market-data provenance, candle-state validation, instrument metadata and timestamp alignment.
+**Stage B — evidence foundation (in progress):** a deterministic candle-quality gate now checks explicitly supplied policy thresholds, OHLC integrity, timestamps, candle closure, gaps, freshness, provenance presence, provider conflicts, and provider entitlement/licence flags. Instrument metadata and broader timestamp alignment remain open. The gate does not invent thresholds and is not yet certified for live data.
 
 **Stage C — deterministic core analysis:** market structure, liquidity, institutional concepts, multi-timeframe, instrument specialist and risk planning.
 
