@@ -1,13 +1,14 @@
 import { getInstrument } from "./instruments";
-import { validateCandles } from "./quality";
+import { isCandleStructurallyValid, validateCandles } from "./quality";
 import { TwelveDataProvider } from "./providers/twelve-data";
 import type { InstrumentId, MarketDataSnapshot, MarketDataTimeframe } from "./types";
 
 const twelveData = new TwelveDataProvider();
 
 /**
- * On-demand retrieval only. No background polling, automatic fallback,
- * persistence, or trade-ready status is enabled by this foundation package.
+ * On-demand retrieval only. The provider response is retained in rawCandles.
+ * The public candles collection fails closed: if series-level validation has
+ * blocking errors, no observations are exposed as analytically eligible.
  */
 export async function getTwelveDataSnapshot(
   instrumentId: InstrumentId,
@@ -26,8 +27,13 @@ export async function getTwelveDataSnapshot(
   const validation = validateCandles(result.candles, {
     maxAgeSeconds: options.maxAgeSeconds,
   });
+  const individuallyValid = result.candles.filter(isCandleStructurallyValid);
+  const hasBlockingSeriesErrors = validation.errors.length > 0;
+  const eligibleCandles = hasBlockingSeriesErrors ? [] : individuallyValid;
 
   return {
+    schemaVersion: "1.0.0",
+    snapshotVersion: `1.0.0:${result.retrievedAt}:twelve_data:${instrumentId}:${timeframe}`,
     instrument: instrumentId,
     timeframe,
     provider: "twelve_data",
@@ -36,16 +42,22 @@ export async function getTwelveDataSnapshot(
       symbol: result.symbol,
       endpoint: "/time_series",
       attribution: "Twelve Data",
+      sourceTimezone: "UTC",
+      entitlementStatus: "UNVERIFIED",
+      licenceStatus: "UNVERIFIED",
     },
-    candles: result.candles,
+    candles: eligibleCandles,
+    rawCandles: result.candles,
     validation,
     limitations: [
-      "Provider entitlement and licensing must be verified for this account and intended multi-user use.",
+      "Provider entitlement and licensing are UNVERIFIED for this account and intended multi-user use.",
       "Freshness thresholds are not calibrated; data cannot be marked READY until approved thresholds are supplied.",
-      "This package does not persist observations to Supabase.",
+      "Raw provider observations are retained separately; candles are empty when blocking series-level validation errors exist.",
+      "Provisional candle state is estimated from the requested UTC interval boundary; provider closure semantics must be independently verified before production use.",
+      "This package does not persist observations or correction history to Supabase; snapshot versioning is in-memory metadata only.",
       "This package does not run background polling or automatically switch providers.",
       "No bid/ask execution quote is inferred from OHLC candle data.",
-      "Forming-candle state is not inferred; the provider candle is treated as a source observation, not a confirmed market-structure event.",
+      "No Scanner or Brain production integration is enabled by this package.",
     ],
   };
 }
