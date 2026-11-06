@@ -2,6 +2,8 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 
+export const instant = false;
+
 
 type StoredAnalysis = {
   text?: string;
