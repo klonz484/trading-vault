@@ -16,7 +16,8 @@ export default function ScannerPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [modelName, setModelName] = useState<string | null>(null);
-  const [analysisWarning, setAnalysisWarning] = useState<string | null>(null);\n  const [planAudits, setPlanAudits] = useState<PlanAudit[]>([]);
+  const [analysisWarning, setAnalysisWarning] = useState<string | null>(null);
+  const [planAudits, setPlanAudits] = useState<PlanAudit[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -27,6 +28,7 @@ export default function ScannerPage() {
     setResult(null);
     setModelName(null);
     setAnalysisWarning(null);
+    setPlanAudits([]);
     if (!(["image/png", "image/jpeg", "image/webp"].includes(selected.type))) {
       setError("Please choose a PNG, JPG, or WebP image.");
       return;
@@ -47,6 +49,7 @@ export default function ScannerPage() {
     setError(null);
     setResult(null);
     setAnalysisWarning(null);
+    setPlanAudits([]);
     try {
       const body = new FormData();
       body.append("image", file);
