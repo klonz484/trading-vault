@@ -66,8 +66,8 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     requiredEvidence: ["Validated candles", "Structure events", "Displacement evidence", "Zone qualification rules"],
     outputs: ["Qualified zones", "Zone state", "Mitigation status", "Invalidation levels"],
     dependencies: ["market-structure", "liquidity", "evidence-quality"],
-    safetyRules: [...commonSafety, "Do not label every candle or gap as an institutional zone."],
-    status: "PLANNED",
+    safetyRules: [...commonSafety, "Do not label every candle or gap as an institutional zone.", "Treat zones as candidates, not proof of institutional orders."],
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
