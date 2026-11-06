@@ -42,6 +42,7 @@ test("registry exposes expected core skills and group filtering", () => {
   assert.equal(getBrainSkill("market-structure").name, "Market Structure Intelligence");
   assert.equal(getBrainSkill("confidence-calibration").name, "Confidence Calibration Intelligence");
   assert.equal(getBrainSkill("evidence-quality").status, "IN_DEVELOPMENT");
+  assert.equal(getBrainSkill("market-structure").status, "IN_DEVELOPMENT");
   assert.equal(getBrainSkill("not-a-skill"), undefined);
   assert.ok(getBrainSkillsByGroup("QUALITY").some((skill) => skill.id === "evidence-quality"));
   assert.ok(getBrainSkillsByGroup("LEARNING").some((skill) => skill.id === "backtesting"));
@@ -50,11 +51,11 @@ test("registry exposes expected core skills and group filtering", () => {
 test("planned skills are never reported as implemented, tested, or enabled", () => {
   assert.deepEqual(getBrainSkillReadiness(), {
     total: 18,
-    inDevelopment: 1,
+    inDevelopment: 2,
     implemented: 0,
     tested: 0,
     enabled: 0,
-    planned: 17,
+    planned: 16,
   });
 });
 
