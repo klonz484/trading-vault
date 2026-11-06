@@ -248,7 +248,7 @@ export const TRADING_BRAIN_SKILLS: readonly BrainSkillDefinition[] = [
     outputs: ["Observed depth/imbalance metrics", "Spread and liquidity state", "Trade-flow observations", "Data coverage and venue limitations"],
     dependencies: ["evidence-quality", "instrument-specialist"],
     safetyRules: [...commonSafety, "Never describe one venue as a consolidated Forex order book.", "Do not claim iceberg, spoofing, layering or queue position unless the feed and method can actually support that inference.", "Distinguish observed liquidity from inferred or fleeting liquidity.", "No order placement or routing."],
-    status: "PLANNED",
+    status: "IN_DEVELOPMENT",
     version: "0.1.0",
   },
   {
