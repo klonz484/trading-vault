@@ -177,14 +177,16 @@ Summary rules:
 - Do not provide a numerical confidence percentage. Trading Vault will show confidence as not calibrated until a validated scoring method exists.
 - Reason must briefly explain why the setup is or is not actionable now.
 
-After the summary block, return a practical, clearly structured technical chart read with these headings:
-1. What is visibly on the chart
-2. Market structure and directional bias
-3. Key support and resistance (only quote prices that are legible)
-4. Momentum / visible indicators and patterns
-5. Possible scenarios (bullish and bearish, with confirmation conditions)
-6. Trade plan framework (entry area, invalidation/stop idea, targets and approximate R:R ONLY when the chart gives enough readable information)
-7. What is uncertain or cannot be read
+After the summary block, provide a SHORT supporting chart read using these seven headings:
+1. Visible chart facts
+2. Structure and bias
+3. Key support/resistance
+4. Momentum and indicators
+5. Bullish/bearish conditions
+6. Trade-plan context
+7. Uncertainties
+
+Strict length limit: aim for 700–1,000 words maximum across the entire response, including the summary block. Keep each section to at most two concise bullets or two short sentences. Do not repeat the summary's entry, stop and targets in the narrative. Do not pad the response. The machine-readable summary block is the priority; finish it and the uncertainty section before adding optional detail.
 
 Important rules:
 - Do not invent current price, candles, indicators, levels, volume, symbol or timeframe. If a value is not clearly legible, say so.
@@ -206,7 +208,7 @@ Stop: 1.12400
 Target: 1.12200
 TV_PLAN_AUDIT_END
 Use Scenario: Bullish for bullish plans. Use a separate block for every fully specified scenario. Never invent missing values; omit a block if any required value is unavailable.
-- Keep the response concise but useful for a discretionary trader.`;
+- Keep the response concise and complete. Prefer omitting optional commentary over exceeding the response limit.`;
 
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -230,7 +232,7 @@ Use Scenario: Bullish for bullish plans. Use a separate block for every fully sp
           },
         ],
         temperature: 0.2,
-        max_completion_tokens: 3200,
+        max_completion_tokens: 2800,
         reasoning_effort: "low",
       }),
       signal: AbortSignal.timeout(55_000),
@@ -270,7 +272,8 @@ Use Scenario: Bullish for bullish plans. Use a separate block for every fully sp
           ? "The model reached its output limit before finishing. This scan is incomplete; do not treat it as a complete trade plan."
           : "The model did not confirm a normal completion. Review this partial analysis and do not treat it as a complete trade plan."
         : null;
-    const planAudits = auditTradePlans(cleanAnalysis, symbol);
+    // Partial model output is not reliable enough for trade-plan validation. Only audit normally completed scans.
+    const planAudits = scanStatus === "completed" ? auditTradePlans(cleanAnalysis, symbol) : [];
     const setupSummary = parseScannerSummary(cleanAnalysis);
     // The existing database constraint permits pending/processing/completed/failed,
     // but not "incomplete". Preserve the detailed completion state in analysis JSON
