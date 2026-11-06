@@ -59,6 +59,7 @@ export function validateCandles(
   if (candles.length === 0) errors.push("Provider returned no candle observations.");
 
   const firstTimeframe = candles[0]?.timeframe;
+  const firstInstrument = candles[0]?.instrument;
   const intervalSeconds = firstTimeframe ? TIMEFRAME_SECONDS[firstTimeframe] : null;
   let previousTimestamp: number | null = null;
 
@@ -93,6 +94,9 @@ export function validateCandles(
     seen.add(candle.timestamp);
     if (candle.timeframe !== firstTimeframe) {
       errors.push("Mixed timeframe observations were returned in one series.");
+    }
+    if (candle.instrument !== firstInstrument) {
+      errors.push("Mixed instrument observations were returned in one series.");
     }
   }
 
