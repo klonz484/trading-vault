@@ -152,7 +152,7 @@ async function PrivateScanHistoryContent() {
                     {plan.pipSize === null && <p className="text-amber-200 mt-1">Pip conversion is not configured for this instrument.</p>}
                   </div>)}
                 </div>}
-                <details className="mt-4 rounded-lg border border-[var(--border)] p-3"><summary className="cursor-pointer text-sm font-medium text-cyan-200">View detailed analysis</summary><div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--foreground)]">{scan.analysisText.replace(/TV_SETUP_SUMMARY_START\\s*\\n[\\s\\S]*?\\nTV_SETUP_SUMMARY_END/gi, "").replace(/TV_PLAN_AUDIT_START\\s*\\n[\\s\\S]*?\\nTV_PLAN_AUDIT_END/gi, "").trim()}</div></details>
+                <details className="mt-4 rounded-lg border border-[var(--border)] p-3"><summary className="cursor-pointer text-sm font-medium text-cyan-200">View detailed analysis</summary><div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--foreground)]">{scan.analysisText.replace(/TV_SETUP_SUMMARY_START\s*\n[\s\S]*?\nTV_SETUP_SUMMARY_END/gi, "").replace(/TV_PLAN_AUDIT_START\s*\n[\s\S]*?\nTV_PLAN_AUDIT_END/gi, "").trim()}</div></details>
                 {scan.notes && <p className="mt-3 text-xs text-[var(--muted)]">Your context: {scan.notes}</p>}
               </div>
             </article>
