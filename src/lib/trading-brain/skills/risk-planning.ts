@@ -83,6 +83,12 @@ function alignsToTick(value: number, tickSize: number): boolean {
   return Math.abs(ticks - Math.round(ticks)) <= Number.EPSILON * Math.max(1, Math.abs(ticks)) * 8;
 }
 
+function meetsMinimumRiskReward(rewardDistance: number, riskDistance: number, minimum: number): boolean {
+  const requiredReward = minimum * riskDistance;
+  const tolerance = Number.EPSILON * Math.max(1, Math.abs(rewardDistance), Math.abs(requiredReward)) * 8;
+  return rewardDistance + tolerance >= requiredReward;
+}
+
 function emptyAssessment(input: RiskPlanningInput): RiskPlanningAssessment {
   return {
     planValid: false,
@@ -235,7 +241,7 @@ export function assessRiskPlan(
   assessment.targets = targets;
 
   for (const [index, target] of targets.entries()) {
-    if (target.riskReward < policy.minimumRiskReward) {
+    if (!meetsMinimumRiskReward(target.rewardDistance, riskDistance, policy.minimumRiskReward)) {
       findings.push({
         code: "TARGET_BELOW_MINIMUM_RR",
         message: `TP${index + 1} R:R ${target.riskReward.toFixed(4)} is below the configured minimum ${policy.minimumRiskReward}.`,
