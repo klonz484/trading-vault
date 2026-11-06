@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
