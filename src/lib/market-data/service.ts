@@ -38,6 +38,7 @@ export async function getTwelveDataSnapshot(
 
   return {
     schemaVersion: "1.0.0",
+    validatorVersion: "1.0.0",
     snapshotVersion: `1.0.0:${result.retrievedAt}:twelve_data:${instrumentId}:${timeframe}`,
     instrument: instrumentId,
     timeframe,
