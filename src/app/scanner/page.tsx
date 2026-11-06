@@ -113,7 +113,8 @@ export default function ScannerPage() {
       setModelName(data.model || "Vision model");
       setAnalysisWarning(data.warning || null);
       setScanComplete(data.status === "completed");
-      setPlanAudits(data.planAudits || []);
+      // Never display arithmetic checks from partial model output.
+      setPlanAudits(data.status === "completed" ? (data.planAudits || []) : []);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong. Please try again.");
     } finally {
