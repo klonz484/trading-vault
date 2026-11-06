@@ -2,7 +2,7 @@
 
 **Branch:** `feat/trading-brain-foundation`  
 **Registry version:** `0.1.0`  
-**Scope:** Approved 27-skill architecture, including an eight-specialist Scalping Intelligence domain. This is a design and implementation registry, not a claim that the skills are already active.
+**Scope:** Approved 26-skill architecture, including an eight-specialist Scalping Intelligence domain. This is a design and implementation registry, not a claim that the skills are already active.
 
 ## Operating model
 
