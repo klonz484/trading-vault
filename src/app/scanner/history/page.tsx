@@ -12,6 +12,25 @@ type StoredAnalysis = {
 };
 
 async function PrivateScanHistoryContent() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabasePublishableKey) {
+    return (
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <main className="flex-1 p-6 lg:p-8">
+          <h1 className="text-2xl font-semibold text-white">Scan history</h1>
+          <p className="mt-3 max-w-2xl text-sm text-[var(--muted)]">
+            Private scan history is unavailable because Supabase is not configured for this deployment.
+            Configure the Supabase URL and publishable key in the Vercel environment to enable this page.
+          </p>
+          <Link href="/scanner" className="inline-block mt-4 text-cyan-300 hover:text-cyan-200">Return to scanner</Link>
+        </main>
+      </div>
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
