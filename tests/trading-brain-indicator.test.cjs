@@ -153,7 +153,7 @@ test("rejects invalid OHLC and stale latest closed candles", () => {
 });
 
 test("rejects insufficient history and invalid indicator periods", () => {
-  const short = assessIndicators(input({ candles: candles(4) }), policy);
+  const short = assessIndicators(input({ candles: candles(4), asOf: "2026-11-06T03:10:00.000Z" }), policy);
   assert.equal(short.findings[0].code, "INSUFFICIENT_CANDLES");
 
   const invalid = assessIndicators(input({
