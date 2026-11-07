@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 const primary=[{href:"/",label:"Dashboard",icon:"⌂"},{href:"/scanner",label:"Chart Scanner",icon:"⌗"},{href:"/brain",label:"Trading Brain",icon:"◈"},{href:"/setups",label:"AI Setups",icon:"◇"},{href:"/journal",label:"Trading Journal",icon:"▤"},{href:"/analytics",label:"Analytics",icon:"▥"}];
 const tools=[{href:"/risk",label:"Risk Calculator",icon:"⊞"},{href:"/market",label:"Market Overview",icon:"◎"},{href:"/history",label:"Scan History",icon:"◷"}];
 const account=[{href:"/profile",label:"My Profile",icon:"○"},{href:"/settings",label:"Settings",icon:"⚙"}];
@@ -11,8 +11,7 @@ function DesktopLink({href,label,icon,collapsed=false}:{href:string;label:string
  return <Link href={href} title={collapsed?label:undefined} aria-current={active?"page":undefined} className={cls}><span className="w-6 shrink-0 text-center text-lg text-slate-300">{icon}</span>{!collapsed&&<span className="min-w-0 flex-1 font-medium">{label}</span>}{active&&!collapsed&&<span className="h-1.5 w-1.5 rounded-full bg-white"/>}</Link>;
 }
 export default function Sidebar(){
- const pathname=usePathname(); const [collapsed,setCollapsed]=useState(false); const [moreOpen,setMoreOpen]=useState(false);
- useEffect(()=>setMoreOpen(false),[pathname]);
+ const [collapsed,setCollapsed]=useState(false); const [moreOpen,setMoreOpen]=useState(false);
  const mobileItems=[{href:"/",label:"Home",icon:"⌂"},{href:"/scanner",label:"Scan",icon:"⌗"},{href:"/brain",label:"Brain",icon:"◈"},{href:"/journal",label:"Journal",icon:"▤"}]; const extraItems=[...primary.slice(3),...tools,...account];
  return <>
  <aside className={"sticky top-0 hidden h-screen shrink-0 flex-col border-r border-white/[0.08] bg-[#0d1015]/95 backdrop-blur-xl transition-[width] duration-200 md:flex "+(collapsed?"w-[82px]":"w-[252px]")}>

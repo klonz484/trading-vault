@@ -18,7 +18,7 @@ export default function JournalPage() {
   const [notes,setNotes] = useState("");
   const [error,setError] = useState("");
 
-  useEffect(()=>{setTrades(readLocalList<JournalTrade>(JOURNAL_STORAGE_KEY));setDate(new Date().toISOString().slice(0,10));setReady(true);},[]);
+  useEffect(()=>{const timer=window.setTimeout(()=>{setTrades(readLocalList<JournalTrade>(JOURNAL_STORAGE_KEY));const now=new Date();setDate([now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-"));setReady(true);},0);return ()=>window.clearTimeout(timer);},[]);
   useEffect(()=>{if(ready) writeLocalList(JOURNAL_STORAGE_KEY,trades);},[trades,ready]);
   const stats=useMemo(()=>{const closed=trades.filter(t=>t.outcome!=="OPEN");const wins=closed.filter(t=>t.outcome==="WIN").length;const losses=closed.filter(t=>t.outcome==="LOSS").length;const sum=closed.reduce((a,t)=>a+(t.outcome==="WIN"?Math.abs(t.rMultiple):t.outcome==="LOSS"?-Math.abs(t.rMultiple):0),0);return {total:trades.length,closed:closed.length,wins,losses,winRate:closed.length?Math.round(wins/closed.length*100):0,netR:sum.toFixed(2)};},[trades]);
 

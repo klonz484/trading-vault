@@ -7,7 +7,7 @@ import { readLocalList, SavedScan, SCAN_STORAGE_KEY, writeLocalList } from "@/li
 
 export default function HistoryPage(){
  const [scans,setScans]=useState<SavedScan[]>([]);
- useEffect(()=>setScans(readLocalList<SavedScan>(SCAN_STORAGE_KEY)),[]);
+ useEffect(()=>{const timer=window.setTimeout(()=>setScans(readLocalList<SavedScan>(SCAN_STORAGE_KEY)),0);return ()=>window.clearTimeout(timer);},[]);
  function remove(id:string){const next=scans.filter(s=>s.id!==id);setScans(next);writeLocalList(SCAN_STORAGE_KEY,next);}
  function clear(){setScans([]);writeLocalList(SCAN_STORAGE_KEY,[]);}
  return <div className="min-h-screen md:flex"><Sidebar/><main className="min-w-0 flex-1 px-4 pb-10 pt-5 sm:px-6 lg:px-9 lg:pt-8"><div className="mx-auto max-w-[1300px]"><div className="mb-7"><p className="eyebrow">Research archive</p><h1 className="page-title">Scan History</h1><p className="page-subtitle">Previously completed chart reads saved in this browser.</p></div>

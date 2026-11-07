@@ -11,7 +11,7 @@ export default function SettingsPage() {
   const [prefs,setPrefs] = useState<Preferences>(defaults);
   const [loaded,setLoaded] = useState(false);
   const [saved,setSaved] = useState(false);
-  useEffect(()=>{ try { const raw=window.localStorage.getItem(SETTINGS_STORAGE_KEY); if(raw) setPrefs({...defaults,...JSON.parse(raw)}); } catch {} setLoaded(true); },[]);
+  useEffect(()=>{const timer=window.setTimeout(()=>{try{const raw=window.localStorage.getItem(SETTINGS_STORAGE_KEY);if(raw)setPrefs({...defaults,...JSON.parse(raw)});}catch{}setLoaded(true);},0);return ()=>window.clearTimeout(timer);},[]);
   const update=(next:Partial<Preferences>)=>{setPrefs(current=>({...current,...next}));setSaved(false);};
   const save=()=>{window.localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(prefs));setSaved(true);};
   return <div className="min-h-screen md:flex"><Sidebar /><main className="min-w-0 flex-1 px-4 pb-10 pt-5 sm:px-6 lg:px-9 lg:pt-8"><div className="mx-auto max-w-4xl">

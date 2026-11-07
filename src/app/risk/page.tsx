@@ -22,7 +22,7 @@ export default function RiskCalculatorPage(){
  <label className="field-label">Instrument<select className="field-control" value={pair} onChange={e=>changePair(e.target.value)}>{instruments.map(x=><option key={x}>{x}</option>)}</select></label>
  <label className="field-label">Pip / point value per 1.00 standard lot ({currency})<input className="field-control" type="number" min="0" step="any" value={pipValue} onChange={e=>setPipValue(e.target.value)} placeholder="Enter value from your broker"/></label>
  <label className="field-label">Target risk-to-reward ratio<input className="field-control" type="number" min="0" step="0.1" value={targetR} onChange={e=>setTargetR(e.target.value)}/></label>
- <p className="text-[10px] leading-5 text-slate-500">For XAUUSD, enter the correct point value for your broker's contract size and account currency. The calculator intentionally does not guess a Gold pip value.</p>
+ <p className="text-[10px] leading-5 text-slate-500">For XAUUSD, enter the correct point value for your broker&apos;s contract size and account currency. The calculator intentionally does not guess a Gold pip value.</p>
  </section>
  <section className="panel p-5 sm:p-6"><h2 className="section-title">Position estimate</h2><p className="mt-1 text-xs text-slate-500">Calculated from the values entered.</p>
  <div className="mt-6 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4"><p className="text-[10px] uppercase tracking-wider text-slate-500">Cash risk</p><p className="mt-2 text-3xl font-semibold text-white">{result.valid?result.risk.toLocaleString(undefined,{style:"currency",currency}):"—"}</p></div>
