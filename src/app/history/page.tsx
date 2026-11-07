@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
-import { connection } from "next/server";
+export const instant = false;
 
 type ScanRow = {
   id: string;
@@ -15,7 +15,6 @@ type ScanRow = {
 };
 
 export default async function HistoryPage() {
-  await connection();
   const supabase = await createClient();
   const { data, error } = await supabase.from("chart_scans")
     .select("id,symbol,timeframe,image_path,status,analysis,model_name,created_at")
