@@ -26,10 +26,12 @@ export function buildDecisionTrace(decision: BrainDecision, input: EvidencePipel
     { name: "zone_evidence", version: input.zones.engineVersion, status: input.zones.status, warnings: input.zones.warnings },
     { name: "liquidity_objectives", version: input.liquidityObjectives.engineVersion, status: input.liquidityObjectives.status, warnings: input.liquidityObjectives.warnings },
     { name: "event_context", version: input.eventContext.engineVersion, status: input.eventContext.status, warnings: input.eventContext.warnings },
+    { name: "intermarket", version: input.intermarket.engineVersion, status: input.intermarket.status, warnings: input.intermarket.warnings },
     { name: "prop_firm", version: input.propFirm.engineVersion, status: input.propFirm.overall, warnings: input.propFirm.checks.filter(c => c.status !== "PASS").map(c => `${c.rule}: ${c.detail}`) }
   ];
   const sourceIds = [...new Set([
     ...input.multiTimeframe.evidence.map(e => e.sourceId),
+    ...input.intermarket.sourceIds,
     ...input.eventContext.session.sourceIds,
     ...input.eventContext.news.relevantEvents.map(e => e.sourceId)
   ].filter(Boolean))].sort();

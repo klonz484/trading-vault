@@ -10,6 +10,7 @@ import type { ZoneResult } from "./zone-evidence";
 import type { LiquidityObjectivesResult } from "./liquidity-objectives";
 import type { EventContextResult } from "./event-context";
 import type { PropRuleResult } from "./prop-firm";
+import type { IntermarketResult } from "./intermarket";
 
 export const EVIDENCE_PIPELINE_VERSION = "0.1.0" as const;
 export type EvidencePipelineInput = {
@@ -21,17 +22,19 @@ export type EvidencePipelineInput = {
   liquidityObjectives: LiquidityObjectivesResult;
   eventContext: EventContextResult;
   propFirm: PropRuleResult;
+  intermarket: IntermarketResult;
 };
 const statusFromModule = (status: string): EvidenceStatus =>
   status === "INVALID" || status === "INVALID_DATA" ? "FAIL" :
   status === "INSUFFICIENT_DATA" || status === "INCOMPLETE" || status === "STALE" ? "UNKNOWN" : "PASS";
 function identityMatches(input: EvidencePipelineInput): boolean {
-  const { base, structure, priceAction, zones, liquidityObjectives, eventContext, multiTimeframe } = input;
+  const { base, structure, priceAction, zones, liquidityObjectives, eventContext, multiTimeframe, intermarket } = input;
   return structure.instrument === base.instrument && structure.timeframe === base.timeframe &&
     priceAction.instrument === base.instrument && priceAction.timeframe === base.timeframe &&
     zones.instrument === base.instrument && zones.timeframe === base.timeframe &&
     liquidityObjectives.instrument === base.instrument && liquidityObjectives.timeframe === base.timeframe &&
-    eventContext.instrument === base.instrument && multiTimeframe.instrument === base.instrument;
+    eventContext.instrument === base.instrument && multiTimeframe.instrument === base.instrument &&
+    intermarket.targetInstrument === base.instrument && intermarket.timeframe === base.timeframe;
 }
 export function assessBrainWithEvidence(input: EvidencePipelineInput): BrainDecision {
   const matches = identityMatches(input);
@@ -56,6 +59,8 @@ export function assessBrainWithEvidence(input: EvidencePipelineInput): BrainDeci
   const newsGate: EvidenceStatus = !matches ? "FAIL" :
     input.eventContext.status !== "READY" || input.eventContext.news.status === "UNKNOWN" ? "UNKNOWN" :
     input.eventContext.news.status === "RESTRICTED_WINDOW" ? "WARN" : "PASS";
+  const intermarketGate: EvidenceStatus = !matches ? "FAIL" : input.intermarket.status === "READY" ? "PASS" :
+    input.intermarket.status === "CONFLICTING" ? "WARN" : input.intermarket.status === "INVALID" ? "FAIL" : "UNKNOWN";
   const riskGate: EvidenceStatus = input.propFirm.overall === "BLOCK" ? "FAIL" :
     input.propFirm.overall === "REVIEW" ? "UNKNOWN" : "PASS";
   const supporting = [...input.base.directionalCase.supporting];
@@ -67,6 +72,8 @@ export function assessBrainWithEvidence(input: EvidencePipelineInput): BrainDeci
   if (matches && input.zones.status === "READY") supporting.push(`Zone evidence: ${input.zones.fairValueGaps.length} FVG(s), ${input.zones.orderBlocks.length} order-block candidate(s).`);
   if (matches && input.liquidityObjectives.status === "READY") supporting.push(`Liquidity map: ${input.liquidityObjectives.bullishObjectives.length} objective(s) above and ${input.liquidityObjectives.bearishObjectives.length} below current price.`);
   if (matches && input.eventContext.news.status === "RESTRICTED_WINDOW") opposing.push(...input.eventContext.news.relevantEvents.map(e => `Scheduled ${e.impact.toLowerCase()}-impact event ${e.title} is inside the configured restriction window.`));
+  if (matches && input.intermarket.status === "READY") supporting.push(`Intermarket evidence: ${input.intermarket.comparatorInstrument} correlation ${input.intermarket.correlation?.toFixed(3)} (${input.intermarket.relationship}), ${input.intermarket.matchedSamples} aligned samples.`);
+  if (matches && input.intermarket.status === "CONFLICTING") opposing.push(`Intermarket relationship with ${input.intermarket.comparatorInstrument} conflicts with the pre-registered expectation.`);
   const rejectionReasons = [...(input.base.rejectionReasons ?? [])];
   if (!matches) rejectionReasons.push("One or more evidence modules do not match the requested instrument/timeframe identity.");
   return evaluateBrain({
@@ -78,6 +85,7 @@ export function assessBrainWithEvidence(input: EvidencePipelineInput): BrainDeci
       volatility: volatilityGate,
       session: sessionGate,
       news: newsGate,
+      intermarket: intermarketGate,
       risk: riskGate
     },
     directionalCase: { ...input.base.directionalCase, supporting, opposing },
