@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 60;
 
@@ -10,6 +11,26 @@ function jsonError(message: string, status: number) {
 }
 
 export async function POST(request: Request) {
+  const ownerUserId = process.env.TRADING_VAULT_OWNER_USER_ID;
+  if (!ownerUserId) {
+    return jsonError("Owner access is not configured for this deployment.", 503);
+  }
+
+  let supabase;
+  try {
+    supabase = await createClient();
+  } catch {
+    return jsonError("Authentication is unavailable because Supabase is not configured.", 503);
+  }
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return jsonError("Please sign in before analyzing a chart.", 401);
+  }
+  if (user.id !== ownerUserId) {
+    return jsonError("This workspace is restricted to its owner.", 403);
+  }
+
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return jsonError(
