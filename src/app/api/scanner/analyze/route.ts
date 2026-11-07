@@ -84,8 +84,13 @@ function parseSetup(value: unknown): ScannerSetup | null {
     ))
     : parsedTargets;
   const invalidationText = typeof value.invalidation === "string" ? value.invalidation.trim() : "";
-  const hasValidInvalidation = invalidationText.length >= 12 &&
-    !/^(?:not clear|not readable|unknown|none|n\/a|no defensible invalidation|not available)\b/i.test(invalidationText);
+  const normalizedInvalidation = invalidationText.toLowerCase();
+  const invalidationPlaceholders = ["not clear", "not readable", "unknown", "none", "n/a", "no defensible invalidation", "not available"];
+  const isPlaceholderInvalidation = invalidationPlaceholders.some((placeholder) =>
+    normalizedInvalidation === placeholder || normalizedInvalidation.startsWith(`${placeholder}:`) ||
+    normalizedInvalidation.startsWith(`${placeholder} `) || normalizedInvalidation.startsWith(`${placeholder}.`)
+  );
+  const hasValidInvalidation = invalidationText.length >= 12 && !isPlaceholderInvalidation;
   const safeDecision =
     decision === "NO TRADE" || orderType === "WAIT" || dataQuality === "POOR" ||
     !validEntryRange || !validStop || targets.length === 0 || !hasValidInvalidation
