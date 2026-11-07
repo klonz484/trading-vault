@@ -119,47 +119,53 @@ export function isFieldObservation(value: unknown): value is FieldObservation<un
     (field.status !== "unavailable" || field.value === null);
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
 export function validateChartObservation(value: unknown): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
-  if (!value || typeof value !== "object" || Array.isArray(value)) return { valid: false, errors: ["Packet must be an object."] };
-  const packet = value as Record<string, any>;
+  const packet = asRecord(value);
+  if (!packet) return { valid: false, errors: ["Packet must be an object."] };
+  const image = asRecord(packet.image);
+  const bid = asRecord(packet.bid);
+  const ask = asRecord(packet.ask);
+  const instrument = asRecord(packet.instrument);
+  const timeframe = asRecord(packet.timeframe);
   if (packet.schemaVersion !== SCANNER_SCHEMA_VERSION) errors.push("Unsupported observation schema version.");
   if (typeof packet.scanId !== "string" || !packet.scanId) errors.push("scanId is required.");
   if (typeof packet.receivedAtUtc !== "string" || Number.isNaN(Date.parse(packet.receivedAtUtc))) errors.push("A valid UTC receipt timestamp is required.");
-  if (!packet.image || !/^[a-f0-9]{64}$/i.test(String(packet.image.sha256))) errors.push("A SHA-256 image hash is required.");
-  if (!["image/png", "image/jpeg", "image/webp"].includes(packet.image?.mimeType)) errors.push("Unsupported image MIME type.");
+  if (!image || !/^[a-f0-9]{64}$/i.test(String(image.sha256))) errors.push("A SHA-256 image hash is required.");
+  if (!image || !["image/png", "image/jpeg", "image/webp"].includes(String(image.mimeType))) errors.push("Unsupported image MIME type.");
   for (const key of ["screenType", "instrument", "timeframe", "bid", "ask", "spread", "marketStatus"]) {
     if (!isFieldObservation(packet[key])) errors.push(`${key} must be a valid field observation.`);
   }
   if (packet.contextOnlyNotSignal !== true) errors.push("Scanner output must be explicitly marked context-only.");
-  if (!["COMPLETE", "INCOMPLETE"].includes(packet.packetStatus)) errors.push("Invalid packet status.");
-  if (packet.bid?.value !== null && packet.ask?.value !== null && packet.bid?.value > packet.ask?.value) errors.push("Bid cannot exceed ask.");
-  if (packet.packetStatus === "COMPLETE" && (packet.instrument?.status !== "observed" || packet.timeframe?.status !== "observed")) {
+  if (!["COMPLETE", "INCOMPLETE"].includes(String(packet.packetStatus))) errors.push("Invalid packet status.");
+  if (typeof bid?.value === "number" && typeof ask?.value === "number" && bid.value > ask.value) errors.push("Bid cannot exceed ask.");
+  if (packet.packetStatus === "COMPLETE" && (instrument?.status !== "observed" || timeframe?.status !== "observed")) {
     errors.push("A complete packet requires observed instrument and timeframe.");
   }
   return { valid: errors.length === 0, errors };
 }
 
-export function canRequestBrainAssessment(packet: ChartObservation): boolean {
-  const result = validateChartObservation(packet);
-  return result.valid && packet.packetStatus === "COMPLETE" &&
-    packet.instrument.status === "observed" && packet.timeframe.status === "observed" &&
-    packet.bid.status !== "unavailable" && packet.ask.status !== "unavailable";
-}
-
 /** Brain decisions fail closed unless live data is verified and the data confidence is adequate. */
 export function validateBrainAssessment(value: unknown): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
-  if (!value || typeof value !== "object" || Array.isArray(value)) return { valid: false, errors: ["Assessment must be an object."] };
-  const assessment = value as Record<string, any>;
+  const assessment = asRecord(value);
+  if (!assessment) return { valid: false, errors: ["Assessment must be an object."] };
+  const liveData = asRecord(assessment.liveData);
+  const dataConfidence = assessment.dataConfidence;
   const states = ["CONFIRMED_SIGNAL", "CONDITIONAL_SIGNAL", "WATCHLIST_NO_TRADE", "NEEDS_MANUAL_REVIEW", "REJECTED"];
   if (assessment.schemaVersion !== BRAIN_ASSESSMENT_SCHEMA_VERSION) errors.push("Unsupported assessment schema version.");
-  if (!states.includes(assessment.state)) errors.push("Invalid decision state.");
-  if (!isConfidence(assessment.dataConfidence)) errors.push("dataConfidence must be between 0 and 1.");
+  if (!states.includes(String(assessment.state))) errors.push("Invalid decision state.");
+  if (!isConfidence(dataConfidence)) errors.push("dataConfidence must be between 0 and 1.");
   if (assessment.analyticalConfidence !== null && !isConfidence(assessment.analyticalConfidence)) errors.push("analyticalConfidence must be null or between 0 and 1.");
-  if (!assessment.liveData || !["VERIFIED", "PARTIAL", "UNAVAILABLE", "MISMATCH"].includes(assessment.liveData.status)) errors.push("Live-data status is required.");
-  if (["CONFIRMED_SIGNAL", "CONDITIONAL_SIGNAL"].includes(assessment.state) &&
-      (assessment.liveData?.status !== "VERIFIED" || assessment.dataConfidence < 0.8)) {
+  if (!liveData || !["VERIFIED", "PARTIAL", "UNAVAILABLE", "MISMATCH"].includes(String(liveData.status))) errors.push("Live-data status is required.");
+  if (["CONFIRMED_SIGNAL", "CONDITIONAL_SIGNAL"].includes(String(assessment.state)) &&
+      (liveData?.status !== "VERIFIED" || !isConfidence(dataConfidence) || dataConfidence < 0.8)) {
     errors.push("Signal states require verified live data and data confidence of at least 0.8.");
   }
   if (assessment.manualExecutionOnly !== true || assessment.orderSubmissionAvailable !== false) errors.push("Automated execution must remain unavailable.");
