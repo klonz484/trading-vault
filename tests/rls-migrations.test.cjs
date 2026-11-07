@@ -27,7 +27,7 @@ test("anonymous-user restrictions cover every private and shared Brain table", (
   for (const table of tables) {
     assert.match(anonymousGate, new RegExp(`ON public\\.${table}\\b`));
   }
-  assert.match(anonymousGate, /ON storage\\.objects/);
+  assert.match(anonymousGate, /ON storage\.objects/);
   assert.match(anonymousGate, /AS RESTRICTIVE/);
   assert.match(anonymousGate, /TO authenticated/);
   assert.match(anonymousGate, /is_anonymous/);
@@ -35,8 +35,8 @@ test("anonymous-user restrictions cover every private and shared Brain table", (
 });
 
 test("optimized RLS migration evaluates JWT once per statement", () => {
-  assert.match(optimizedGate, /\\(SELECT auth\\.jwt\\(\\)\\)/);
-  assert.doesNotMatch(optimizedGate, /auth\\.jwt\\(\\)\\s*->/);
+  assert.match(optimizedGate, /\(SELECT auth\.jwt\(\)\)/);
+  assert.doesNotMatch(optimizedGate, /auth\.jwt\(\)\s*->/);
   for (const table of [...tables, "storage\\.objects"]) {
     assert.match(optimizedGate, new RegExp(`ON (?:public\\.)?${table}\\b`));
   }
