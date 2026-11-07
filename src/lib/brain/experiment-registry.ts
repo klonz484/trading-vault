@@ -41,14 +41,35 @@ export function evaluateExperiment(input: ExperimentInput): ExperimentResult {
   const errors: string[] = [];
   if (!input.experimentId?.trim() || !input.hypothesis?.trim() || !input.strategyVersion?.trim() || !input.brainVersion?.trim()) errors.push("Experiment identity, hypothesis, strategy version and Brain version are required.");
   if (!input.datasetVerified || !/^[a-fA-F0-9]{32,128}$/.test(input.datasetHash)) errors.push("A verified dataset and 32–128 character hexadecimal dataset hash are required.");
-  const utcTimestamp = (v: string) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(v);
-  if (![input.trainStartUtc,input.trainEndUtc,input.testStartUtc,input.testEndUtc].every(utcTimestamp)) errors.push("All experiment period boundaries must be explicit UTC ISO timestamps ending in Z.");
-  const trainStart = Date.parse(input.trainStartUtc), trainEnd = Date.parse(input.trainEndUtc), testStart = Date.parse(input.testStartUtc), testEnd = Date.parse(input.testEndUtc);
+  const parseUtcTimestamp = (value: string): number | null => {
+    if (typeof value !== "string") return null;
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?Z$/.exec(value);
+    if (!match) return null;
+    const [, yearText, monthText, dayText, hourText, minuteText, secondText, fractionText] = match;
+    const year = Number(yearText), month = Number(monthText), day = Number(dayText);
+    const hour = Number(hourText), minute = Number(minuteText), second = Number(secondText);
+    if (year < 1000 || month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59) return null;
+    const millis = Number((fractionText ?? "").padEnd(3, "0") || "0");
+    const timestamp = Date.UTC(year, month - 1, day, hour, minute, second, millis);
+    const parsed = new Date(timestamp);
+    if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day || parsed.getUTCHours() !== hour || parsed.getUTCMinutes() !== minute || parsed.getUTCSeconds() !== second || parsed.getUTCMilliseconds() !== millis) return null;
+    return timestamp;
+  };
+  const trainStart = parseUtcTimestamp(input.trainStartUtc), trainEnd = parseUtcTimestamp(input.trainEndUtc), testStart = parseUtcTimestamp(input.testStartUtc), testEnd = parseUtcTimestamp(input.testEndUtc);
+  if ([trainStart, trainEnd, testStart, testEnd].some(value => value === null)) errors.push("All experiment period boundaries must be real calendar-valid UTC ISO timestamps ending in Z.");
   if (![trainStart, trainEnd, testStart, testEnd].every(Number.isFinite) || trainEnd <= trainStart || testStart <= trainEnd || testEnd <= testStart) errors.push("Training and out-of-sample test periods must be valid, ordered, non-overlapping UTC intervals.");
   if (!Number.isInteger(input.sampleCount) || input.sampleCount < 0 || !Number.isInteger(input.minimumSampleCount) || input.minimumSampleCount < 1) errors.push("Sample counts must be valid non-negative/positive integers.");
   if (!input.primaryMetric?.name?.trim() || !["HIGHER_IS_BETTER", "LOWER_IS_BETTER"].includes(input.primaryMetric.direction) || !finite(input.primaryMetric.baseline) || !finite(input.primaryMetric.candidate) || !finite(input.primaryMetric.minimumImprovement) || input.primaryMetric.minimumImprovement < 0) errors.push("Primary metric and non-negative minimum improvement must be valid.");
   if (!Array.isArray(input.guardrails)) errors.push("Guardrails must be supplied as an array, including an empty array when none are registered.");
-  for (const g of (Array.isArray(input.guardrails) ? input.guardrails : [])) if (!g.name?.trim() || !["HIGHER_IS_BETTER", "LOWER_IS_BETTER"].includes(g.direction) || !finite(g.baseline) || !finite(g.candidate) || !finite(g.maximumDegradation) || g.maximumDegradation < 0) errors.push("A guardrail metric is invalid.");
+  const guardrailNames = new Set<string>();
+  for (const g of (Array.isArray(input.guardrails) ? input.guardrails : [])) {
+    if (!g || typeof g !== "object" || !g.name?.trim() || !["HIGHER_IS_BETTER", "LOWER_IS_BETTER"].includes(g.direction) || !finite(g.baseline) || !finite(g.candidate) || !finite(g.maximumDegradation) || g.maximumDegradation < 0) {
+      errors.push("A guardrail metric is invalid.");
+      continue;
+    }
+    if (guardrailNames.has(g.name)) errors.push("Guardrail metric names must be unique.");
+    guardrailNames.add(g.name);
+  }
   const base = { engineVersion: EXPERIMENT_ENGINE_VERSION, experimentId: input.experimentId, sharedBrainChangeAuthorized: false as const, productionActivationAuthorized: false as const };
   if (errors.length) return { ...base, status: "INVALID", primaryMetric: null, guardrails: [], warnings: errors };
   if (!input.ownerApprovedProtocol || !input.datasetVerified || input.sampleCount < input.minimumSampleCount) {

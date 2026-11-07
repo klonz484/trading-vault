@@ -25,3 +25,6 @@ This module is a pre-trade compliance aid, not a guarantee of prop-firm acceptan
 - Daily and overall drawdown now explicitly return REVIEW when required positive equity references or finite PnL/risk inputs are absent, rather than silently omitting a calculation.
 - Challenge pacing rejects negative total profit as unverified/invalid input instead of reporting negative progress as a passing calculation.
 - Drawdown boundaries are conservative: projected loss equal to the configured limit is BLOCK.
+
+- Experiment timestamp validation now checks real UTC calendar dates (including leap days), not only timestamp string shape; impossible dates and invalid clock fields are rejected.
+- Guardrail entries are validated defensively, and duplicate guardrail names are rejected to avoid ambiguous reporting.

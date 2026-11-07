@@ -18,3 +18,8 @@ test("missing hypothesis or version identity fails closed",()=>{const x=base();x
 
 test("requires explicit UTC timestamps rather than local or offset-ambiguous dates",()=>{assert.equal(evaluateExperiment(base({trainStartUtc:"2025-01-01T00:00:00"})).status,"INVALID");assert.equal(evaluateExperiment(base({testEndUtc:"2025-12-31T23:59:59+02:00"})).status,"INVALID");});
 test("requires guardrails to be a real array",()=>{assert.equal(evaluateExperiment(base({guardrails:null})).status,"INVALID");});
+
+test("rejects impossible calendar dates in UTC boundaries",()=>{assert.equal(evaluateExperiment(base({trainStartUtc:"2025-02-30T00:00:00Z"})).status,"INVALID");assert.equal(evaluateExperiment(base({testEndUtc:"2025-13-01T00:00:00Z"})).status,"INVALID");});
+test("accepts valid leap-day UTC boundaries",()=>{const x=base({trainStartUtc:"2024-02-29T00:00:00Z",trainEndUtc:"2024-06-30T23:59:59Z",testStartUtc:"2024-07-01T00:00:00Z",testEndUtc:"2024-12-31T23:59:59Z"});assert.equal(evaluateExperiment(x).status,"ELIGIBLE_FOR_OWNER_REVIEW");});
+test("rejects null or malformed guardrail entries without throwing",()=>{assert.equal(evaluateExperiment(base({guardrails:[null]})).status,"INVALID");});
+test("rejects duplicate guardrail names",()=>{const x=base();x.guardrails.push({...x.guardrails[0]});assert.equal(evaluateExperiment(x).status,"INVALID");});
