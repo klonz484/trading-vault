@@ -1,0 +1,14 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),ts=require("typescript");
+const source=fs.readFileSync(path.join(process.cwd(),"src/lib/brain/liquidity-objectives.ts"),"utf8"),compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,mod={exports:{}};vm.runInNewContext(compiled,{module:mod,exports:mod.exports});
+const {calculateLiquidityObjectives}=mod.exports;
+function input(overrides={}){return {instrument:"EURUSD",timeframe:"H1",currentPrice:1.1,priceTolerance:0.0002,structure:{status:"READY",instrument:"EURUSD",timeframe:"H1",trend:"BULLISH",swings:[{index:2,price:1.105,kind:"HIGH"},{index:4,price:1.095,kind:"LOW"}],liquidityPools:[{kind:"EQUAL_HIGHS",price:1.1051,touches:[2,5],tolerance:0.0001},{kind:"EQUAL_LOWS",price:1.0949,touches:[3,6],tolerance:0.0001}]},...overrides};}
+test("separates objectives above and below current price",()=>{const r=calculateLiquidityObjectives(input());assert.equal(r.status,"READY");assert.equal(r.objectiveAlignment,"BULLISH_ALIGNED");assert.ok(r.bullishObjectives.length>0);assert.ok(r.bearishObjectives.length>0);});
+test("clusters nearby swing and equal-high evidence without losing provenance",()=>{const r=calculateLiquidityObjectives(input());const top=r.bullishObjectives[0];assert.ok(top.sources.includes("SWING_HIGH"));assert.ok(top.sources.includes("EQUAL_HIGHS"));assert.equal(top.evidenceCount,2);});
+test("orders nearest objectives first",()=>{const r=calculateLiquidityObjectives(input());assert.ok(r.bullishObjectives[0].distance<=r.bullishObjectives.at(-1).distance);assert.ok(r.bearishObjectives[0].distance<=r.bearishObjectives.at(-1).distance);});
+test("keeps range structure two-sided",()=>{const x=input();x.structure.trend="RANGE";assert.equal(calculateLiquidityObjectives(x).objectiveAlignment,"TWO_SIDED");});
+test("does not infer directional alignment from undetermined structure",()=>{const x=input();x.structure.trend="UNDETERMINED";assert.equal(calculateLiquidityObjectives(x).objectiveAlignment,"UNDETERMINED");});
+test("withholds objectives when structure is not ready",()=>{const x=input();x.structure.status="INSUFFICIENT_DATA";const r=calculateLiquidityObjectives(x);assert.equal(r.status,"INCOMPLETE");assert.equal(r.bullishObjectives.length,0);});
+test("rejects mismatched instrument and timeframe",()=>{const x=input();x.structure.instrument="XAUUSD";assert.equal(calculateLiquidityObjectives(x).status,"INVALID");});
+test("requires an explicit price tolerance",()=>{const x=input();x.priceTolerance=0;assert.equal(calculateLiquidityObjectives(x).status,"INVALID");});
+test("never generates trade signals",()=>{assert.equal(calculateLiquidityObjectives(input()).tradeSignalGenerated,false);});
