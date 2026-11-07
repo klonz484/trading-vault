@@ -17,3 +17,6 @@ The trace is an in-memory projection. It is not yet persisted as an immutable au
 
 ## Safety boundary
 The trace never upgrades a decision, changes direction, submits orders or authorizes production activation.
+
+- Decision traces now retain instrument/timeframe identity, separate data and analytical confidence, and the exact market-data status/provider/symbol/timeframe/tick timestamp/agreement/history/timestamp-alignment fields supplied to the Brain.
+- Scanner context is explicitly recorded as context-only; it is never represented as the market-data source.

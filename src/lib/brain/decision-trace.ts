@@ -9,7 +9,10 @@ export type DecisionTrace = {
   traceVersion: typeof DECISION_TRACE_VERSION;
   assessmentId: string;
   evaluatedAtUtc: string;
-  decision: { state: BrainDecision["state"]; direction: BrainDecision["direction"]; expiresAtUtc: string | null };
+  decision: { instrument: string; timeframe: string; state: BrainDecision["state"]; direction: BrainDecision["direction"]; expiresAtUtc: string | null };
+  confidence: { data: number; analytical: number | null };
+  marketData: { status: BrainDecision["marketDataStatus"]; provider: string | null; symbol: string | null; timeframe: string | null; tickTimeUtc: string | null; providerAgreement: EvidencePipelineInput["base"]["market"]["providerAgreement"]; candleHistoryComplete: boolean; timestampsAligned: boolean };
+  scannerContextOnly: boolean;
   gates: BrainDecision["gates"];
   evidenceModules: Array<{ name: string; version: string; status: string; warnings: string[] }>;
   sourceIds: string[];
@@ -39,7 +42,19 @@ export function buildDecisionTrace(decision: BrainDecision, input: EvidencePipel
     traceVersion: DECISION_TRACE_VERSION,
     assessmentId: decision.assessmentId,
     evaluatedAtUtc: decision.evaluatedAtUtc,
-    decision: { state: decision.state, direction: decision.direction, expiresAtUtc: decision.expiresAtUtc },
+    decision: { instrument: decision.instrument, timeframe: decision.timeframe, state: decision.state, direction: decision.direction, expiresAtUtc: decision.expiresAtUtc },
+    confidence: { data: decision.dataConfidence, analytical: decision.analyticalConfidence },
+    marketData: {
+      status: input.base.market.status,
+      provider: input.base.market.provider,
+      symbol: input.base.market.symbol,
+      timeframe: input.base.market.timeframe,
+      tickTimeUtc: input.base.market.tickTimeUtc,
+      providerAgreement: input.base.market.providerAgreement,
+      candleHistoryComplete: input.base.market.candleHistoryComplete,
+      timestampsAligned: input.base.market.timestampsAligned
+    },
+    scannerContextOnly: decision.scannerUsedAsContextOnly,
     gates: decision.gates.map(g => ({ ...g })),
     evidenceModules,
     sourceIds,
