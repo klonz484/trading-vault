@@ -28,6 +28,10 @@ const statusFromModule = (status: string): EvidenceStatus =>
   status === "INVALID" || status === "INVALID_DATA" ? "FAIL" :
   status === "INSUFFICIENT_DATA" || status === "INCOMPLETE" || status === "STALE" ? "UNKNOWN" :
   status === "READY" || status === "PASS" ? "PASS" : "UNKNOWN";
+const combineGates = (a: EvidenceStatus, b: EvidenceStatus): EvidenceStatus =>
+  a === "FAIL" || b === "FAIL" ? "FAIL" :
+  a === "UNKNOWN" || b === "UNKNOWN" ? "UNKNOWN" :
+  a === "WARN" || b === "WARN" ? "WARN" : "PASS";
 function identityMatches(input: EvidencePipelineInput): boolean {
   const { base, structure, priceAction, zones, liquidityObjectives, eventContext, multiTimeframe, intermarket } = input;
   return structure.instrument === base.instrument && structure.timeframe === base.timeframe &&
@@ -51,6 +55,7 @@ export function assessBrainWithEvidence(input: EvidencePipelineInput): BrainDeci
     structureBaseGate === "PASS" && mtfGate === "WARN" ? "WARN" :
     structureBaseGate === "PASS" && mtfGate === "UNKNOWN" ? "UNKNOWN" : structureBaseGate;
   const zonesGate: EvidenceStatus = !matches ? "FAIL" : statusFromModule(input.zones.status);
+  const levelsGate = combineGates(input.base.evidence.levels, zonesGate);
   const liquidityGate: EvidenceStatus = !matches ? "FAIL" :
     input.liquidityObjectives.status !== "READY" ? statusFromModule(input.liquidityObjectives.status) :
     input.liquidityObjectives.bullishObjectives.length + input.liquidityObjectives.bearishObjectives.length === 0 ? "WARN" : "PASS";
@@ -90,6 +95,7 @@ export function assessBrainWithEvidence(input: EvidencePipelineInput): BrainDeci
     evidence: {
       ...input.base.evidence,
       structure: structureGate,
+      levels: levelsGate,
       liquidity: liquidityGate,
       volatility: volatilityGate,
       session: sessionGate,

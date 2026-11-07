@@ -6,7 +6,7 @@ Composes independently computed market-structure, price-action, multi-timeframe,
 ## Gate mapping
 - Structure: ready confirmed structure passes; insufficient remains unknown; invalid fails. Multi-timeframe conflicts downgrade structure to WARN; stale/incomplete MTF evidence remains UNKNOWN.
 - Volatility: ready ATR/volatility context passes unless volatility is undetermined.
-- Zones: ready evidence passes; insufficient remains unknown; invalid fails. Unrecognized module states remain UNKNOWN and never default to PASS.
+- Zones: combined into the existing levels gate; ready evidence preserves the caller level status, insufficient or unrecognized remains UNKNOWN, and invalid fails. Zone evidence cannot be silently ignored or default to PASS.
 - Liquidity: requires at least one objective above or below price; no objectives is WARN.
 - Session: ACTIVE passes; OUTSIDE the explicitly configured verified session windows is WARN; missing/unknown schedule remains UNKNOWN. Session windows must be supplied as verified UTC intervals; no broker timezone or daylight-saving offset is inferred.
 - News: verified fresh calendar with no relevant configured event in the restriction window is CLEAR/PASS; a relevant event is WARN; unknown, stale, missing or unrecognized coverage is UNKNOWN.
