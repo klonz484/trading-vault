@@ -162,7 +162,7 @@ export default function ScannerPage() {
           </div>
 
           <section className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="panel-soft p-4"><p className="text-xs font-semibold text-slate-200">Private scan history</p><p className="mt-1 text-xs leading-5 text-slate-500">Successful chart reads are saved to this browser's local scan history.</p><Link href="/history" className="mt-3 inline-flex text-xs text-slate-300 hover:text-white">Open history →</Link></div>
+            <div className="panel-soft p-4"><p className="text-xs font-semibold text-slate-200">Private scan history</p><p className="mt-1 text-xs leading-5 text-slate-500">Successful chart reads are saved to this browser&apos;s local scan history.</p><Link href="/history" className="mt-3 inline-flex text-xs text-slate-300 hover:text-white">Open history →</Link></div>
             <div className="panel-soft p-4"><p className="text-xs font-semibold text-slate-200">Manual execution</p><p className="mt-1 text-xs leading-5 text-slate-500">Image-based reads can miss context. Verify every level and make all trade decisions manually.</p></div>
           </section>
           <footer className="mt-6 border-t border-white/[0.07] pt-4 text-[10px] leading-5 text-slate-600">OEM+ ChartScanner · Groq-hosted vision model · API key remains server-side · Output is research support, not financial advice.</footer>
