@@ -195,3 +195,54 @@ a, button { transition-timing-function: cubic-bezier(.2,.7,.2,1); }
 @media (prefers-reduced-motion: reduce) {
   main > div { animation: none; }
 }
+
+
+/* Navigation components */
+.desktop-rail {
+  z-index: 35;
+  border-right: 1px solid rgba(213,222,235,.09);
+  background: linear-gradient(180deg,rgba(14,18,25,.985),rgba(8,11,16,.99));
+  box-shadow: 12px 0 40px rgba(0,0,0,.12);
+}
+.nav-section-label {
+  margin: 0 0 11px;
+  padding: 0 12px;
+  color: #687383;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+.nav-section-spaced { margin-top: 27px; }
+.nav-link {
+  position: relative;
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  padding: 9px 12px;
+  color: #929cab;
+  font-size: 12px;
+  font-weight: 520;
+  transition: color .18s ease, background .18s ease, border-color .18s ease, transform .18s ease;
+}
+.nav-link:hover { color: #f3f5f8; background: rgba(255,255,255,.045); transform: translateX(1px); }
+.nav-link-active {
+  border-color: rgba(220,228,239,.12);
+  background: linear-gradient(100deg,rgba(219,226,237,.105),rgba(219,226,237,.035));
+  color: #f7f8fa;
+  box-shadow: inset 2px 0 0 rgba(230,235,243,.75), inset 0 1px 0 rgba(255,255,255,.025);
+}
+.nav-glyph { display:flex; width:23px; flex-shrink:0; align-items:center; justify-content:center; color:#aeb7c4; font-size:18px; line-height:1; }
+.nav-active-dot { width:5px; height:5px; border-radius:50%; background:#e5e9ef; box-shadow:0 0 12px rgba(229,233,239,.5); }
+.mobile-topbar { border-bottom:1px solid rgba(213,222,235,.09); background:rgba(9,12,17,.94); }
+.mobile-bottom-nav { padding-bottom:env(safe-area-inset-bottom); border-top:1px solid rgba(213,222,235,.12); background:rgba(9,12,17,.96); box-shadow:0 -12px 34px rgba(0,0,0,.22); }
+.mobile-nav-item { display:flex; min-height:54px; flex-direction:column; align-items:center; justify-content:center; gap:5px; border-radius:10px; color:#727d8d; font-size:9px; transition:color .18s ease,background .18s ease; }
+.mobile-nav-active { color:#f5f6f8; background:rgba(255,255,255,.055); }
+.mobile-more-menu { border:1px solid rgba(213,222,235,.15); background:linear-gradient(145deg,#1a202a,#10141b); }
+@media (max-width:767px) {
+  .desktop-rail { display:none; }
+  .mobile-bottom-nav { min-height:74px; }
+}
