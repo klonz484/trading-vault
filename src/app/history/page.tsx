@@ -15,7 +15,12 @@ type ScanRow = {
 };
 
 async function HistoryContent() {
-  const supabase = await createClient();
+  let supabase;
+  try {
+    supabase = await createClient();
+  } catch {
+    return <div className="mx-auto max-w-[1300px]"><div className="mb-7"><p className="eyebrow">Research archive</p><h1 className="page-title">Scan History</h1><p className="page-subtitle">Private chart observations saved to your account.</p></div><section className="panel p-5 text-sm text-amber-100">Account storage is not configured in this environment. Your private scan records have not been changed.</section></div>;
+  }
   const { data, error } = await supabase.from("chart_scans")
     .select("id,symbol,timeframe,image_path,status,analysis,model_name,created_at")
     .order("created_at", { ascending: false })
