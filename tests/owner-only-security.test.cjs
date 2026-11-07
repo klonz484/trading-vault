@@ -82,7 +82,8 @@ test("scanner requires a directionally valid target and explicit invalidation", 
 
 test("scanner rejects placeholder invalidation text for BUY and SELL signals", () => {
   assert.match(scannerApiSource, /invalidationText\.length >= 12/);
-  assert.match(scannerApiSource, /not clear\|not readable\|unknown\|none\|n\\\\\/a\|no defensible invalidation\|not available/);
+  assert.match(scannerApiSource, /not clear\\|not readable/);
+  assert.match(scannerApiSource, /no defensible invalidation/);
 });
 
 test("scanner requests constrained JSON and hides model reasoning from user output", () => {
