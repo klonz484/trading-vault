@@ -67,42 +67,10 @@ test("scanner analysis API requires an authenticated owner", () => {
 });
 
 
-test("scanner rejects inverted entry ranges and stops on the wrong side", () => {
-  assert.match(scannerApiSource, /entryLow <= entryHigh/);
-  assert.match(scannerApiSource, /decision === "BUY" \? entryLow !== null && stopPrice < entryLow/);
-  assert.match(scannerApiSource, /decision === "SELL" \? entryHigh !== null && stopPrice > entryHigh/);
-});
 
-test("scanner requires a directionally valid target and explicit invalidation", () => {
-  assert.match(scannerApiSource, /parsedTargets\.filter/);
-  assert.match(scannerApiSource, /target\.price > \(entryHigh/);
-  assert.match(scannerApiSource, /target\.price < \(entryLow/);
-  assert.match(scannerApiSource, /hasValidInvalidation/);
-});
-
-test("scanner rejects placeholder invalidation text for BUY and SELL signals", () => {
-  assert.ok(scannerApiSource.includes("invalidationText.length >= 12"));
-  assert.ok(scannerApiSource.includes('["not clear", "not readable"'));
-  assert.ok(scannerApiSource.includes('"n/a"'));
-  assert.ok(scannerApiSource.includes("normalizedInvalidation.startsWith"));
-  assert.ok(scannerApiSource.includes("no defensible invalidation"));
-});
-
-test("scanner requests constrained JSON and hides model reasoning from user output", () => {
-  assert.match(scannerApiSource, /response_format: \{ type: "json_object" \}/);
-  assert.match(scannerApiSource, /reasoning_format: "hidden"/);
-});
-
-
-test("scanner prompt requires structured evidence to match the narrative", () => {
-  assert.match(scannerApiSource, /Keep the JSON evidence arrays consistent with the summary/);
-  assert.match(scannerApiSource, /For NO TRADE, explain the actual blockers in uncertainties and confirmations/);
-  assert.match(scannerApiSource, /without inventing a level/);
-});
-
-test("scanner UI distinguishes missing model evidence from no market evidence", () => {
-  const scannerPage = fs.readFileSync(path.join(process.cwd(), "src", "app", "scanner", "page.tsx"), "utf8");
-  assert.match(scannerPage, /No separate evidence item was returned for this category/);
-  assert.match(scannerPage, /No trade targets are defined while the scanner decision is WAIT/);
-  assert.match(scannerPage, /Invalidation \/ decision-change condition/);
+test("scanner endpoint is observation-only and cannot return trade signals", () => {
+  assert.match(scannerApiSource, /assessment: null/);
+  assert.match(scannerApiSource, /brainStatus: "NOT_CONNECTED"/);
+  assert.match(scannerApiSource, /contextOnlyNotSignal: true/);
+  assert.doesNotMatch(scannerApiSource, /const DECISIONS = new Set/);
 });
