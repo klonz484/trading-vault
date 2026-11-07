@@ -1,7 +1,7 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
-export const instant = false;
 
 type ScanRow = {
   id: string;
@@ -14,7 +14,7 @@ type ScanRow = {
   created_at: string;
 };
 
-export default async function HistoryPage() {
+async function HistoryContent() {
   const supabase = await createClient();
   const { data, error } = await supabase.from("chart_scans")
     .select("id,symbol,timeframe,image_path,status,analysis,model_name,created_at")
@@ -22,7 +22,7 @@ export default async function HistoryPage() {
     .limit(50);
   const scans = (data || []) as ScanRow[];
 
-  return <div className="min-h-screen md:flex"><Sidebar /><main className="min-w-0 flex-1 px-4 pb-10 pt-5 sm:px-6 lg:px-9 lg:pt-8"><div className="mx-auto max-w-[1300px]">
+  return <div className="mx-auto max-w-[1300px]">
     <div className="mb-7"><p className="eyebrow">Research archive</p><h1 className="page-title">Scan History</h1><p className="page-subtitle">Private chart observations saved to your Trading Vault account.</p></div>
     <section className="panel overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] p-5"><div><h2 className="section-title">Saved observations</h2><p className="mt-1 text-xs text-slate-500">{scans.length} saved scans · private Supabase storage</p></div><Link href="/scanner" className="btn-primary">New scan</Link></div>
@@ -35,5 +35,13 @@ export default async function HistoryPage() {
       })}</div>}
     </section>
     <p className="mt-4 text-xs leading-5 text-slate-500">Images and observation packets are stored in your private account. Row-level security restricts each record to its owner. No trade execution data is created by the Scanner.</p>
-  </div></main></div>;
+  </div>;
+}
+
+function HistoryLoading() {
+  return <div className="mx-auto max-w-[1300px]"><div className="mb-7"><p className="eyebrow">Research archive</p><h1 className="page-title">Scan History</h1><p className="page-subtitle">Loading your private chart observations…</p></div><section className="panel min-h-64 animate-pulse p-5" /></div>;
+}
+
+export default function HistoryPage() {
+  return <div className="min-h-screen md:flex"><Sidebar /><main className="min-w-0 flex-1 px-4 pb-10 pt-5 sm:px-6 lg:px-9 lg:pt-8"><Suspense fallback={<HistoryLoading />}><HistoryContent /></Suspense></main></div>;
 }
