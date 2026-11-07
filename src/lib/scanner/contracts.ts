@@ -145,8 +145,11 @@ export function validateChartObservation(value: unknown): { valid: boolean; erro
   if (packet.contextOnlyNotSignal !== true) errors.push("Scanner output must be explicitly marked context-only.");
   if (!["COMPLETE", "INCOMPLETE"].includes(String(packet.packetStatus))) errors.push("Invalid packet status.");
   if (typeof bid?.value === "number" && typeof ask?.value === "number" && bid.value > ask.value) errors.push("Bid cannot exceed ask.");
-  if (packet.packetStatus === "COMPLETE" && (instrument?.status !== "observed" || timeframe?.status !== "observed")) {
-    errors.push("A complete packet requires observed instrument and timeframe.");
+  if (packet.packetStatus === "COMPLETE" && (
+    instrument?.status !== "observed" || timeframe?.status !== "observed" ||
+    bid?.status !== "observed" || ask?.status !== "observed"
+  )) {
+    errors.push("A complete packet requires observed instrument, timeframe, bid and ask.");
   }
   return { valid: errors.length === 0, errors };
 }

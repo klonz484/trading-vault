@@ -69,7 +69,7 @@ function parseObservation(raw: unknown, meta: { scanId: string; receivedAtUtc: s
   const ask = numberField("ask");
   const spread = numberField("spread");
   const marketStatusRaw = stringField("marketStatus");
-  const marketStatus = observation(
+  const marketStatus: FieldObservation<"OPEN" | "CLOSED"> = observation(
     marketStatusRaw.value === "OPEN" || marketStatusRaw.value === "CLOSED" ? marketStatusRaw.value : null,
     marketStatusRaw.confidence,
     "screenshot_ocr"
@@ -77,6 +77,8 @@ function parseObservation(raw: unknown, meta: { scanId: string; receivedAtUtc: s
   const criticalMissing = [
     ...(instrument.status !== "observed" ? ["instrument"] : []),
     ...(timeframe.status !== "observed" ? ["timeframe"] : []),
+    ...(bid.status !== "observed" ? ["bid"] : []),
+    ...(ask.status !== "observed" ? ["ask"] : []),
   ];
   const packet: ChartObservation = {
     schemaVersion: "1.0.0",
