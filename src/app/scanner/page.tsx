@@ -70,17 +70,17 @@ export default function ScannerPage() {
   return (
     <div className="min-h-screen md:flex">
       <Sidebar />
-      <main className="min-w-0 flex-1 overflow-y-auto px-4 pb-8 pt-5 sm:px-6 lg:px-9 lg:pt-8">
+      <main className="min-w-0 flex-1 overflow-y-auto px-4 pb-10 pt-5 sm:px-6 lg:px-9 lg:pt-8"><div className="mx-auto max-w-[1500px]">
         <div className="mb-7">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold text-white tracking-tight">AI Chart Scanner</h1>
-            <span className="text-[10px] uppercase tracking-wider text-slate-300 border border-white/30 bg-white/10 rounded-full px-2.5 py-1">Vision AI</span>
+            <h1 className="page-title">AI Chart Scanner</h1>
+            <span className="status-neutral">Vision AI</span>
           </div>
-          <div className="mt-1 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-[var(--muted)]">Upload an MT5 screenshot for a structured, image-based technical read.</p><Link href="/history" className="text-xs text-slate-300 hover:text-white">View scan history →</Link></div>
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-3"><p className="page-subtitle mt-1">Upload an MT5 screenshot for a structured, image-based technical read. Evidence first. Manual decisions always.</p><Link href="/history" className="text-xs text-slate-300 hover:text-white">View scan history →</Link></div>
         </div>
 
-        <div className="grid xl:grid-cols-2 gap-6 mx-auto max-w-7xl">
-          <section className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 lg:p-6">
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4"><div className="panel-soft p-3"><p className="eyebrow">Workflow</p><p className="text-sm font-semibold text-white">Upload chart</p></div><div className="panel-soft p-3"><p className="eyebrow">Markets</p><p className="text-sm font-semibold text-white">Forex + Gold</p></div><div className="panel-soft p-3"><p className="eyebrow">Execution</p><p className="text-sm font-semibold text-white">Manual MT5</p></div><div className="panel-soft p-3"><p className="eyebrow">Output</p><p className="text-sm font-semibold text-white">Evidence-led read</p></div></div><div className="grid xl:grid-cols-[1.05fr_.95fr] gap-5">
+          <section className="panel p-4 sm:p-6">
             <h2 className="font-medium text-white mb-4">Chart input</h2>
             <button
               type="button"
@@ -88,7 +88,7 @@ export default function ScannerPage() {
               onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
               onDragLeave={() => setDragging(false)}
               onDrop={(event) => { event.preventDefault(); setDragging(false); selectFile(event.dataTransfer.files?.[0]); }}
-              className={`flex flex-col items-center justify-center w-full min-h-64 max-h-[420px] border-2 border-dashed rounded-xl overflow-hidden transition-all ${dragging ? "border-slate-200 bg-white/10" : "border-[var(--border)] hover:border-white/50 hover:bg-[var(--card-hover)]"}`}
+              className={`chart-dropzone flex flex-col items-center justify-center w-full min-h-64 max-h-[440px] border-2 border-dashed rounded-2xl overflow-hidden transition-all ${dragging ? "border-slate-200 bg-white/10" : "border-[var(--border)] hover:border-white/50 hover:bg-[var(--card-hover)]"}`}
             >
               {imagePreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -119,12 +119,12 @@ export default function ScannerPage() {
             <label className="block text-xs text-[var(--muted)] mt-3">Your context (optional)
               <textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} rows={3} placeholder="e.g. Looking for a pullback entry; mark the London session high if visible." className="mt-1.5 w-full resize-y rounded-lg bg-black/20 border border-[var(--border)] px-3 py-2.5 text-sm text-white outline-none focus:border-white/60 placeholder:text-slate-600" />
             </label>
-            <button onClick={analyze} disabled={!file || analyzing} className="mt-5 w-full py-3 rounded-lg bg-white text-black font-semibold hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            <button onClick={analyze} disabled={!file || analyzing} className="btn-primary mt-5 w-full py-3.5 text-sm">
               {analyzing ? "Reading chart..." : "Run AI Analysis"}
             </button>
           </section>
 
-          <section className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 lg:p-6 min-h-[420px]">
+          <section className="panel min-h-[480px] p-4 sm:p-6">
             <div className="flex items-center justify-between gap-3 mb-4">
               <h2 className="font-medium text-white">Analysis</h2>
               {modelName && <span className="text-[10px] text-slate-300 border border-white/30 rounded-full px-2 py-1">{modelName}</span>}
@@ -136,11 +136,11 @@ export default function ScannerPage() {
           </section>
         </div>
 
-        <div className="mt-6 p-4 rounded-xl border border-[var(--border)] bg-[var(--card)]/50 max-w-7xl">
+        <div className="mt-5 panel-soft p-4 sm:p-5">
           <p className="text-xs text-[var(--muted)] leading-5"><span className="text-slate-200">Model:</span> Groq-hosted Qwen 3.8 27B Vision. It accepts image and text inputs; free-tier usage is subject to account rate limits and model availability. Your API key stays on the server and is never sent to the browser.</p>
           <p className="text-xs text-[var(--muted)] leading-5 mt-2">Trading risk notice: image-based chart reads can be wrong or miss context. Treat outputs as research support, verify every level in MT5, and make all execution decisions manually.</p>
         </div>
-      </main>
+      </div></main>
     </div>
   );
 }
