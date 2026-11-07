@@ -41,7 +41,7 @@ export function evaluateExperiment(input: ExperimentInput): ExperimentResult {
   const errors: string[] = [];
   if (!input.experimentId?.trim() || !input.hypothesis?.trim() || !input.strategyVersion?.trim() || !input.brainVersion?.trim()) errors.push("Experiment identity, hypothesis, strategy version and Brain version are required.");
   if (!input.datasetVerified || !/^[a-fA-F0-9]{32,128}$/.test(input.datasetHash)) errors.push("A verified dataset and 32–128 character hexadecimal dataset hash are required.");
-  const utcTimestamp = (v: string) => typeof v === "string" && /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$/.test(v);
+  const utcTimestamp = (v: string) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(v);
   if (![input.trainStartUtc,input.trainEndUtc,input.testStartUtc,input.testEndUtc].every(utcTimestamp)) errors.push("All experiment period boundaries must be explicit UTC ISO timestamps ending in Z.");
   const trainStart = Date.parse(input.trainStartUtc), trainEnd = Date.parse(input.trainEndUtc), testStart = Date.parse(input.testStartUtc), testEnd = Date.parse(input.testEndUtc);
   if (![trainStart, trainEnd, testStart, testEnd].every(Number.isFinite) || trainEnd <= trainStart || testStart <= trainEnd || testEnd <= testStart) errors.push("Training and out-of-sample test periods must be valid, ordered, non-overlapping UTC intervals.");
