@@ -12,3 +12,7 @@ test("all events are explicitly closed-candle confirmed",()=>{const r=analyzeMar
 test("does not generate trade signals",()=>{const r=analyzeMarketStructure(input([[5,6,4,5],[5,8,4,6],[5,6,3,4],[4,7,4,6],[5,6,2,4]]));assert.equal(r.tradeSignalGenerated,false);});
 test("rejects invalid OHLC ranges",()=>{const x=input([[5,6,4,5],[5,8,4,6],[5,6,3,4],[4,7,4,6],[5,6,2,4]]);x.candles[2].high=1;assert.equal(analyzeMarketStructure(x).status,"INVALID_DATA");});
 test("requires explicit positive equal-level tolerance",()=>{const x=input([[5,6,4,5],[5,8,4,6],[5,6,3,4],[4,7,4,6],[5,6,2,4]]);x.equalityTolerance=0;assert.equal(analyzeMarketStructure(x).status,"INVALID_DATA");});
+
+test("does not use a swing before its right-side confirmation candle closes",()=>{const x=input([[5,6,4,5],[5,8,4,7],[7,9,6,8],[8,8.5,6,7],[7,7.5,5,6]]);const r=analyzeMarketStructure(x);assert.ok(!r.events.some(e=>e.candleIndex===2&&e.type==="BOS"));});
+test("recognizes a close-through break of a previously confirmed swing high",()=>{const x=input([[5,6,4,5],[5,8,4,6],[5,6,3,4],[4,7,4,6],[5,6,2,4],[7,9.5,6,9],[8,9,7,8]]);const r=analyzeMarketStructure(x);assert.ok(r.events.some(e=>e.type==="BOS"&&e.direction==="BULLISH"&&e.candleIndex===5));});
+test("recognizes a wick-through and close-back liquidity sweep",()=>{const x=input([[5,6,4,5],[5,8,4,6],[5,6,3,4],[4,7,4,6],[5,6,2,4],[7,9,6,7],[7,8,6,7]]);const r=analyzeMarketStructure(x);assert.ok(r.events.some(e=>e.type==="LIQUIDITY_SWEEP"&&e.direction==="BEARISH"&&e.candleIndex===5));});
