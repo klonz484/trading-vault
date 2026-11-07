@@ -81,7 +81,7 @@ export default function ScannerPage() {
 
         <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4"><div className="panel-soft p-3"><p className="eyebrow">Workflow</p><p className="text-sm font-semibold text-white">Upload chart</p></div><div className="panel-soft p-3"><p className="eyebrow">Markets</p><p className="text-sm font-semibold text-white">Forex + Gold</p></div><div className="panel-soft p-3"><p className="eyebrow">Execution</p><p className="text-sm font-semibold text-white">Manual MT5</p></div><div className="panel-soft p-3"><p className="eyebrow">Output</p><p className="text-sm font-semibold text-white">Evidence-led read</p></div></div><div className="grid xl:grid-cols-[1.05fr_.95fr] gap-5">
           <section className="panel p-4 sm:p-6">
-            <h2 className="font-medium text-white mb-4">Chart input</h2>
+            <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="section-title">Chart input</h2><p className="mt-1 text-xs text-slate-500">Choose a clear MT5 chart screenshot.</p></div><span className="status-neutral">Step 01</span></div>
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
@@ -107,17 +107,17 @@ export default function ScannerPage() {
             {file && <div className="flex items-center justify-between gap-3 mt-2 text-xs text-[var(--muted)]"><span className="truncate">{file.name}</span><button onClick={() => { setFile(null); setImagePreview(null); setResult(null); setError(null); }} className="text-slate-300 hover:text-white">Remove</button></div>}
 
             <div className="grid sm:grid-cols-2 gap-3 mt-5">
-              <label className="text-xs text-[var(--muted)]">Instrument
-                <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} maxLength={30} placeholder="e.g. EURUSD" className="mt-1.5 w-full rounded-lg bg-black/20 border border-[var(--border)] px-3 py-2.5 text-sm text-white outline-none focus:border-white/60" />
+              <label className="field-label">Instrument
+                <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} maxLength={30} placeholder="e.g. EURUSD" className="field-control" />
               </label>
-              <label className="text-xs text-[var(--muted)]">Timeframe
-                <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)} className="mt-1.5 w-full rounded-lg bg-[#111820] border border-[var(--border)] px-3 py-2.5 text-sm text-white outline-none focus:border-white/60">
+              <label className="field-label">Timeframe
+                <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)} className="field-control">
                   {["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1", "Not sure"].map((value) => <option key={value}>{value}</option>)}
                 </select>
               </label>
             </div>
-            <label className="block text-xs text-[var(--muted)] mt-3">Your context (optional)
-              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} rows={3} placeholder="e.g. Looking for a pullback entry; mark the London session high if visible." className="mt-1.5 w-full resize-y rounded-lg bg-black/20 border border-[var(--border)] px-3 py-2.5 text-sm text-white outline-none focus:border-white/60 placeholder:text-slate-600" />
+            <label className="field-label mt-3">Your context (optional)
+              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} rows={3} placeholder="e.g. Looking for a pullback entry; mark the London session high if visible." className="field-control min-h-[96px] resize-y" />
             </label>
             <button onClick={analyze} disabled={!file || analyzing} className="btn-primary mt-5 w-full py-3.5 text-sm">
               {analyzing ? "Reading chart..." : "Run AI Analysis"}
@@ -126,8 +126,8 @@ export default function ScannerPage() {
 
           <section className="panel min-h-[480px] p-4 sm:p-6">
             <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="font-medium text-white">Analysis</h2>
-              {modelName && <span className="text-[10px] text-slate-300 border border-white/30 rounded-full px-2 py-1">{modelName}</span>}
+              <div><h2 className="section-title">Analysis</h2><p className="mt-1 text-xs text-slate-500">Evidence, interpretation and uncertainty.</p></div>
+              {modelName && <span className="status-neutral">{modelName}</span>}
             </div>
             {!result && !analyzing && !error && <div className="min-h-[330px] flex flex-col items-center justify-center text-center text-[var(--muted)] text-sm"><div className="text-3xl text-slate-200/40 mb-3">⌁</div><p>Your chart read will appear here.</p><p className="text-xs mt-2 max-w-xs">The model will separate visible evidence from interpretation and flag anything it cannot read. Successful reads are saved to local scan history.</p></div>}
             {analyzing && <div className="min-h-[330px] flex flex-col items-center justify-center gap-3"><div className="w-8 h-8 border-2 border-slate-200 border-t-transparent rounded-full animate-spin"/><p className="text-sm text-[var(--muted)]">Inspecting market structure, levels and chart context…</p></div>}
