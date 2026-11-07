@@ -1,0 +1,16 @@
+# Prop-firm compliance engine v0.2
+
+## Improvements
+- Daily loss projection offsets proposed risk against verified current-day net PnL and compares it with the exact configured start-of-day equity limit.
+- Overall drawdown now distinguishes static rules (initial balance reference) from trailing rules (high-watermark reference). The rule mode and reference value must be verified; neither is guessed.
+- Position limits validate integer counts.
+- Consistency checks calculate best-day profit as a percentage of total profit and block when it exceeds the exact firm rule. A non-positive profit denominator remains REVIEW.
+- Minimum trading-day progress is reported without treating an incomplete challenge as a breach.
+- Challenge profit-target progress is calculated from verified initial balance, target percentage and total profit. Progress is informational; it is not a claim that the challenge has passed.
+- Invalid rule percentages and invalid proposed risk are blocked.
+
+## Required source data
+Firm-specific rule values and account snapshots must be verified. Static drawdown requires initial balance; trailing drawdown requires high-watermark equity. Unknown values remain REVIEW. Different firms may define daily reset, equity/balance basis, floating-loss treatment, consistency and trailing drawdown differently; the caller must normalize and verify the firm's actual terms before evaluation.
+
+## Safety boundary
+This module is a pre-trade compliance aid, not a guarantee of prop-firm acceptance. It does not submit, modify or close orders. Manual review is required whenever firm terms or account values are missing or ambiguous.
