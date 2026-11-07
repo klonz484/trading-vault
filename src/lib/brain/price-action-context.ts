@@ -30,14 +30,14 @@ export function analyzePriceActionContext(input:PriceActionContextInput):PriceAc
  if(warnings.length)return {...base,status:"INVALID_DATA",atr:null,volatility:"UNDETERMINED" as const,range:null,displacement:[],warnings};
  const required=Math.max(input.atrPeriod+1,input.rangeLookback+1);
  if(input.candles.length<required)return {...base,status:"INSUFFICIENT_DATA",atr:null,volatility:"UNDETERMINED" as const,range:null,displacement:[],warnings:[`At least ${required} closed candles are required.`]};
- const ranges=input.candles.slice(1).map((c,i)=>trueRange(c,input.candles[i].close));
+ const ranges=input.candles.map((c,i)=>i===0?c.high-c.low:trueRange(c,input.candles[i-1].close));
  const atrValues=ranges.slice(-input.atrPeriod),atr=atrValues.reduce((a,b)=>a+b,0)/atrValues.length;
  if(!finite(atr)||atr<=0)return {...base,status:"INVALID_DATA",atr:null,volatility:"UNDETERMINED" as const,range:null,displacement:[],warnings:["ATR could not be calculated from the supplied candles."]};
  const recent=input.candles.slice(-input.rangeLookback),high=Math.max(...recent.map(c=>c.high)),low=Math.min(...recent.map(c=>c.low)),width=high-low;
  const rangeDetected=width/atr<=input.maxRangeAtrWidth;
- const displacement=input.candles.slice(1).map((c,i)=>({c,index:i+1,body:Math.abs(c.close-c.open),atrAtCandle:ranges[i]})).filter(x=>{
+ const displacement=input.candles.map((c,index)=>({c,index,body:Math.abs(c.close-c.open),atrAtCandle:index>=input.atrPeriod?ranges.slice(index-input.atrPeriod,index).reduce((a,b)=>a+b,0)/input.atrPeriod:0})).filter(x=>{
   const location=(x.c.close-x.c.low)/(x.c.high-x.c.low||1);
-  return x.body>=x.atrAtCandle*input.displacementAtrMultiple&&(x.c.close>x.c.open?location>=input.closeExtremeFraction:location<=1-input.closeExtremeFraction);
+  return x.atrAtCandle>0&&x.body>=x.atrAtCandle*input.displacementAtrMultiple&&(x.c.close>x.c.open?location>=input.closeExtremeFraction:location<=1-input.closeExtremeFraction);
  }).map(x=>({index:x.index,timeUtc:x.c.timeUtc,direction:x.c.close>x.c.open?"BULLISH" as const:"BEARISH" as const,body:x.body,bodyAtrMultiple:x.body/x.atrAtCandle,closeLocation:(x.c.close-x.c.low)/(x.c.high-x.c.low||1)}));
  const baseline=ranges.slice(-Math.min(ranges.length,input.atrPeriod*3),-input.atrPeriod);
  const baselineAtr=baseline.length?baseline.reduce((a,b)=>a+b,0)/baseline.length:atr;
