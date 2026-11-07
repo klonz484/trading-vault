@@ -1,0 +1,16 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),ts=require("typescript");
+const source=fs.readFileSync(path.join(process.cwd(),"src/lib/brain/event-context.ts"),"utf8"),compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,mod={exports:{}};vm.runInNewContext(compiled,{module:mod,exports:mod.exports});
+const {evaluateEventContext}=mod.exports;
+const now="2026-11-07T12:00:00.000Z";
+function input(overrides={}){return {instrument:"EURUSD",instrumentCurrencies:["EUR","USD"],asOfUtc:now,sessionWindows:[{id:"london-ny",label:"London-New York overlap",startUtc:"2026-11-07T11:00:00Z",endUtc:"2026-11-07T16:00:00Z",sourceId:"verified-calendar-v1",verified:true}],newsEvents:[],newsBlockBeforeMs:900000,newsBlockAfterMs:900000,relevantImpacts:["HIGH"],...overrides};}
+test("recognizes an explicitly supplied active UTC session",()=>{const r=evaluateEventContext(input());assert.equal(r.status,"READY");assert.equal(r.session.status,"ACTIVE");assert.deepEqual(r.session.active,["London-New York overlap"]);});
+test("recognizes outside-session state when verified windows exist",()=>{const r=evaluateEventContext(input({asOfUtc:"2026-11-07T20:00:00Z"}));assert.equal(r.session.status,"OUTSIDE");});
+test("does not guess a session when no verified windows are supplied",()=>{const r=evaluateEventContext(input({sessionWindows:[]}));assert.equal(r.session.status,"UNKNOWN");assert.ok(r.warnings.length>0);});
+test("blocks relevant high-impact scheduled news inside configured window",()=>{const r=evaluateEventContext(input({newsEvents:[{id:"cpi-us",title:"US CPI",timeUtc:"2026-11-07T12:05:00Z",currencies:["USD"],impact:"HIGH",sourceId:"calendar-a",verified:true}]}));assert.equal(r.news.status,"RESTRICTED_WINDOW");assert.equal(r.news.relevantEvents[0].minutesFromEvent,5);});
+test("ignores events outside explicitly relevant instrument currencies",()=>{const r=evaluateEventContext(input({newsEvents:[{id:"gbp-cpi",title:"UK CPI",timeUtc:now,currencies:["GBP"],impact:"HIGH",sourceId:"calendar-a",verified:true}]}));assert.equal(r.news.status,"CLEAR");});
+test("ignores impact tiers not selected by configuration",()=>{const r=evaluateEventContext(input({newsEvents:[{id:"usd-data",title:"US data",timeUtc:now,currencies:["USD"],impact:"MEDIUM",sourceId:"calendar-a",verified:true}]}));assert.equal(r.news.status,"CLEAR");});
+test("rejects unverified news events instead of silently trusting them",()=>{const r=evaluateEventContext(input({newsEvents:[{id:"event",title:"Event",timeUtc:now,currencies:["USD"],impact:"HIGH",sourceId:"unknown",verified:false}]}));assert.equal(r.status,"INVALID");assert.equal(r.news.status,"UNKNOWN");});
+test("rejects malformed UTC windows",()=>{const r=evaluateEventContext(input({sessionWindows:[{id:"x",label:"x",startUtc:"bad",endUtc:"also bad",sourceId:"x",verified:true}]}));assert.equal(r.status,"INVALID");});
+test("requires explicit currency mapping",()=>{const r=evaluateEventContext(input({instrumentCurrencies:[]}));assert.equal(r.status,"INVALID");});
+test("does not generate a trade signal",()=>{assert.equal(evaluateEventContext(input()).tradeSignalGenerated,false);});
