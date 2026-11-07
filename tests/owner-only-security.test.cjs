@@ -5,6 +5,8 @@ const path = require("node:path");
 
 const proxyPath = path.join(process.cwd(), "src", "proxy.ts");
 const proxySource = fs.readFileSync(proxyPath, "utf8");
+const scannerRoutePath = path.join(process.cwd(), "src", "app", "api", "scanner", "analyze", "route.ts");
+const scannerRouteSource = fs.readFileSync(scannerRoutePath, "utf8");
 
 test("protected requests require a verified owner claim", () => {
   assert.match(proxySource, /await supabase\.auth\.getClaims\(\)/);
@@ -49,4 +51,11 @@ test("auth cookies are forwarded when redirecting unauthenticated users", () => 
 test("matcher applies the security proxy broadly while excluding static assets", () => {
   assert.match(proxySource, /matcher:\s*\[/);
   assert.match(proxySource, /_next\/static\|_next\/image/);
+});
+
+test("chart analysis API independently enforces the configured owner identity", () => {
+  assert.match(scannerRouteSource, /process\.env\.TRADING_VAULT_OWNER_USER_ID/);
+  assert.match(scannerRouteSource, /if \(!ownerUserId\)[\s\S]*?status: 503/);
+  assert.match(scannerRouteSource, /if \(user\.id !== ownerUserId\)[\s\S]*?status: 403/);
+  assert.ok(scannerRouteSource.indexOf("user.id !== ownerUserId") < scannerRouteSource.indexOf("process.env.GROQ_API_KEY"));
 });
