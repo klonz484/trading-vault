@@ -1,171 +1,35 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 
-export default function RiskCalculatorPage() {
-  const [balance, setBalance] = useState(10000);
-  const [riskPercent, setRiskPercent] = useState(1);
-  const [stopPips, setStopPips] = useState(20);
-  const [pair, setPair] = useState("EURUSD");
-  const [accountCurrency, setAccountCurrency] = useState("USD");
+const instruments=["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","XAUUSD"];
 
-  // Approximate pip values (standard lot) - simplified for majors + gold
-  const pipValuePerLot: Record<string, number> = {
-    EURUSD: 10,
-    GBPUSD: 10,
-    USDJPY: 9.1, // approx
-    AUDUSD: 10,
-    USDCAD: 7.5,
-    XAUUSD: 1, // $1 per pip per 0.01 lot roughly adjusted later
-  };
-
-  const result = useMemo(() => {
-    const riskAmount = balance * (riskPercent / 100);
-    const pipValue = pipValuePerLot[pair] || 10;
-
-    // For gold special handling (very simplified)
-    let lotSize = 0;
-    if (pair === "XAUUSD") {
-      // Rough: $1 move on 0.01 lot ≈ $0.10? Wait, standard is different.
-      // Better simple formula: risk / (stop * pip value)
-      // Using approximate $1 per pip for 1.00 lot on gold is wrong; 
-      // Common retail: 0.01 lot gold ≈ $0.10 per $0.1 move, but for simplicity:
-      lotSize = riskAmount / (stopPips * 1); // placeholder - user can adjust
-      lotSize = Math.max(0.01, Math.round(lotSize * 100) / 100);
-    } else {
-      lotSize = riskAmount / (stopPips * pipValue);
-      lotSize = Math.max(0.01, Math.round(lotSize * 100) / 100);
-    }
-
-    const riskReward = 2; // default display
-    return {
-      riskAmount: riskAmount.toFixed(2),
-      lotSize: lotSize.toFixed(2),
-      potentialProfit: (riskAmount * riskReward).toFixed(2),
-    };
-  }, [balance, riskPercent, stopPips, pair]);
-
-  return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-
-      <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-white tracking-tight">
-            Risk Calculator
-          </h1>
-          <p className="text-sm text-[var(--muted)] mt-1">
-            Position sizing for MT5 • Manual execution
-          </p>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-8 max-w-5xl">
-          {/* Inputs */}
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 space-y-5">
-            <h2 className="font-medium text-white mb-2">Inputs</h2>
-
-            <div>
-              <label className="block text-xs text-[var(--muted)] mb-1.5">
-                Account Balance ({accountCurrency})
-              </label>
-              <input
-                type="number"
-                value={balance}
-                onChange={(e) => setBalance(Number(e.target.value))}
-                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs text-[var(--muted)] mb-1.5">
-                Risk per Trade (%)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                value={riskPercent}
-                onChange={(e) => setRiskPercent(Number(e.target.value))}
-                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs text-[var(--muted)] mb-1.5">
-                Stop Loss (pips)
-              </label>
-              <input
-                type="number"
-                value={stopPips}
-                onChange={(e) => setStopPips(Number(e.target.value))}
-                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs text-[var(--muted)] mb-1.5">
-                Instrument
-              </label>
-              <select
-                value={pair}
-                onChange={(e) => setPair(e.target.value)}
-                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50"
-              >
-                <option value="EURUSD">EURUSD</option>
-                <option value="GBPUSD">GBPUSD</option>
-                <option value="USDJPY">USDJPY</option>
-                <option value="AUDUSD">AUDUSD</option>
-                <option value="USDCAD">USDCAD</option>
-                <option value="XAUUSD">XAUUSD (Gold)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Results */}
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
-            <h2 className="font-medium text-white mb-6">Results</h2>
-
-            <div className="space-y-6">
-              <div>
-                <p className="text-xs text-[var(--muted)] uppercase tracking-wider">
-                  Risk Amount
-                </p>
-                <p className="text-3xl font-semibold text-white mt-1">
-                  ${result.riskAmount}
-                </p>
-              </div>
-
-              <div className="pt-4 border-t border-[var(--border)]">
-                <p className="text-xs text-[var(--muted)] uppercase tracking-wider">
-                  Recommended Lot Size
-                </p>
-                <p className="text-4xl font-bold text-cyan-400 mt-1">
-                  {result.lotSize}
-                </p>
-                <p className="text-sm text-[var(--muted)] mt-1">
-                  Standard lots • Adjust if your broker uses different contract size
-                </p>
-              </div>
-
-              <div className="pt-4 border-t border-[var(--border)]">
-                <p className="text-xs text-[var(--muted)] uppercase tracking-wider">
-                  At 1:2 R:R Potential
-                </p>
-                <p className="text-2xl font-semibold text-emerald-400 mt-1">
-                  +${result.potentialProfit}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
-              <p className="text-xs text-cyan-300/80">
-                Note: Gold (XAUUSD) pip value is approximate. Always verify with
-                your MT5 contract specification before entering a trade.
-              </p>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+export default function RiskCalculatorPage(){
+ const [balance,setBalance]=useState("10000");
+ const [riskPercent,setRiskPercent]=useState("1");
+ const [stopPips,setStopPips]=useState("20");
+ const [pair,setPair]=useState("EURUSD");
+ const [currency,setCurrency]=useState("USD");
+ const [pipValue,setPipValue]=useState("");
+ const [targetR,setTargetR]=useState("2");
+ const result=useMemo(()=>{const b=Number(balance),r=Number(riskPercent),s=Number(stopPips),v=Number(pipValue),rr=Number(targetR);const valid=[b,r,s,v,rr].every(Number.isFinite)&&b>0&&r>0&&r<=100&&s>0&&v>0&&rr>=0;const risk=b*r/100;return {valid,risk,lot:valid?risk/(s*v):0,reward:valid?risk*rr:0};},[balance,riskPercent,stopPips,pipValue,targetR]);
+ function changePair(value:string){setPair(value);setPipValue("");}
+ return <div className="min-h-screen md:flex"><Sidebar/><main className="min-w-0 flex-1 px-4 pb-10 pt-5 sm:px-6 lg:px-9 lg:pt-8"><div className="mx-auto max-w-[1150px]"><div className="mb-7"><p className="eyebrow">Capital protection</p><h1 className="page-title">Risk Calculator</h1><p className="page-subtitle">Estimate position size from your account risk and broker-specific pip value.</p></div>
+ <div className="grid items-start gap-5 lg:grid-cols-[1fr_.9fr]"><section className="panel space-y-5 p-5 sm:p-6"><div><h2 className="section-title">Trade parameters</h2><p className="mt-1 text-xs text-slate-500">Enter values from your MT5 account and contract specification.</p></div>
+ <div className="grid grid-cols-2 gap-3"><label className="field-label">Account balance<input className="field-control" type="number" min="0" step="any" value={balance} onChange={e=>setBalance(e.target.value)}/></label><label className="field-label">Account currency<select className="field-control" value={currency} onChange={e=>setCurrency(e.target.value)}>{["USD","ZAR","EUR","GBP"].map(x=><option key={x}>{x}</option>)}</select></label></div>
+ <div className="grid grid-cols-2 gap-3"><label className="field-label">Risk per trade (%)<input className="field-control" type="number" min="0" max="100" step="0.1" value={riskPercent} onChange={e=>setRiskPercent(e.target.value)}/></label><label className="field-label">Stop distance (pips / points)<input className="field-control" type="number" min="0" step="any" value={stopPips} onChange={e=>setStopPips(e.target.value)}/></label></div>
+ <label className="field-label">Instrument<select className="field-control" value={pair} onChange={e=>changePair(e.target.value)}>{instruments.map(x=><option key={x}>{x}</option>)}</select></label>
+ <label className="field-label">Pip / point value per 1.00 standard lot ({currency})<input className="field-control" type="number" min="0" step="any" value={pipValue} onChange={e=>setPipValue(e.target.value)} placeholder="Enter value from your broker"/></label>
+ <label className="field-label">Target risk-to-reward ratio<input className="field-control" type="number" min="0" step="0.1" value={targetR} onChange={e=>setTargetR(e.target.value)}/></label>
+ <p className="text-[10px] leading-5 text-slate-500">For XAUUSD, enter the correct point value for your broker&apos;s contract size and account currency. The calculator intentionally does not guess a Gold pip value.</p>
+ </section>
+ <section className="panel p-5 sm:p-6"><h2 className="section-title">Position estimate</h2><p className="mt-1 text-xs text-slate-500">Calculated from the values entered.</p>
+ <div className="mt-6 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4"><p className="text-[10px] uppercase tracking-wider text-slate-500">Cash risk</p><p className="mt-2 text-3xl font-semibold text-white">{result.valid?result.risk.toLocaleString(undefined,{style:"currency",currency}):"—"}</p></div>
+ <div className="mt-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4"><p className="text-[10px] uppercase tracking-wider text-slate-500">Estimated position size</p><p className="mt-2 text-4xl font-light text-white">{result.valid?result.lot.toFixed(3):"—"} <span className="text-sm text-slate-500">lots</span></p></div>
+ <div className="mt-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4"><p className="text-[10px] uppercase tracking-wider text-slate-500">Potential result at target R</p><p className="mt-2 text-2xl font-semibold text-emerald-300">{result.valid?result.reward.toLocaleString(undefined,{style:"currency",currency}):"—"}</p></div>
+ {!result.valid&&<p role="alert" className="mt-4 text-xs text-amber-300">Enter a positive balance, risk, stop distance and broker pip/point value in the selected account currency to calculate a position estimate.</p>}
+ <div className="mt-5 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-4"><p className="text-xs font-medium text-amber-200">Verify before execution</p><p className="mt-1 text-xs leading-5 text-slate-400">This is a sizing estimate, not an order instruction. Confirm tick size, contract size, quote currency conversion, commission and broker volume steps in MT5 before placing any trade.</p></div>
+ </section></div>
+ </div></main></div>;
 }
