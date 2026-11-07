@@ -6,6 +6,8 @@ import Link from "next/link";
 import { readLocalList, SavedScan, SCAN_STORAGE_KEY, writeLocalList } from "@/lib/workspace";
 
 type AnalysisResponse = { analysis?: string; model?: string; error?: string };
+const instruments = ["EURUSD", "XAUUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"];
+const timeframes = ["M5", "M15", "M30", "H1", "H4", "D1", "W1", "Not sure"];
 
 export default function ScannerPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -23,16 +25,12 @@ export default function ScannerPage() {
 
   const selectFile = (selected: File | undefined) => {
     if (!selected) return;
-    setError(null);
-    setResult(null);
-    setModelName(null);
+    setError(null); setResult(null); setModelName(null);
     if (!(["image/png", "image/jpeg", "image/webp"].includes(selected.type))) {
-      setError("Please choose a PNG, JPG, or WebP image.");
-      return;
+      setError("Please choose a PNG, JPG, or WebP image."); return;
     }
-    if (selected.size > 10 * 1024 * 1024) {
-      setError("This image is larger than 10 MB. Please resize it and try again.");
-      return;
+    if (selected.size < 1 || selected.size > 10 * 1024 * 1024) {
+      setError("Choose an image smaller than 10 MB."); return;
     }
     setFile(selected);
     const reader = new FileReader();
@@ -41,106 +39,135 @@ export default function ScannerPage() {
   };
 
   const analyze = async () => {
-    if (!file) return;
-    setAnalyzing(true);
-    setError(null);
-    setResult(null);
+    if (!file || analyzing) return;
+    setAnalyzing(true); setError(null); setResult(null);
     try {
       const body = new FormData();
-      body.append("image", file);
-      body.append("symbol", symbol);
-      body.append("timeframe", timeframe);
-      body.append("notes", notes);
-
+      body.append("image", file); body.append("symbol", symbol); body.append("timeframe", timeframe); body.append("notes", notes);
       const response = await fetch("/api/scanner/analyze", { method: "POST", body });
       const data = (await response.json()) as AnalysisResponse;
       if (!response.ok) throw new Error(data.error || "Analysis failed. Please try again.");
-      setResult(data.analysis || "The model did not return an analysis.");
-      setModelName(data.model || "Vision model");
-      const saved: SavedScan = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), symbol, timeframe, model: data.model || "Vision model", analysis: data.analysis || "" };
-      const previous = readLocalList<SavedScan>(SCAN_STORAGE_KEY);
-      writeLocalList(SCAN_STORAGE_KEY, [saved, ...previous].slice(0, 50));
+      const analysis = data.analysis || "The model did not return an analysis.";
+      const model = data.model || "Vision model";
+      setResult(analysis); setModelName(model);
+      const saved: SavedScan = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), symbol, timeframe, model, analysis };
+      writeLocalList(SCAN_STORAGE_KEY, [saved, ...readLocalList<SavedScan>(SCAN_STORAGE_KEY)].slice(0, 50));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong. Please try again.");
-    } finally {
-      setAnalyzing(false);
-    }
+    } finally { setAnalyzing(false); }
   };
 
   return (
     <div className="min-h-screen md:flex">
       <Sidebar />
-      <main className="min-w-0 flex-1 overflow-y-auto px-4 pb-10 pt-5 sm:px-6 lg:px-9 lg:pt-8"><div className="mx-auto max-w-[1500px]">
-        <div className="mb-7">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="page-title">AI Chart Scanner</h1>
-            <span className="status-neutral">Vision AI</span>
+      <main className="min-w-0 flex-1 overflow-y-auto px-3 pb-28 pt-4 sm:px-6 sm:pb-10 lg:px-9 lg:pt-8">
+        <div className="mx-auto max-w-[1380px]">
+          <header className="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-7">
+            <div>
+              <p className="eyebrow">OEM+ / Perception studio</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="page-title">Chart Scanner</h1>
+                <span className="status-neutral">Vision AI</span>
+              </div>
+              <p className="page-subtitle mt-1">Upload a chart. Capture the evidence. Review the read.</p>
+            </div>
+            <Link href="/history" className="btn-secondary text-xs">Scan history <span aria-hidden="true">↗</span></Link>
+          </header>
+
+          <section className="panel relative mb-4 overflow-hidden p-4 sm:mb-5 sm:p-5">
+            <div className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full border border-white/[0.07]" />
+            <div className="relative flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="platinum-mark flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-2xl font-light italic text-white">O</span>
+                <div><p className="platinum-text text-lg font-light italic tracking-tight">OEM+</p><p className="text-[9px] uppercase tracking-[.22em] text-slate-500">ChartScanner</p></div>
+              </div>
+              <div className="grid min-w-0 flex-1 grid-cols-3 gap-2 sm:max-w-[480px]">
+                <div className="panel-soft rounded-xl p-2.5"><p className="eyebrow">Markets</p><p className="text-xs font-semibold text-white sm:text-sm">Forex + Gold</p></div>
+                <div className="panel-soft rounded-xl p-2.5"><p className="eyebrow">Execution</p><p className="text-xs font-semibold text-white sm:text-sm">Manual MT5</p></div>
+                <div className="panel-soft rounded-xl p-2.5"><p className="eyebrow">Workflow</p><p className="text-xs font-semibold text-white sm:text-sm">Image read</p></div>
+              </div>
+            </div>
+          </section>
+
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div><p className="eyebrow">Your workspace</p><h2 className="section-title">New chart analysis</h2></div>
+            <span className="status-neutral">Step 01 of 02</span>
           </div>
-          <div className="mt-1 flex flex-wrap items-center justify-between gap-3"><p className="page-subtitle mt-1">Upload an MT5 screenshot for a structured, image-based technical read. Evidence first. Manual decisions always.</p><Link href="/history" className="text-xs text-slate-300 hover:text-white">View scan history →</Link></div>
-        </div>
 
-        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4"><div className="panel-soft p-3"><p className="eyebrow">Workflow</p><p className="text-sm font-semibold text-white">Upload chart</p></div><div className="panel-soft p-3"><p className="eyebrow">Markets</p><p className="text-sm font-semibold text-white">Forex + Gold</p></div><div className="panel-soft p-3"><p className="eyebrow">Execution</p><p className="text-sm font-semibold text-white">Manual MT5</p></div><div className="panel-soft p-3"><p className="eyebrow">Output</p><p className="text-sm font-semibold text-white">Evidence-led read</p></div></div><div className="grid xl:grid-cols-[1.05fr_.95fr] gap-5">
-          <section className="panel p-4 sm:p-6">
-            <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="section-title">Chart input</h2><p className="mt-1 text-xs text-slate-500">Choose a clear MT5 chart screenshot.</p></div><span className="status-neutral">Step 01</span></div>
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={(event) => { event.preventDefault(); setDragging(false); selectFile(event.dataTransfer.files?.[0]); }}
-              className={`chart-dropzone flex flex-col items-center justify-center w-full min-h-64 max-h-[440px] border-2 border-dashed rounded-2xl overflow-hidden transition-all ${dragging ? "border-slate-200 bg-white/10" : "border-[var(--border)] hover:border-white/50 hover:bg-[var(--card-hover)]"}`}
-            >
-              {imagePreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imagePreview} alt="Selected trading chart" className="max-h-[400px] max-w-full object-contain" />
-              ) : (
-                <div className="text-center px-5 py-12">
-                  <div className="text-4xl text-slate-200/70 mb-3">▧</div>
-                  <p className="text-sm text-white">Drop your chart screenshot here</p>
-                  <p className="text-xs text-[var(--muted)] mt-2">or tap to browse · PNG, JPG, WebP · max 10 MB</p>
-                </div>
-              )}
-            </button>
-            <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => selectFile(event.target.files?.[0])} className="hidden" />
-            <input ref={cameraInputRef} type="file" accept="image/png,image/jpeg,image/webp" capture="environment" onChange={(event) => selectFile(event.target.files?.[0])} className="hidden" />
-            <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" onClick={() => inputRef.current?.click()} className="btn-secondary">Browse files</button><button type="button" onClick={() => cameraInputRef.current?.click()} className="btn-secondary">Take photo</button></div>
-            {file && <div className="flex items-center justify-between gap-3 mt-2 text-xs text-[var(--muted)]"><span className="truncate">{file.name}</span><button onClick={() => { setFile(null); setImagePreview(null); setResult(null); setError(null); }} className="text-slate-300 hover:text-white">Remove</button></div>}
+          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <section className="panel min-w-0 p-3.5 sm:p-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div><h3 className="section-title">Chart upload</h3><p className="mt-1 text-xs text-slate-500">Use a clear MT5 screenshot with the price scale visible.</p></div>
+                <span className="text-[10px] uppercase tracking-wider text-slate-500">01 / Input</span>
+              </div>
 
-            <div className="grid sm:grid-cols-2 gap-3 mt-5">
-              <label className="field-label">Instrument
-                <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} maxLength={30} placeholder="e.g. EURUSD" className="field-control" />
+              <button type="button" onClick={() => inputRef.current?.click()}
+                onDragOver={event => { event.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={event => { event.preventDefault(); setDragging(false); selectFile(event.dataTransfer.files?.[0]); }}
+                className={`chart-dropzone flex min-h-[220px] w-full items-center justify-center overflow-hidden rounded-xl border border-dashed transition sm:min-h-[300px] ${dragging ? "border-white/70 bg-white/10" : "border-white/15 hover:border-white/35"}`}
+                aria-label="Upload trading chart screenshot">
+                {imagePreview ? <img src={imagePreview} alt="Selected trading chart preview" className="max-h-[420px] max-w-full object-contain" /> :
+                  <div className="px-5 py-9 text-center">
+                    <span className="platinum-mark mx-auto flex h-14 w-14 items-center justify-center rounded-full text-2xl font-light italic text-white">O</span>
+                    <p className="mt-4 text-sm font-medium text-white">Drop your chart here</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">Tap to browse or choose camera below</p>
+                    <p className="mt-3 text-[10px] uppercase tracking-wider text-slate-600">PNG · JPG · WEBP · MAX 10 MB</p>
+                  </div>}
+              </button>
+              <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={event => selectFile(event.target.files?.[0])} className="hidden" />
+              <input ref={cameraInputRef} type="file" accept="image/png,image/jpeg,image/webp" capture="environment" onChange={event => selectFile(event.target.files?.[0])} className="hidden" />
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => inputRef.current?.click()} className="btn-secondary w-full">Browse files</button>
+                <button type="button" onClick={() => cameraInputRef.current?.click()} className="btn-secondary w-full">Take photo</button>
+              </div>
+              {file && <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] px-3 py-2 text-xs"><span className="min-w-0 truncate text-slate-400">{file.name}</span><button type="button" onClick={() => { setFile(null); setImagePreview(null); setResult(null); setError(null); }} className="shrink-0 text-slate-300 hover:text-white">Remove</button></div>}
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <label className="field-label">Instrument
+                  <select value={symbol} onChange={event => setSymbol(event.target.value)} className="field-control mt-2">
+                    {instruments.map(value => <option key={value}>{value}</option>)}
+                  </select>
+                </label>
+                <label className="field-label">Timeframe
+                  <select value={timeframe} onChange={event => setTimeframe(event.target.value)} className="field-control mt-2">
+                    {timeframes.map(value => <option key={value}>{value}</option>)}
+                  </select>
+                </label>
+              </div>
+              <label className="field-label mt-4 block">Context notes <span className="font-normal text-slate-600">· optional</span>
+                <textarea value={notes} onChange={event => setNotes(event.target.value)} maxLength={1000} rows={3} placeholder="Add session context or what you want the model to pay attention to…" className="field-control mt-2 min-h-24 resize-y" />
               </label>
-              <label className="field-label">Timeframe
-                <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)} className="field-control">
-                  {["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1", "Not sure"].map((value) => <option key={value}>{value}</option>)}
-                </select>
-              </label>
-            </div>
-            <label className="field-label mt-3">Your context (optional)
-              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} rows={3} placeholder="e.g. Looking for a pullback entry; mark the London session high if visible." className="field-control min-h-[96px] resize-y" />
-            </label>
-            <button onClick={analyze} disabled={!file || analyzing} className="btn-primary mt-5 w-full py-3.5 text-sm">
-              {analyzing ? "Reading chart..." : "Run AI Analysis"}
-            </button>
-          </section>
+              {error && <div role="alert" className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/[0.06] p-3 text-xs leading-5 text-rose-200">{error}</div>}
+              <button type="button" onClick={analyze} disabled={!file || analyzing} className="btn-primary mt-4 min-h-12 w-full text-sm disabled:cursor-not-allowed disabled:opacity-45">
+                {analyzing ? "Reading your chart…" : "Run chart analysis"}
+              </button>
+              <p className="mt-3 text-center text-[10px] leading-4 text-slate-600">Research support only · Verify levels in MT5 · No automatic orders</p>
+            </section>
 
-          <section className="panel min-h-[480px] p-4 sm:p-6">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <div><h2 className="section-title">Analysis</h2><p className="mt-1 text-xs text-slate-500">Evidence, interpretation and uncertainty.</p></div>
-              {modelName && <span className="status-neutral">{modelName}</span>}
-            </div>
-            {!result && !analyzing && !error && <div className="min-h-[330px] flex flex-col items-center justify-center text-center text-[var(--muted)] text-sm"><div className="text-3xl text-slate-200/40 mb-3">⌁</div><p>Your chart read will appear here.</p><p className="text-xs mt-2 max-w-xs">The model will separate visible evidence from interpretation and flag anything it cannot read. Successful reads are saved to local scan history.</p></div>}
-            {analyzing && <div className="min-h-[330px] flex flex-col items-center justify-center gap-3"><div className="w-8 h-8 border-2 border-slate-200 border-t-transparent rounded-full animate-spin"/><p className="text-sm text-[var(--muted)]">Inspecting market structure, levels and chart context…</p></div>}
-            {error && <div role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200"><p className="font-medium mb-1">Analysis unavailable</p>{error}</div>}
-            {result && <div className="whitespace-pre-wrap text-sm text-[var(--foreground)] leading-7">{result}</div>}
-          </section>
-        </div>
+            <section className="panel min-w-0 p-3.5 sm:p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div><p className="eyebrow">Step 02</p><h3 className="section-title mt-1">Analysis results</h3><p className="mt-1 text-xs text-slate-500">Evidence, interpretation and uncertainty.</p></div>
+                {modelName && <span className="status-neutral max-w-[45%] truncate">{modelName}</span>}
+              </div>
+              {!result && !analyzing && !error && <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-dashed border-white/10 px-5 py-10 text-center sm:min-h-[420px]">
+                <span className="platinum-mark flex h-14 w-14 items-center justify-center rounded-full text-2xl font-light italic text-white">O</span>
+                <h4 className="mt-4 text-sm font-medium text-white">Your chart read appears here</h4>
+                <p className="mt-2 max-w-xs text-xs leading-5 text-slate-500">Upload a chart and start the analysis. The model should distinguish visible evidence from interpretation and flag uncertainty.</p>
+              </div>}
+              {analyzing && <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 sm:min-h-[420px]"><div className="h-9 w-9 animate-spin rounded-full border-2 border-slate-200/20 border-t-slate-100" /><p className="text-sm text-slate-300">Inspecting chart structure and visible levels…</p></div>}
+              {error && !analyzing && <div role="alert" className="rounded-xl border border-rose-400/20 bg-rose-400/[0.06] p-4 text-sm text-rose-200"><p className="font-semibold">Analysis unavailable</p><p className="mt-1 text-xs leading-5">{error}</p></div>}
+              {result && <div className="max-h-[720px] overflow-y-auto rounded-xl border border-white/[0.08] bg-black/20 p-4 text-sm leading-7 text-slate-200 sm:p-5"><div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.16em] text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-slate-200" /> Model response</div><div className="whitespace-pre-wrap">{result}</div></div>}
+            </section>
+          </div>
 
-        <div className="mt-5 panel-soft p-4 sm:p-5">
-          <p className="text-xs text-[var(--muted)] leading-5"><span className="text-slate-200">Model:</span> Groq-hosted Qwen 3.8 27B Vision. It accepts image and text inputs; free-tier usage is subject to account rate limits and model availability. Your API key stays on the server and is never sent to the browser.</p>
-          <p className="text-xs text-[var(--muted)] leading-5 mt-2">Trading risk notice: image-based chart reads can be wrong or miss context. Treat outputs as research support, verify every level in MT5, and make all execution decisions manually.</p>
+          <section className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="panel-soft p-4"><p className="text-xs font-semibold text-slate-200">Private scan history</p><p className="mt-1 text-xs leading-5 text-slate-500">Successful chart reads are saved to this browser&apos;s local scan history.</p><Link href="/history" className="mt-3 inline-flex text-xs text-slate-300 hover:text-white">Open history →</Link></div>
+            <div className="panel-soft p-4"><p className="text-xs font-semibold text-slate-200">Manual execution</p><p className="mt-1 text-xs leading-5 text-slate-500">Image-based reads can miss context. Verify every level and make all trade decisions manually.</p></div>
+          </section>
+          <footer className="mt-6 border-t border-white/[0.07] pt-4 text-[10px] leading-5 text-slate-600">OEM+ ChartScanner · Groq-hosted vision model · API key remains server-side · Output is research support, not financial advice.</footer>
         </div>
-      </div></main>
+      </main>
     </div>
   );
 }
