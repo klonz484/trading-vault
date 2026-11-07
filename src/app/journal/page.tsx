@@ -2,9 +2,9 @@ import Sidebar from "@/components/Sidebar";
 
 export default function JournalPage() {
   return (
-    <div className="flex min-h-screen">
+    <div className="min-h-screen md:flex">
       <Sidebar />
-      <main className="flex-1 p-6 lg:p-8">
+      <main className="min-w-0 flex-1 px-4 pb-8 pt-5 sm:px-6 lg:px-9 lg:pt-8">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-white tracking-tight">
             Trading Journal
@@ -15,7 +15,7 @@ export default function JournalPage() {
         </div>
 
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-8 text-center max-w-2xl">
-          <div className="text-4xl text-cyan-400/50 mb-4">▤</div>
+          <div className="text-4xl text-slate-200/50 mb-4">▤</div>
           <h2 className="text-lg font-medium text-white mb-2">
             Journal coming soon
           </h2>

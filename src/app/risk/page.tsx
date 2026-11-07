@@ -47,10 +47,10 @@ export default function RiskCalculatorPage() {
   }, [balance, riskPercent, stopPips, pair]);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="min-h-screen md:flex">
       <Sidebar />
 
-      <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
+      <main className="min-w-0 flex-1 overflow-y-auto px-4 pb-8 pt-5 sm:px-6 lg:px-9 lg:pt-8">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-white tracking-tight">
             Risk Calculator
@@ -73,7 +73,7 @@ export default function RiskCalculatorPage() {
                 type="number"
                 value={balance}
                 onChange={(e) => setBalance(Number(e.target.value))}
-                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50"
+                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-white/50"
               />
             </div>
 
@@ -86,7 +86,7 @@ export default function RiskCalculatorPage() {
                 step="0.1"
                 value={riskPercent}
                 onChange={(e) => setRiskPercent(Number(e.target.value))}
-                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50"
+                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-white/50"
               />
             </div>
 
@@ -98,7 +98,7 @@ export default function RiskCalculatorPage() {
                 type="number"
                 value={stopPips}
                 onChange={(e) => setStopPips(Number(e.target.value))}
-                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50"
+                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-white/50"
               />
             </div>
 
@@ -109,7 +109,7 @@ export default function RiskCalculatorPage() {
               <select
                 value={pair}
                 onChange={(e) => setPair(e.target.value)}
-                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50"
+                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-white/50"
               >
                 <option value="EURUSD">EURUSD</option>
                 <option value="GBPUSD">GBPUSD</option>
@@ -139,7 +139,7 @@ export default function RiskCalculatorPage() {
                 <p className="text-xs text-[var(--muted)] uppercase tracking-wider">
                   Recommended Lot Size
                 </p>
-                <p className="text-4xl font-bold text-cyan-400 mt-1">
+                <p className="text-4xl font-bold text-slate-200 mt-1">
                   {result.lotSize}
                 </p>
                 <p className="text-sm text-[var(--muted)] mt-1">
@@ -157,7 +157,7 @@ export default function RiskCalculatorPage() {
               </div>
             </div>
 
-            <div className="mt-8 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+            <div className="mt-8 p-3 rounded-lg bg-white/5 border border-white/20">
               <p className="text-xs text-cyan-300/80">
                 Note: Gold (XAUUSD) pip value is approximate. Always verify with
                 your MT5 contract specification before entering a trade.
