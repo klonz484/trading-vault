@@ -32,3 +32,9 @@ test("scan history reads owner-scoped Supabase rows rather than browser local st
   assert.match(history, /\.order\("created_at", \{ ascending: false \}\)/);
   assert.doesNotMatch(history, /localStorage|readLocalList|writeLocalList/);
 });
+
+test("saved scan status uses the existing database constraint while packet completeness stays in analysis", () => {
+  assert.match(route, /status: "completed"/);
+  assert.match(route, /packetStatus: criticalMissing\.length === 0 \? "COMPLETE" : "INCOMPLETE"/);
+  assert.doesNotMatch(route, /status: packet\.packetStatus\.toLowerCase\(\)/);
+});

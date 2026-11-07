@@ -230,7 +230,7 @@ Rules:
       symbol,
       timeframe,
       image_path: storagePath,
-      status: packet.packetStatus.toLowerCase(),
+      status: "completed",
       analysis: { observation: packet, brainStatus: "NOT_CONNECTED" },
       model_name: model,
     });
