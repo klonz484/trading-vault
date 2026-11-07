@@ -34,7 +34,7 @@ export function evaluateEventContext(input:EventContextInput):EventContextResult
  const base={engineVersion:EVENT_CONTEXT_VERSION,instrument:input.instrument,asOfUtc:input.asOfUtc,tradeSignalGenerated:false as const};
  if(errors.length)return {...base,status:"INVALID",session:{status:"UNKNOWN" as const,active:[],sourceIds:[]},news:{status:"UNKNOWN" as const,relevantEvents:[]},warnings:errors};
  const active=validSessions.filter(w=>now>=Date.parse(w.startUtc)&&now<Date.parse(w.endUtc));
- const calendarTime=utc(input.newsCalendarAsOfUtc)?Date.parse(input.newsCalendarAsOfUtc):NaN;
+ const calendarTime=input.newsCalendarAsOfUtc!==null&&utc(input.newsCalendarAsOfUtc)?Date.parse(input.newsCalendarAsOfUtc):NaN;
  const calendarFresh= input.newsCalendarVerified===true&&Number.isFinite(calendarTime)&&calendarTime<=now&&now-calendarTime<=input.newsCalendarMaxAgeMs;
  if(!calendarFresh)warnings.push("News calendar coverage is unverified, missing or stale; no-news status cannot be asserted.");
  if(validSessions.length===0)warnings.push("No verified session windows were supplied; session status is unknown.");
