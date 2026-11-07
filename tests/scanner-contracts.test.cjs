@@ -32,7 +32,7 @@ test("Brain contract separates data confidence from analytical confidence", () =
 });
 
 test("Brain signal states require verified live data and high data confidence", () => {
-  assert.match(contracts, /assessment\.liveData\?\.status !== "VERIFIED" \|\| assessment\.dataConfidence < 0\.8/);
+  assert.match(contracts, /liveData\?\.status !== "VERIFIED" \|\| !isConfidence\(dataConfidence\) \|\| dataConfidence < 0\.8/);
 });
 
 test("Brain output cannot enable order submission", () => {
