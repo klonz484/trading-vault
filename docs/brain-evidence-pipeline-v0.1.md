@@ -6,7 +6,7 @@ Composes the independently computed market-structure, price-action, multi-timefr
 ## Gate mapping
 - Structure: ready confirmed structure passes; insufficient remains unknown; invalid fails.
 - Volatility: ready ATR/volatility context passes unless volatility is undetermined.
-- Multi-timeframe: aligned passes; opposing directions remain WARN; stale/incomplete remains UNKNOWN; invalid fails.
+- Multi-timeframe: aligned passes; opposing directions downgrade the combined structure gate to WARN; stale/incomplete downgrades it to UNKNOWN; invalid fails.
 - Zones: ready evidence passes; insufficient remains unknown; invalid fails.
 - Liquidity: requires at least one objective above or below price; no objectives is WARN.
 - Session: requires a verified active or outside state; unknown schedule remains UNKNOWN.

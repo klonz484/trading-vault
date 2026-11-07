@@ -35,7 +35,7 @@ function identityMatches(input: EvidencePipelineInput): boolean {
 }
 export function assessBrainWithEvidence(input: EvidencePipelineInput): BrainDecision {
   const matches = identityMatches(input);
-  const structureGate: EvidenceStatus = !matches ? "FAIL" : statusFromModule(input.structure.status);
+  const structureBaseGate: EvidenceStatus = !matches ? "FAIL" : statusFromModule(input.structure.status);
   const volatilityGate: EvidenceStatus = !matches ? "FAIL" :
     input.priceAction.status !== "READY" ? statusFromModule(input.priceAction.status) :
     input.priceAction.volatility === "UNDETERMINED" ? "WARN" : "PASS";
@@ -43,6 +43,9 @@ export function assessBrainWithEvidence(input: EvidencePipelineInput): BrainDeci
     input.multiTimeframe.status === "CONFLICTING" ? "WARN" :
     input.multiTimeframe.status === "ALIGNED" ? "PASS" :
     input.multiTimeframe.status === "INVALID" ? "FAIL" : "UNKNOWN";
+  const structureGate: EvidenceStatus = structureBaseGate === "FAIL" || mtfGate === "FAIL" ? "FAIL" :
+    structureBaseGate === "PASS" && mtfGate === "WARN" ? "WARN" :
+    structureBaseGate === "PASS" && mtfGate === "UNKNOWN" ? "UNKNOWN" : structureBaseGate;
   const zonesGate: EvidenceStatus = !matches ? "FAIL" : statusFromModule(input.zones.status);
   const liquidityGate: EvidenceStatus = !matches ? "FAIL" :
     input.liquidityObjectives.status !== "READY" ? statusFromModule(input.liquidityObjectives.status) :
