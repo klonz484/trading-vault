@@ -31,7 +31,7 @@ function EvidenceList({ title, items, tone = "neutral" }: { title: string; items
   const dot = tone === "positive" ? "bg-emerald-300" : tone === "negative" ? "bg-rose-300" : "bg-slate-400";
   return <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
     <h3 className="text-[11px] font-semibold uppercase tracking-[.15em] text-slate-300">{title}</h3>
-    {items.length ? <ul className="mt-3 space-y-2">{items.map((item, index) => <li key={index} className="flex gap-2 text-xs leading-5 text-slate-400"><span className={`mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />{item}</li>)}</ul> : <p className="mt-3 text-xs text-slate-600">No clear evidence identified.</p>}
+    {items.length ? <ul className="mt-3 space-y-2">{items.map((item, index) => <li key={index} className="flex gap-2 text-xs leading-5 text-slate-400"><span className={`mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />{item}</li>)}</ul> : <p className="mt-3 text-xs text-slate-600">No separate evidence item was returned for this category.</p>}
   </section>;
 }
 
@@ -230,13 +230,13 @@ export default function ScannerPage() {
 
                 <section className="rounded-xl border border-white/[0.07] p-4">
                   <div className="flex items-center justify-between gap-3"><h3 className="text-[11px] font-semibold uppercase tracking-[.15em] text-slate-300">Profit targets</h3><span className="text-[10px] text-slate-500">Conditional levels</span></div>
-                  {setup.targets.length ? <div className="mt-3 grid gap-2 sm:grid-cols-3">{setup.targets.map((target, index) => <div key={index} className="rounded-lg bg-white/[0.025] p-3"><p className="eyebrow">Target {index + 1}</p><p className="mt-1 text-sm font-semibold text-emerald-100">{priceLabel(target.price)}</p><p className="mt-1 text-[10px] leading-4 text-slate-500">{target.rationale}</p></div>)}</div> : <p className="mt-3 text-xs text-slate-500">No defensible target could be read.</p>}
+                  {setup.decision === "NO TRADE" ? <p className="mt-3 text-xs text-slate-500">No trade targets are defined while the scanner decision is WAIT.</p> : setup.targets.length ? <div className="mt-3 grid gap-2 sm:grid-cols-3">{setup.targets.map((target, index) => <div key={index} className="rounded-lg bg-white/[0.025] p-3"><p className="eyebrow">Target {index + 1}</p><p className="mt-1 text-sm font-semibold text-emerald-100">{priceLabel(target.price)}</p><p className="mt-1 text-[10px] leading-4 text-slate-500">{target.rationale}</p></div>)}</div> : <p className="mt-3 text-xs text-slate-500">No defensible target could be read.</p>}
                   <p className="mt-3 text-xs leading-5 text-slate-400"><span className="font-semibold text-slate-200">Stop rationale:</span> {setup.stopLoss.rationale}</p>
                   <p className="mt-2 text-xs text-slate-400"><span className="font-semibold text-slate-200">Risk/reward:</span> {setup.riskReward ?? "Not calculated from the visible chart."}</p>
                 </section>
 
                 <div className="rounded-xl border border-amber-300/15 bg-amber-300/[0.035] p-4">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[.15em] text-amber-100">Invalidation condition</h3>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[.15em] text-amber-100">Invalidation / decision-change condition</h3>
                   <p className="mt-2 text-xs leading-5 text-slate-300">{setup.invalidation}</p>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
