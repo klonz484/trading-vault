@@ -1,0 +1,48 @@
+name: Trading Vault quality gates
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feat/trading-brain-foundation
+  push:
+    branches:
+      - main
+      - "feat/**"
+      - "fix/**"
+      - "build/**"
+      - "security/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trading-vault-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, tests and production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run automated tests
+        run: npm test
+
+      - name: Verify production build
+        run: npm run build

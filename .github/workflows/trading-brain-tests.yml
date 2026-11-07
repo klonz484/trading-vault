@@ -1,0 +1,27 @@
+name: Trading Brain foundation tests
+
+on:
+  push:
+    branches:
+      - feat/trading-brain-foundation
+  pull_request:
+    branches:
+      - feat/trading-brain-foundation
+
+jobs:
+  brain-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run deterministic tests
+        run: npm test
+      - name: Run lint
+        run: npm run lint
