@@ -11,7 +11,7 @@ function DesktopLink({href,label,icon,collapsed=false}:{href:string;label:string
  return <Link href={href} title={collapsed?label:undefined} aria-current={active?"page":undefined} className={cls}><span className="w-6 shrink-0 text-center text-lg text-slate-300">{icon}</span>{!collapsed&&<span className="min-w-0 flex-1 font-medium">{label}</span>}{active&&!collapsed&&<span className="h-1.5 w-1.5 rounded-full bg-white"/>}</Link>;
 }
 export default function Sidebar(){
- const [collapsed,setCollapsed]=useState(false); const [moreOpen,setMoreOpen]=useState(false);
+ const pathname=usePathname(); const [collapsed,setCollapsed]=useState(false); const [moreOpen,setMoreOpen]=useState(false);
  const mobileItems=[{href:"/",label:"Home",icon:"⌂"},{href:"/scanner",label:"Scan",icon:"⌗"},{href:"/brain",label:"Brain",icon:"◈"},{href:"/journal",label:"Journal",icon:"▤"}]; const extraItems=[...primary.slice(3),...tools,...account];
  return <>
  <aside className={"sticky top-0 hidden h-screen shrink-0 flex-col border-r border-white/[0.08] bg-[#0d1015]/95 backdrop-blur-xl transition-[width] duration-200 md:flex "+(collapsed?"w-[82px]":"w-[252px]")}>
