@@ -65,3 +65,22 @@ test("scanner analysis API requires an authenticated owner", () => {
   assert.match(scannerApiSource, /if \(authError \|\| !user\)[\s\S]*?401/);
   assert.match(scannerApiSource, /if \(user\.id !== ownerUserId\)[\s\S]*?403/);
 });
+
+
+test("scanner rejects inverted entry ranges and stops on the wrong side", () => {
+  assert.match(scannerApiSource, /entryLow <= entryHigh/);
+  assert.match(scannerApiSource, /decision === "BUY" \? entryLow !== null && stopPrice < entryLow/);
+  assert.match(scannerApiSource, /decision === "SELL" \? entryHigh !== null && stopPrice > entryHigh/);
+});
+
+test("scanner requires a directionally valid target and explicit invalidation", () => {
+  assert.match(scannerApiSource, /parsedTargets\.filter/);
+  assert.match(scannerApiSource, /target\.price > \(entryHigh/);
+  assert.match(scannerApiSource, /target\.price < \(entryLow/);
+  assert.match(scannerApiSource, /hasValidInvalidation/);
+});
+
+test("scanner requests constrained JSON and hides model reasoning from user output", () => {
+  assert.match(scannerApiSource, /response_format: \{ type: "json_object" \}/);
+  assert.match(scannerApiSource, /reasoning_format: "hidden"/);
+});
