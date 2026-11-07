@@ -13,6 +13,8 @@ const actions = [
   { href: "/risk", icon: "▦", title: "Calculate risk", description: "Plan position size" },
   { href: "/journal", icon: "▤", title: "Open journal", description: "Review trading records" },
   { href: "/setups", icon: "◇", title: "Explore setups", description: "Review setup workspace" },
+  { href: "/brain", icon: "◈", title: "Trading Brain", description: "Explore analytical intelligence" },
+  { href: "/analytics", icon: "▥", title: "Performance", description: "Review journal statistics" },
 ];
 
 export default function Dashboard() {

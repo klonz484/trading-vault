@@ -1,0 +1,26 @@
+name: Trading Vault checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [build/trading-vault-foundation]
+  workflow_dispatch:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: Run ESLint
+        run: npm run lint
+      - name: Build Next.js application
+        run: npm run build

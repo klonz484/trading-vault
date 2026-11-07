@@ -1,67 +1,27 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-
-const mainItems = [
-  { href: "/", label: "Dashboard", icon: "⌂" },
-  { href: "/scanner", label: "Chart Scanner", icon: "⌗" },
-  { href: "/setups", label: "AI Setups", icon: "◇" },
-  { href: "/journal", label: "Trading Journal", icon: "▤" },
-];
-const toolItems = [
-  { href: "/risk", label: "Risk Calculator", icon: "▦" },
-];
-
-export default function Sidebar() {
-  const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
-
-  const linkClass = (href: string) => {
-    const active = pathname === href;
-    return `group flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-all focus-ring ${
-      active
-        ? "border border-white/15 bg-white/[0.09] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.12)]"
-        : "border border-transparent text-slate-400 hover:bg-white/[0.05] hover:text-white"
-    }`;
-  };
-
-  return (
-    <>
-      <aside className={`hidden md:flex md:sticky md:top-0 md:h-screen md:flex-col border-r border-white/[0.08] bg-[#0d1015]/95 backdrop-blur-xl transition-[width] duration-200 ${collapsed ? "md:w-[82px]" : "md:w-[248px]"}`}>
-        <div className="flex h-[88px] items-center justify-between border-b border-white/[0.08] px-5">
-          <Link href="/" className="flex min-w-0 items-center gap-3" aria-label="OEM+ ChartScanner home">
-            <span className="platinum-mark flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl italic text-white">O</span>
-            {!collapsed && <span className="min-w-0"><span className="block platinum-text text-[22px] font-light italic tracking-tight">OEM+</span><span className="block text-[9px] uppercase tracking-[.2em] text-slate-500">ChartScanner</span></span>}
-          </Link>
-          <button onClick={() => setCollapsed(!collapsed)} className="rounded-lg p-2 text-slate-500 hover:bg-white/5 hover:text-white" aria-label="Toggle sidebar">{collapsed ? "»" : "«"}</button>
-        </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
-          {!collapsed && <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[.2em] text-slate-600">Workspace</p>}
-          {mainItems.map(item => <Link key={item.href} href={item.href} title={collapsed ? item.label : undefined} className={linkClass(item.href)}><span className="w-6 text-center text-xl">{item.icon}</span>{!collapsed && <span className="font-medium">{item.label}</span>}{pathname === item.href && !collapsed && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />}</Link>)}
-          {!collapsed && <p className="mb-3 mt-8 px-3 text-[10px] font-semibold uppercase tracking-[.2em] text-slate-600">Trading tools</p>}
-          {toolItems.map(item => <Link key={item.href} href={item.href} title={collapsed ? item.label : undefined} className={linkClass(item.href)}><span className="w-6 text-center text-xl">{item.icon}</span>{!collapsed && <span className="font-medium">{item.label}</span>}</Link>)}
-        </nav>
-        <div className="border-t border-white/[0.08] p-4">
-          <div className={`flex items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 ${collapsed ? "justify-center" : ""}`}><span className="h-2 w-2 rounded-full bg-amber-400" />{!collapsed && <span className="text-xs text-slate-400">Market data status: verify source</span>}</div>
-          {!collapsed && <p className="mt-3 text-[10px] text-slate-600">Manual execution · MT5</p>}
-        </div>
-      </aside>
-
-      <header className="sticky top-0 z-30 flex h-[68px] items-center justify-between border-b border-white/[0.08] bg-[#0b0e13]/90 px-4 backdrop-blur-xl md:hidden">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="platinum-mark flex h-9 w-9 items-center justify-center rounded-full text-lg italic">O</span>
-          <span><span className="block platinum-text text-xl font-light italic">OEM+</span><span className="-mt-1 block text-[8px] uppercase tracking-[.2em] text-slate-500">ChartScanner</span></span>
-        </Link>
-        <div className="flex items-center gap-2"><span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] text-slate-400">MT5 · Manual</span><button onClick={() => setMoreOpen(!moreOpen)} className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300" aria-label="Open more navigation">•••</button></div>
-      </header>
-
-      <nav className="mobile-safe-bottom fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-white/10 bg-[#0b0e13]/95 px-2 pt-2 backdrop-blur-xl md:hidden">
-        {[{href:"/",label:"Home",icon:"⌂"},{href:"/scanner",label:"Scan",icon:"⌗"},{href:"/setups",label:"Setups",icon:"◇"},{href:"/journal",label:"Journal",icon:"▤"},{href:"/risk",label:"More",icon:"•••"}].map(item => <Link key={item.href} href={item.href} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg text-[10px] ${pathname === item.href ? "text-white" : "text-slate-500"}`}><span className="text-xl leading-none">{item.icon}</span><span className={pathname === item.href ? "font-semibold" : ""}>{item.label}</span></Link>)}
-      </nav>
-      {moreOpen && <div className="fixed bottom-20 right-3 z-50 w-52 rounded-2xl border border-white/10 bg-[#171b23] p-2 shadow-2xl md:hidden"><Link href="/risk" onClick={() => setMoreOpen(false)} className="block rounded-lg px-3 py-3 text-sm text-slate-200">Risk Calculator</Link><Link href="/setups" onClick={() => setMoreOpen(false)} className="block rounded-lg px-3 py-3 text-sm text-slate-200">AI Setups</Link></div>}
-    </>
-  );
+import { useEffect, useState } from "react";
+const primary=[{href:"/",label:"Dashboard",icon:"⌂"},{href:"/scanner",label:"Chart Scanner",icon:"⌗"},{href:"/brain",label:"Trading Brain",icon:"◈"},{href:"/setups",label:"AI Setups",icon:"◇"},{href:"/journal",label:"Trading Journal",icon:"▤"},{href:"/analytics",label:"Analytics",icon:"▥"}];
+const tools=[{href:"/risk",label:"Risk Calculator",icon:"⊞"},{href:"/market",label:"Market Overview",icon:"◎"},{href:"/history",label:"Scan History",icon:"◷"}];
+const account=[{href:"/profile",label:"My Profile",icon:"○"},{href:"/settings",label:"Settings",icon:"⚙"}];
+function DesktopLink({href,label,icon,collapsed=false}:{href:string;label:string;icon:string;collapsed?:boolean}){
+ const pathname=usePathname(); const active=href==="/" ? pathname==="/" : pathname===href||pathname.startsWith(href+"/");
+ const cls="group flex min-h-11 items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition focus-ring "+(active?"border-white/15 bg-white/[0.09] text-white":"border-transparent text-slate-400 hover:bg-white/[0.05] hover:text-white");
+ return <Link href={href} title={collapsed?label:undefined} aria-current={active?"page":undefined} className={cls}><span className="w-6 shrink-0 text-center text-lg text-slate-300">{icon}</span>{!collapsed&&<span className="min-w-0 flex-1 font-medium">{label}</span>}{active&&!collapsed&&<span className="h-1.5 w-1.5 rounded-full bg-white"/>}</Link>;
+}
+export default function Sidebar(){
+ const pathname=usePathname(); const [collapsed,setCollapsed]=useState(false); const [moreOpen,setMoreOpen]=useState(false);
+ useEffect(()=>setMoreOpen(false),[pathname]);
+ const mobileItems=[{href:"/",label:"Home",icon:"⌂"},{href:"/scanner",label:"Scan",icon:"⌗"},{href:"/brain",label:"Brain",icon:"◈"},{href:"/journal",label:"Journal",icon:"▤"}]; const extraItems=[...primary.slice(3),...tools,...account];
+ return <>
+ <aside className={"sticky top-0 hidden h-screen shrink-0 flex-col border-r border-white/[0.08] bg-[#0d1015]/95 backdrop-blur-xl transition-[width] duration-200 md:flex "+(collapsed?"w-[82px]":"w-[252px]")}>
+ <div className="flex h-[88px] shrink-0 items-center justify-between border-b border-white/[0.08] px-4"><Link href="/" className="flex min-w-0 items-center gap-3" aria-label="OEM+ ChartScanner home"><span className="platinum-mark flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[21px] font-light italic text-white">O</span>{!collapsed&&<span className="min-w-0"><span className="platinum-text block text-[23px] font-light italic tracking-tight">OEM+</span><span className="block text-[9px] uppercase tracking-[.22em] text-slate-500">ChartScanner</span></span>}</Link><button onClick={()=>setCollapsed(!collapsed)} className="rounded-lg p-2 text-slate-500 transition hover:bg-white/5 hover:text-white" aria-label={collapsed?"Expand sidebar":"Collapse sidebar"}>{collapsed?"»":"«"}</button></div>
+ <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">{!collapsed&&<p className="mb-3 px-3 text-[9px] font-semibold uppercase tracking-[.22em] text-slate-600">Workspace</p>}{primary.map(item=><DesktopLink key={item.href} {...item} collapsed={collapsed}/>)}{!collapsed&&<p className="mb-3 mt-7 px-3 text-[9px] font-semibold uppercase tracking-[.22em] text-slate-600">Trading tools</p>}{tools.map(item=><DesktopLink key={item.href} {...item} collapsed={collapsed}/>)}{!collapsed&&<p className="mb-3 mt-7 px-3 text-[9px] font-semibold uppercase tracking-[.22em] text-slate-600">Account</p>}{account.map(item=><DesktopLink key={item.href} {...item} collapsed={collapsed}/>)}</nav>
+ <div className="shrink-0 border-t border-white/[0.08] p-4"><div className={"flex items-center gap-2 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3 "+(collapsed?"justify-center":"")}><span className="h-2 w-2 shrink-0 rounded-full bg-amber-400"/>{!collapsed&&<span className="text-[10px] leading-4 text-slate-400">Market feed not connected</span>}</div>{!collapsed&&<p className="mt-3 text-[10px] text-slate-600">Manual execution · MT5</p>}</div>
+ </aside>
+ <header className="sticky top-0 z-30 flex h-[68px] items-center justify-between border-b border-white/[0.08] bg-[#0b0e13]/95 px-4 backdrop-blur-xl md:hidden"><Link href="/" className="flex items-center gap-2" aria-label="OEM+ home"><span className="platinum-mark flex h-9 w-9 items-center justify-center rounded-full text-lg font-light italic text-white">O</span><span><span className="platinum-text block text-xl font-light italic">OEM+</span><span className="-mt-1 block text-[8px] uppercase tracking-[.2em] text-slate-500">ChartScanner</span></span></Link><div className="flex items-center gap-2"><span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] text-slate-400">MT5 · Manual</span><button onClick={()=>setMoreOpen(!moreOpen)} className="rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300" aria-expanded={moreOpen} aria-label="Open more navigation">•••</button></div></header>
+ <nav aria-label="Mobile navigation" className="mobile-safe-bottom fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-white/10 bg-[#0b0e13]/95 px-2 pt-2 backdrop-blur-xl md:hidden">{mobileItems.map(item=>{const active=item.href==="/" ? pathname==="/" : pathname===item.href||pathname.startsWith(item.href+"/");return <Link key={item.href} href={item.href} aria-current={active?"page":undefined} className={"flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg text-[10px] "+(active?"text-white":"text-slate-500")}><span className="text-xl leading-none">{item.icon}</span><span className={active?"font-semibold":""}>{item.label}</span></Link>;})}<button onClick={()=>setMoreOpen(!moreOpen)} className={"flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg text-[10px] "+(moreOpen?"text-white":"text-slate-500")} aria-expanded={moreOpen}><span className="text-xl leading-none">•••</span><span className={moreOpen?"font-semibold":""}>More</span></button></nav>
+ {moreOpen&&<><button aria-label="Close navigation menu" className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={()=>setMoreOpen(false)}/><div className="fixed bottom-[82px] right-3 z-50 max-h-[70vh] w-[min(300px,calc(100vw-24px))] overflow-y-auto rounded-2xl border border-white/10 bg-[#171b23] p-3 shadow-2xl md:hidden"><p className="px-2 pb-2 text-[9px] font-semibold uppercase tracking-[.2em] text-slate-500">Explore workspace</p>{extraItems.map(item=><Link key={item.href} href={item.href} onClick={()=>setMoreOpen(false)} className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-300 hover:bg-white/[0.06]"><span className="w-6 text-center text-slate-400">{item.icon}</span>{item.label}</Link>)}</div></>}
+ </>;
 }

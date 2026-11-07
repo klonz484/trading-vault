@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar";
+import Link from "next/link";
+import { readLocalList, SavedScan, SCAN_STORAGE_KEY, writeLocalList } from "@/lib/workspace";
 
 type AnalysisResponse = { analysis?: string; model?: string; error?: string };
 
@@ -17,6 +19,7 @@ export default function ScannerPage() {
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const selectFile = (selected: File | undefined) => {
     if (!selected) return;
@@ -54,6 +57,9 @@ export default function ScannerPage() {
       if (!response.ok) throw new Error(data.error || "Analysis failed. Please try again.");
       setResult(data.analysis || "The model did not return an analysis.");
       setModelName(data.model || "Vision model");
+      const saved: SavedScan = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), symbol, timeframe, model: data.model || "Vision model", analysis: data.analysis || "" };
+      const previous = readLocalList<SavedScan>(SCAN_STORAGE_KEY);
+      writeLocalList(SCAN_STORAGE_KEY, [saved, ...previous].slice(0, 50));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong. Please try again.");
     } finally {
@@ -70,7 +76,7 @@ export default function ScannerPage() {
             <h1 className="text-2xl font-semibold text-white tracking-tight">AI Chart Scanner</h1>
             <span className="text-[10px] uppercase tracking-wider text-slate-300 border border-white/30 bg-white/10 rounded-full px-2.5 py-1">Vision AI</span>
           </div>
-          <p className="text-sm text-[var(--muted)] mt-1">Upload an MT5 screenshot for a structured, image-based technical read.</p>
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-[var(--muted)]">Upload an MT5 screenshot for a structured, image-based technical read.</p><Link href="/history" className="text-xs text-slate-300 hover:text-white">View scan history →</Link></div>
         </div>
 
         <div className="grid xl:grid-cols-2 gap-6 mx-auto max-w-7xl">
@@ -96,6 +102,8 @@ export default function ScannerPage() {
               )}
             </button>
             <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => selectFile(event.target.files?.[0])} className="hidden" />
+            <input ref={cameraInputRef} type="file" accept="image/png,image/jpeg,image/webp" capture="environment" onChange={(event) => selectFile(event.target.files?.[0])} className="hidden" />
+            <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" onClick={() => inputRef.current?.click()} className="btn-secondary">Browse files</button><button type="button" onClick={() => cameraInputRef.current?.click()} className="btn-secondary">Take photo</button></div>
             {file && <div className="flex items-center justify-between gap-3 mt-2 text-xs text-[var(--muted)]"><span className="truncate">{file.name}</span><button onClick={() => { setFile(null); setImagePreview(null); setResult(null); setError(null); }} className="text-slate-300 hover:text-white">Remove</button></div>}
 
             <div className="grid sm:grid-cols-2 gap-3 mt-5">
@@ -121,7 +129,7 @@ export default function ScannerPage() {
               <h2 className="font-medium text-white">Analysis</h2>
               {modelName && <span className="text-[10px] text-slate-300 border border-white/30 rounded-full px-2 py-1">{modelName}</span>}
             </div>
-            {!result && !analyzing && !error && <div className="min-h-[330px] flex flex-col items-center justify-center text-center text-[var(--muted)] text-sm"><div className="text-3xl text-slate-200/40 mb-3">⌁</div><p>Your chart read will appear here.</p><p className="text-xs mt-2 max-w-xs">The model will separate visible evidence from interpretation and flag anything it cannot read.</p></div>}
+            {!result && !analyzing && !error && <div className="min-h-[330px] flex flex-col items-center justify-center text-center text-[var(--muted)] text-sm"><div className="text-3xl text-slate-200/40 mb-3">⌁</div><p>Your chart read will appear here.</p><p className="text-xs mt-2 max-w-xs">The model will separate visible evidence from interpretation and flag anything it cannot read. Successful reads are saved to local scan history.</p></div>}
             {analyzing && <div className="min-h-[330px] flex flex-col items-center justify-center gap-3"><div className="w-8 h-8 border-2 border-slate-200 border-t-transparent rounded-full animate-spin"/><p className="text-sm text-[var(--muted)]">Inspecting market structure, levels and chart context…</p></div>}
             {error && <div role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200"><p className="font-medium mb-1">Analysis unavailable</p>{error}</div>}
             {result && <div className="whitespace-pre-wrap text-sm text-[var(--foreground)] leading-7">{result}</div>}

@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "OEM+ ChartScanner | Trading Vault",
   description: "Premium, mobile-first trading analysis workspace for Forex and Gold.",
   applicationName: "OEM+ ChartScanner",
+  icons: { icon: "/oem-plus-mark.svg", shortcut: "/oem-plus-mark.svg", apple: "/oem-plus-mark.svg" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
