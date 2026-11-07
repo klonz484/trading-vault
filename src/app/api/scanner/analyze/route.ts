@@ -68,18 +68,28 @@ function parseSetup(value: unknown): ScannerSetup | null {
     rationale: text(target.rationale),
   }));
 
+  const entryLow = price(entry.low);
+  const entryHigh = price(entry.high);
+  const stopPrice = price(stopLoss.price);
+  const safeDecision =
+    decision === "NO TRADE" || dataQuality === "POOR" ||
+    entryLow === null || entryHigh === null || stopPrice === null || targets.length === 0
+      ? "NO TRADE"
+      : decision;
+  const safeOrderType = safeDecision === "NO TRADE" ? "WAIT" : orderType;
+
   return {
-    decision: decision as ScannerSetup["decision"],
-    orderType: orderType as ScannerSetup["orderType"],
+    decision: safeDecision as ScannerSetup["decision"],
+    orderType: safeOrderType as ScannerSetup["orderType"],
     confidence: Math.round(confidence),
     dataQuality: dataQuality as ScannerSetup["dataQuality"],
     summary: text(value.summary),
     entry: {
-      low: price(entry.low),
-      high: price(entry.high),
+      low: entryLow,
+      high: entryHigh,
       rationale: text(entry.rationale),
     },
-    stopLoss: { price: price(stopLoss.price), rationale: text(stopLoss.rationale) },
+    stopLoss: { price: stopPrice, rationale: text(stopLoss.rationale) },
     targets,
     invalidation: text(value.invalidation),
     supportingEvidence: list(value.supportingEvidence),
