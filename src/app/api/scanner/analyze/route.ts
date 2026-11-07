@@ -63,7 +63,7 @@ function parseSetup(value: unknown): ScannerSetup | null {
   const entry = isRecord(value.entry) ? value.entry : {};
   const stopLoss = isRecord(value.stopLoss) ? value.stopLoss : {};
   const rawTargets = Array.isArray(value.targets) ? value.targets : [];
-  const targets = rawTargets.slice(0, 3).filter(isRecord).map((target) => ({
+  const parsedTargets = rawTargets.slice(0, 3).filter(isRecord).map((target) => ({
     price: price(target.price),
     rationale: text(target.rationale),
   }));
@@ -71,9 +71,22 @@ function parseSetup(value: unknown): ScannerSetup | null {
   const entryLow = price(entry.low);
   const entryHigh = price(entry.high);
   const stopPrice = price(stopLoss.price);
+  const validEntryRange = entryLow !== null && entryHigh !== null && entryLow <= entryHigh;
+  const validStop = stopPrice !== null && (
+    decision === "BUY" ? entryLow !== null && stopPrice < entryLow :
+    decision === "SELL" ? entryHigh !== null && stopPrice > entryHigh :
+    false
+  );
+  const targets = decision === "BUY" || decision === "SELL"
+    ? parsedTargets.filter((target) => target.price !== null && (
+      decision === "BUY" ? target.price > (entryHigh ?? Number.POSITIVE_INFINITY) :
+      target.price < (entryLow ?? Number.NEGATIVE_INFINITY)
+    ))
+    : parsedTargets;
+  const hasValidInvalidation = typeof value.invalidation === "string" && Boolean(value.invalidation.trim());
   const safeDecision =
-    decision === "NO TRADE" || dataQuality === "POOR" ||
-    entryLow === null || entryHigh === null || stopPrice === null || targets.length === 0
+    decision === "NO TRADE" || orderType === "WAIT" || dataQuality === "POOR" ||
+    !validEntryRange || !validStop || targets.length === 0 || !hasValidInvalidation
       ? "NO TRADE"
       : decision;
   const safeOrderType = safeDecision === "NO TRADE" ? "WAIT" : orderType;
@@ -209,7 +222,9 @@ Rules:
         }],
         temperature: 0.1,
         max_completion_tokens: 1800,
+        response_format: { type: "json_object" },
         reasoning_effort: "low",
+        reasoning_format: "hidden",
       }),
       signal: AbortSignal.timeout(55_000),
     });
