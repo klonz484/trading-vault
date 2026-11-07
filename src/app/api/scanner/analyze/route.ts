@@ -83,7 +83,9 @@ function parseSetup(value: unknown): ScannerSetup | null {
       target.price < (entryLow ?? Number.NEGATIVE_INFINITY)
     ))
     : parsedTargets;
-  const hasValidInvalidation = typeof value.invalidation === "string" && Boolean(value.invalidation.trim());
+  const invalidationText = typeof value.invalidation === "string" ? value.invalidation.trim() : "";
+  const hasValidInvalidation = invalidationText.length >= 12 &&
+    !/^(?:not clear|not readable|unknown|none|n\\/a|no defensible invalidation|not available)\\b/i.test(invalidationText);
   const safeDecision =
     decision === "NO TRADE" || orderType === "WAIT" || dataQuality === "POOR" ||
     !validEntryRange || !validStop || targets.length === 0 || !hasValidInvalidation
