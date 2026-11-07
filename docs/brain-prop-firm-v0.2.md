@@ -21,3 +21,7 @@ This module is a pre-trade compliance aid, not a guarantee of prop-firm acceptan
 - Negative best-day profit cannot be used to satisfy a consistency calculation.
 - Experiment period boundaries must be explicit UTC ISO timestamps ending in Z. Local timestamps and numeric offsets are rejected to prevent timezone ambiguity.
 - Experiment guardrails must be supplied as an array, even when intentionally empty.
+
+- Daily and overall drawdown now explicitly return REVIEW when required positive equity references or finite PnL/risk inputs are absent, rather than silently omitting a calculation.
+- Challenge pacing rejects negative total profit as unverified/invalid input instead of reporting negative progress as a passing calculation.
+- Drawdown boundaries are conservative: projected loss equal to the configured limit is BLOCK.

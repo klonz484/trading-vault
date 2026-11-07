@@ -29,18 +29,25 @@ export function evaluatePropFirmRules(profile:PropFirmProfile,account:PropAccoun
  if(profile.dailyLossLimitPct!==null&&(!n(profile.dailyLossLimitPct)||profile.dailyLossLimitPct<=0||profile.dailyLossLimitPct>100))add("daily_rule_validation","BLOCK","Daily loss limit percentage must be greater than 0 and no more than 100.");
  if(profile.overallLossLimitPct!==null&&(!n(profile.overallLossLimitPct)||profile.overallLossLimitPct<=0||profile.overallLossLimitPct>100))add("overall_rule_validation","BLOCK","Overall loss limit percentage must be greater than 0 and no more than 100.");
  if(profile.maxOpenPositions!==null&&(!Number.isInteger(profile.maxOpenPositions)||profile.maxOpenPositions<1))add("position_rule_validation","BLOCK","Maximum open positions must be a positive integer.");
- if(n(profile.dailyLossLimitPct)&&profile.dailyLossLimitPct>0&&profile.dailyLossLimitPct<=100&&n(account.startOfDayEquity)&&account.startOfDayEquity>0&&n(account.todayNetPnl)&&n(proposed.cashRisk)&&proposed.cashRisk>=0){
-  const projectedLoss=Math.max(0,proposed.cashRisk-account.todayNetPnl),limit=account.startOfDayEquity*profile.dailyLossLimitPct/100;
-  add("daily_drawdown",projectedLoss<limit?"PASS":"BLOCK",`Projected daily loss ${projectedLoss.toFixed(2)} against limit ${limit.toFixed(2)} based on verified start-of-day equity.`);
+ if(n(profile.dailyLossLimitPct)&&profile.dailyLossLimitPct>0&&profile.dailyLossLimitPct<=100){
+  if(!n(account.startOfDayEquity)||account.startOfDayEquity<=0||!n(account.todayNetPnl)||!n(proposed.cashRisk)||proposed.cashRisk<0){
+   add("daily_drawdown","REVIEW","A positive verified start-of-day equity, finite current-day net PnL and non-negative proposed cash risk are required.");
+  }else{
+   const projectedLoss=Math.max(0,proposed.cashRisk-account.todayNetPnl),limit=account.startOfDayEquity*profile.dailyLossLimitPct/100;
+   add("daily_drawdown",projectedLoss<limit?"PASS":"BLOCK",`Projected daily loss ${projectedLoss.toFixed(2)} against limit ${limit.toFixed(2)} based on verified start-of-day equity.`);
+  }
  }
- if(n(profile.overallLossLimitPct)&&profile.overallLossLimitPct>0&&profile.overallLossLimitPct<=100&&n(account.equity)&&account.equity>0&&n(proposed.cashRisk)&&proposed.cashRisk>=0){
-  const reference=profile.trailingDrawdown===true?account.highWatermarkEquity:profile.trailingDrawdown===false?account.initialBalance:null;
-  const referenceLabel=profile.trailingDrawdown===true?"verified high-watermark equity":profile.trailingDrawdown===false?"verified initial balance":"configured drawdown reference";
+ if(n(profile.overallLossLimitPct)&&profile.overallLossLimitPct>0&&profile.overallLossLimitPct<=100){
   if(profile.trailingDrawdown===null)add("trailing_drawdown","REVIEW","Firm drawdown mode is unknown; static versus trailing reference cannot be selected.");
-  else if(!n(reference)||reference<=0)add("overall_drawdown","REVIEW",`A verified positive ${referenceLabel} is required.`);
+  else if(!n(account.equity)||account.equity<=0||!n(proposed.cashRisk)||proposed.cashRisk<0)add("overall_drawdown","REVIEW","A positive verified current equity and non-negative proposed cash risk are required.");
   else{
-   const projectedEquity=account.equity-proposed.cashRisk,projectedDrawdown=Math.max(0,reference-projectedEquity),limit=reference*profile.overallLossLimitPct/100;
-   add("overall_drawdown",projectedDrawdown<limit?"PASS":"BLOCK",`Projected drawdown ${projectedDrawdown.toFixed(2)} against limit ${limit.toFixed(2)} using ${referenceLabel}.`);
+   const reference=profile.trailingDrawdown===true?account.highWatermarkEquity:account.initialBalance;
+   const referenceLabel=profile.trailingDrawdown===true?"verified high-watermark equity":"verified initial balance";
+   if(!n(reference)||reference<=0)add("overall_drawdown","REVIEW",`A verified positive ${referenceLabel} is required.`);
+   else{
+    const projectedEquity=account.equity-proposed.cashRisk,projectedDrawdown=Math.max(0,reference-projectedEquity),limit=reference*profile.overallLossLimitPct/100;
+    add("overall_drawdown",projectedDrawdown<limit?"PASS":"BLOCK",`Projected drawdown ${projectedDrawdown.toFixed(2)} against limit ${limit.toFixed(2)} using ${referenceLabel}.`);
+   }
   }
  } else if(profile.trailingDrawdown===null)add("trailing_drawdown","REVIEW","Firm drawdown mode is unknown; static versus trailing reference cannot be selected.");
  if(n(profile.maxOpenPositions)&&Number.isInteger(profile.maxOpenPositions)&&profile.maxOpenPositions>0&&n(account.currentOpenPositions)&&Number.isInteger(account.currentOpenPositions)&&n(proposed.additionalOpenPositions)&&Number.isInteger(proposed.additionalOpenPositions)&&proposed.additionalOpenPositions>=0){
@@ -56,7 +63,7 @@ export function evaluatePropFirmRules(profile:PropFirmProfile,account:PropAccoun
  else if(!Number.isInteger(profile.minimumTradingDays)||profile.minimumTradingDays<1||!Number.isInteger(account.tradingDaysCompleted)||account.tradingDaysCompleted<0)add("minimum_days_validation","BLOCK","Trading-day requirement and completed-day count must be valid non-negative integers.");
  else add("minimum_days",account.tradingDaysCompleted>=profile.minimumTradingDays?"PASS":"REVIEW",`${account.tradingDaysCompleted} of ${profile.minimumTradingDays} required trading days completed.`);
  if(profile.profitTargetPct===null||account.totalProfit===null)add("challenge_pacing","REVIEW","Profit target or verified total profit is unknown; challenge pacing cannot be assessed.");
- else if(!n(profile.profitTargetPct)||profile.profitTargetPct<=0||!n(account.initialBalance)||account.initialBalance<=0||!n(account.totalProfit))add("challenge_pacing","REVIEW","A positive verified profit target, initial balance and total profit are required.");
+ else if(!n(profile.profitTargetPct)||profile.profitTargetPct<=0||!n(account.initialBalance)||account.initialBalance<=0||!n(account.totalProfit)||account.totalProfit<0)add("challenge_pacing","REVIEW","A positive verified profit target and initial balance, plus finite non-negative total profit, are required.");
  else{const target=account.initialBalance*profile.profitTargetPct/100,progress=account.totalProfit/target*100;add("challenge_pacing","PASS",`Profit target progress is ${progress.toFixed(2)}% (${account.totalProfit.toFixed(2)} of ${target.toFixed(2)}).`);}
  if(!n(proposed.cashRisk)||proposed.cashRisk<=0||!n(proposed.additionalOpenPositions)||!Number.isInteger(proposed.additionalOpenPositions)||proposed.additionalOpenPositions<0)add("proposed_risk","BLOCK","Proposed cash risk must be positive and additional position count a non-negative integer.");
  const overall=checks.some(x=>x.status==="BLOCK")?"BLOCK":checks.some(x=>x.status==="REVIEW")?"REVIEW":"PASS";
