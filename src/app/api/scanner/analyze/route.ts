@@ -22,6 +22,14 @@ function observation<T>(value: T | null, confidence: number, source: FieldObserv
   const safeConfidence = Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0;
   return { value, confidence: safeConfidence, source: value === null ? "unavailable" : source, status: value === null ? "unavailable" : safeConfidence >= 0.8 ? "observed" : "uncertain" };
 }
+function hasValidImageSignature(bytes: Buffer, mimeType: string): boolean {
+  if (mimeType === "image/png") return bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  if (mimeType === "image/jpeg") return bytes.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]));
+  if (mimeType === "image/webp") {
+    return bytes.length >= 12 && bytes.subarray(0, 4).toString("ascii") === "RIFF" && bytes.subarray(8, 12).toString("ascii") === "WEBP";
+  }
+  return false;
+}
 function numberOrNull(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
 }
@@ -142,6 +150,9 @@ export async function POST(request: Request) {
 
   const bytes = Buffer.from(await image.arrayBuffer());
   const mimeType = image.type as "image/png" | "image/jpeg" | "image/webp";
+  if (!hasValidImageSignature(bytes, mimeType)) {
+    return jsonError("The file contents do not match the selected image type.", 415);
+  }
   const receivedAtUtc = new Date().toISOString();
   const scanId = randomUUID();
   const sha256 = createHash("sha256").update(bytes).digest("hex");

@@ -38,3 +38,12 @@ test("saved scan status uses the existing database constraint while packet compl
   assert.match(route, /packetStatus: criticalMissing\.length === 0 \? "COMPLETE" : "INCOMPLETE"/);
   assert.doesNotMatch(route, /status: packet\.packetStatus\.toLowerCase\(\)/);
 });
+
+test("uploaded image bytes are checked against the declared MIME type before provider or storage use", () => {
+  assert.match(route, /function hasValidImageSignature/);
+  assert.match(route, /image\/png/);
+  assert.match(route, /image\/jpeg/);
+  assert.match(route, /image\/webp/);
+  assert.match(route, /if \(!hasValidImageSignature\(bytes, mimeType\)\)/);
+  assert.ok(route.indexOf("hasValidImageSignature(bytes, mimeType)") < route.indexOf("api.groq.com"));
+});
