@@ -42,7 +42,7 @@ function parseVisibleList(value: unknown): Array<{ label: string; price: number 
     return [{ label, price: numberOrNull(item.price), confidence }];
   });
 }
-function parseObservation(raw: unknown, meta: { scanId: string; receivedAtUtc: string; sha256: string; mimeType: "image/png" | "image/jpeg" | "image/webp"; byteLength: number; symbol: string; timeframe: string; notes: string }): ChartObservation | null {
+function parseObservation(raw: unknown, meta: { scanId: string; receivedAtUtc: string; sha256: string; mimeType: "image/png" | "image/jpeg" | "image/webp"; byteLength: number; storagePath: string; symbol: string; timeframe: string; notes: string }): ChartObservation | null {
   if (!isRecord(raw)) return null;
   const stringField = (key: string) => {
     const parsed = parseField(raw[key]);
@@ -84,7 +84,7 @@ function parseObservation(raw: unknown, meta: { scanId: string; receivedAtUtc: s
     schemaVersion: "1.0.0",
     scanId: meta.scanId,
     receivedAtUtc: meta.receivedAtUtc,
-    image: { sha256: meta.sha256, mimeType: meta.mimeType, byteLength: meta.byteLength },
+    image: { sha256: meta.sha256, mimeType: meta.mimeType, byteLength: meta.byteLength, storagePath: meta.storagePath },
     screenType: observation(screen.value && ["MT5_MOBILE", "MT5_DESKTOP", "TRADINGVIEW", "QUOTES_LIST", "ORDER_TICKET", "SIGNAL_CARD", "UNKNOWN"].includes(String(screen.value)) ? screen.value : "UNKNOWN", screen.confidence, "screenshot_ocr"),
     timestamps: {
       deviceTime: timestampField("deviceTime"),
@@ -145,6 +145,8 @@ export async function POST(request: Request) {
   const receivedAtUtc = new Date().toISOString();
   const scanId = randomUUID();
   const sha256 = createHash("sha256").update(bytes).digest("hex");
+  const extension = mimeType === "image/jpeg" ? "jpg" : mimeType.split("/")[1];
+  const storagePath = `${user.id}/${scanId}.${extension}`;
   const model = process.env.GROQ_VISION_MODEL || "qwen/qwen3.8-27b";
   const prompt = `You are the perception-only OEM+ ChartScanner. Extract visible facts from this screenshot. You are NOT the Trading Brain and MUST NOT analyze, recommend, predict, score a trade, or generate BUY/SELL/entry/stop/target instructions.
 User-entered context (not proof of what the screenshot displays): instrument=${symbol}; timeframe=${timeframe}; notes=${notes || "none"}.
@@ -210,8 +212,34 @@ Rules:
     try { parsed = JSON.parse(raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")); }
     catch { return jsonError("The observation was not valid structured data. Try a clearer screenshot.", 502); }
 
-    const packet = parseObservation(parsed, { scanId, receivedAtUtc, sha256, mimeType, byteLength: bytes.byteLength, symbol, timeframe, notes });
+    const packet = parseObservation(parsed, { scanId, receivedAtUtc, sha256, mimeType, byteLength: bytes.byteLength, storagePath, symbol, timeframe, notes });
     if (!packet) return jsonError("The image observation failed schema validation. No assessment was generated.", 502);
+
+    const { error: uploadError } = await supabase.storage.from("chart-images").upload(storagePath, bytes, {
+      contentType: mimeType,
+      cacheControl: "3600",
+      upsert: false,
+    });
+    if (uploadError) {
+      console.error("Private chart image upload failed:", uploadError.message);
+      return jsonError("The original chart image could not be saved securely. No scan was recorded.", 503);
+    }
+
+    const { error: saveError } = await supabase.from("chart_scans").insert({
+      user_id: user.id,
+      symbol,
+      timeframe,
+      image_path: storagePath,
+      status: packet.packetStatus.toLowerCase(),
+      analysis: { observation: packet, brainStatus: "NOT_CONNECTED" },
+      model_name: model,
+    });
+    if (saveError) {
+      await supabase.storage.from("chart-images").remove([storagePath]);
+      console.error("Chart observation database save failed:", saveError.message);
+      return jsonError("The observation could not be saved to your private scan history. Please retry.", 503);
+    }
+
     return NextResponse.json({
       observation: packet,
       assessment: null,

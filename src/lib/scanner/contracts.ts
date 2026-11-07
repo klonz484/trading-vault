@@ -26,7 +26,7 @@ export type ChartObservation = {
   schemaVersion: typeof SCANNER_SCHEMA_VERSION;
   scanId: string;
   receivedAtUtc: string;
-  image: { sha256: string; mimeType: "image/png" | "image/jpeg" | "image/webp"; byteLength: number };
+  image: { sha256: string; mimeType: "image/png" | "image/jpeg" | "image/webp"; byteLength: number; storagePath: string };
   screenType: FieldObservation<"MT5_MOBILE" | "MT5_DESKTOP" | "TRADINGVIEW" | "QUOTES_LIST" | "ORDER_TICKET" | "SIGNAL_CARD" | "UNKNOWN">;
   timestamps: {
     deviceTime: FieldObservation<string>;
