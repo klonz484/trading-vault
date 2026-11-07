@@ -84,3 +84,17 @@ test("scanner requests constrained JSON and hides model reasoning from user outp
   assert.match(scannerApiSource, /response_format: \{ type: "json_object" \}/);
   assert.match(scannerApiSource, /reasoning_format: "hidden"/);
 });
+
+
+test("scanner prompt requires structured evidence to match the narrative", () => {
+  assert.match(scannerApiSource, /Keep the JSON evidence arrays consistent with the summary/);
+  assert.match(scannerApiSource, /For NO TRADE, explain the actual blockers in uncertainties and confirmations/);
+  assert.match(scannerApiSource, /without inventing a level/);
+});
+
+test("scanner UI distinguishes missing model evidence from no market evidence", () => {
+  const scannerPage = fs.readFileSync(path.join(process.cwd(), "src", "app", "scanner", "page.tsx"), "utf8");
+  assert.match(scannerPage, /No separate evidence item was returned for this category/);
+  assert.match(scannerPage, /No trade targets are defined while the scanner decision is WAIT/);
+  assert.match(scannerPage, /Invalidation \/ decision-change condition/);
+});
