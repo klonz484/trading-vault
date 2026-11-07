@@ -44,12 +44,15 @@ function parseVisibleList(value: unknown): Array<{ label: string; price: number 
 }
 function parseObservation(raw: unknown, meta: { scanId: string; receivedAtUtc: string; sha256: string; mimeType: "image/png" | "image/jpeg" | "image/webp"; byteLength: number; symbol: string; timeframe: string; notes: string }): ChartObservation | null {
   if (!isRecord(raw)) return null;
-  const field = (key: string, numeric = false) => {
+  const stringField = (key: string) => {
     const parsed = parseField(raw[key]);
-    const value = numeric ? numberOrNull(parsed.value) : (typeof parsed.value === "string" ? parsed.value : null);
-    return observation(value, parsed.confidence, "screenshot_ocr");
+    return observation(typeof parsed.value === "string" ? parsed.value : null, parsed.confidence, "screenshot_ocr");
   };
-  const screen = field("screenType") as FieldObservation<ChartObservation["screenType"]["value"]>;
+  const numberField = (key: string) => {
+    const parsed = parseField(raw[key]);
+    return observation(numberOrNull(parsed.value), parsed.confidence, "screenshot_ocr");
+  };
+  const screen = stringField("screenType") as FieldObservation<ChartObservation["screenType"]["value"]>;
   const timestamps = isRecord(raw.timestamps) ? raw.timestamps : {};
   const timestampField = (key: string) => {
     const parsed = parseField(timestamps[key]);
@@ -60,12 +63,12 @@ function parseObservation(raw: unknown, meta: { scanId: string; receivedAtUtc: s
   const marketLocation = isRecord(raw.marketLocation) ? raw.marketLocation : {};
   const description = parseField(marketLocation.description);
   const features = Array.isArray(marketLocation.visibleFeatures) ? marketLocation.visibleFeatures.filter((v): v is string => typeof v === "string").slice(0, 12).map(v => v.slice(0, 160)) : [];
-  const instrument = field("instrument");
-  const timeframe = field("timeframe");
-  const bid = field("bid", true);
-  const ask = field("ask", true);
-  const spread = field("spread", true);
-  const marketStatusRaw = field("marketStatus");
+  const instrument = stringField("instrument");
+  const timeframe = stringField("timeframe");
+  const bid = numberField("bid");
+  const ask = numberField("ask");
+  const spread = numberField("spread");
+  const marketStatusRaw = stringField("marketStatus");
   const marketStatus = observation(
     marketStatusRaw.value === "OPEN" || marketStatusRaw.value === "CLOSED" ? marketStatusRaw.value : null,
     marketStatusRaw.confidence,
