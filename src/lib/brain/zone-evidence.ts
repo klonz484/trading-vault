@@ -84,7 +84,7 @@ function applyObMitigation(zone: Zone, candles: ZoneCandle[]): Zone {
   let status: ZoneState = "OPEN", firstMitigationIndex: number | null = null, lastStatusChangeIndex: number | null = null;
   for (let i = zone.createdAtIndex + 1; i < candles.length && status !== "INVALIDATED"; i++) {
     const c = candles[i];
-    let next = status;
+    let next: ZoneState = status;
     if (zone.direction === "BULLISH") {
       if (c.close < zone.low) next = "INVALIDATED";
       else if (c.low <= zone.low) next = "FILLED";
