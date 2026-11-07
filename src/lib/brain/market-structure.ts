@@ -51,21 +51,21 @@ export function analyzeMarketStructure(input:StructureInput):StructureResult {
   else if(h2.price<h1.price&&l2.price<l1.price)trend="BEARISH";
   else trend="RANGE";
  }
- let brokenHigh:number|null=null,brokenLow:number|null=null;
+ let brokenHigh:number|null=null,brokenLow:number|null=null;\n let eventTrend:"BULLISH"|"BEARISH"|"UNDETERMINED"="UNDETERMINED";
  for(let i=0;i<candles.length;i++){
-  const priorHigh=highs.filter(x=>x.index<i).at(-1),priorLow=lows.filter(x=>x.index<i).at(-1);
+  const priorHigh=highs.filter(x=>x.index+s<i).at(-1),priorLow=lows.filter(x=>x.index+s<i).at(-1);
   const c=candles[i];
   if(priorHigh&&c.close>priorHigh.price&&brokenHigh!==priorHigh.price){
-   const reversal=trend==="BEARISH";
+   const reversal=eventTrend==="BEARISH";
    events.push({type:reversal?"CHOCH":"BOS",direction:"BULLISH",level:priorHigh.price,candleIndex:i,timeUtc:c.timeUtc,confirmedByClosedCandle:true,explanation:`Closed candle ${i} closed above confirmed swing high ${priorHigh.price}.`});
    if(reversal)events.push({type:"MSS",direction:"BULLISH",level:priorHigh.price,candleIndex:i,timeUtc:c.timeUtc,confirmedByClosedCandle:true,explanation:"Bullish market-structure shift after bearish sequence."});
-   brokenHigh=priorHigh.price;trend="BULLISH";
+   brokenHigh=priorHigh.price;eventTrend="BULLISH";
   }
   if(priorLow&&c.close<priorLow.price&&brokenLow!==priorLow.price){
-   const reversal=trend==="BULLISH";
+   const reversal=eventTrend==="BULLISH";
    events.push({type:reversal?"CHOCH":"BOS",direction:"BEARISH",level:priorLow.price,candleIndex:i,timeUtc:c.timeUtc,confirmedByClosedCandle:true,explanation:`Closed candle ${i} closed below confirmed swing low ${priorLow.price}.`});
    if(reversal)events.push({type:"MSS",direction:"BEARISH",level:priorLow.price,candleIndex:i,timeUtc:c.timeUtc,confirmedByClosedCandle:true,explanation:"Bearish market-structure shift after bullish sequence."});
-   brokenLow=priorLow.price;trend="BEARISH";
+   brokenLow=priorLow.price;eventTrend="BEARISH";
   }
   if(priorHigh&&c.high>priorHigh.price&&c.close<priorHigh.price)events.push({type:"LIQUIDITY_SWEEP",direction:"BEARISH",level:priorHigh.price,candleIndex:i,timeUtc:c.timeUtc,confirmedByClosedCandle:true,explanation:"Wick traded above a confirmed swing high and the candle closed back below it."});
   if(priorLow&&c.low<priorLow.price&&c.close>priorLow.price)events.push({type:"LIQUIDITY_SWEEP",direction:"BULLISH",level:priorLow.price,candleIndex:i,timeUtc:c.timeUtc,confirmedByClosedCandle:true,explanation:"Wick traded below a confirmed swing low and the candle closed back above it."});
