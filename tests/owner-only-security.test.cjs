@@ -55,7 +55,7 @@ test("matcher applies the security proxy broadly while excluding static assets",
 
 test("chart analysis API independently enforces the configured owner identity", () => {
   assert.match(scannerRouteSource, /process\.env\.TRADING_VAULT_OWNER_USER_ID/);
-  assert.match(scannerRouteSource, /if \(!ownerUserId\)[\s\S]*?status: 503/);
-  assert.match(scannerRouteSource, /if \(user\.id !== ownerUserId\)[\s\S]*?status: 403/);
+  assert.match(scannerRouteSource, /if \(!ownerUserId\)[\s\S]*?jsonError\([^\n]*, 503\)/);
+  assert.match(scannerRouteSource, /if \(user\.id !== ownerUserId\)[\s\S]*?jsonError\([^\n]*, 403\)/);
   assert.ok(scannerRouteSource.indexOf("user.id !== ownerUserId") < scannerRouteSource.indexOf("process.env.GROQ_API_KEY"));
 });
