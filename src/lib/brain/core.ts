@@ -48,15 +48,15 @@ export function evaluateBrain(input: BrainEvidenceInput): BrainDecision {
   if (!scannerMatches) reasons.push("Scanner context is incomplete or does not match; it cannot substitute for live data.");
   const gates = (Object.entries(input.evidence) as Array<[keyof BrainEvidenceInput["evidence"], EvidenceStatus]>).map(([name,status]) => ({ name,status,reason: status === "PASS" ? "Evidence gate passed." : status === "WARN" ? "Evidence is provisional or needs qualification." : status === "FAIL" ? "Evidence gate failed." : "Evidence has not been verified." }));
   const hardInvalid = (input.rejectionReasons?.length ?? 0) > 0 || Object.values(input.evidence).includes("FAIL");
-  const unresolved = reasons.length > 0 || !criticalMarketValid || !validConfidence(input.dataConfidence) || input.dataConfidence < 0.8 || !scannerMatches || Object.values(input.evidence).includes("UNKNOWN");
-  const warnings = Object.values(input.evidence).includes("WARN") || (input.conditionalReasons?.length ?? 0) > 0;
+  const unresolved = reasons.length > 0 || !criticalMarketValid || !validConfidence(input.dataConfidence) || input.dataConfidence < 0.8 || !scannerMatches;
+  const evidenceWarnings = Object.values(input.evidence).includes("WARN");
   const allPass = Object.values(input.evidence).every((v) => v === "PASS");
   const hasCase = input.directionalCase.direction !== null && input.directionalCase.supporting.length > 0 && Boolean(input.directionalCase.invalidation);
   const hasOpposing = input.directionalCase.opposing.length > 0;
   let state: BrainState, direction: Direction | null = null;
   if (hardInvalid) { state = "REJECTED"; reasons.push(...(input.rejectionReasons ?? [])); if (Object.values(input.evidence).includes("FAIL")) reasons.push("At least one required analytical or risk gate failed."); }
   else if (unresolved) state = "NEEDS_MANUAL_REVIEW";
-  else if (!hasCase || !hasOpposing || !allPass || warnings || !validConfidence(input.directionalCase.analyticalConfidence) || input.directionalCase.analyticalConfidence < 0.75) {
+  else if (!hasCase || !hasOpposing || !allPass || evidenceWarnings || !validConfidence(input.directionalCase.analyticalConfidence) || input.directionalCase.analyticalConfidence < 0.75) {
     state = "WATCHLIST_NO_TRADE";
     if (!hasCase) reasons.push("No complete directional case with supporting evidence and invalidation is available.");
     if (!hasOpposing) reasons.push("Opposing evidence has not been documented.");
