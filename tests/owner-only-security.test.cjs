@@ -50,3 +50,17 @@ test("matcher applies the security proxy broadly while excluding static assets",
   assert.match(proxySource, /matcher:\s*\[/);
   assert.match(proxySource, /_next\/static\|_next\/image/);
 });
+
+const scannerApiPath = path.join(process.cwd(), "src", "app", "api", "scanner", "analyze", "route.ts");
+const scannerApiSource = fs.readFileSync(scannerApiPath, "utf8");
+
+test("scanner analysis API fails closed when owner configuration is missing", () => {
+  assert.match(scannerApiSource, /const ownerUserId = process\.env\.TRADING_VAULT_OWNER_USER_ID/);
+  assert.match(scannerApiSource, /Owner access is not configured[\s\S]*?503/);
+});
+
+test("scanner analysis API requires an authenticated owner", () => {
+  assert.match(scannerApiSource, /await supabase\.auth\.getUser\(\)/);
+  assert.match(scannerApiSource, /if \(authError \|\| !user\)[\s\S]*?401/);
+  assert.match(scannerApiSource, /if \(user\.id !== ownerUserId\)[\s\S]*?403/);
+});
