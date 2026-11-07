@@ -1,4 +1,4 @@
-/* global require, module, process, global, Response */
+/* global require, process, global, Response */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");

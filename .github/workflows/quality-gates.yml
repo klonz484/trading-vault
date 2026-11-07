@@ -38,6 +38,30 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Report dependency audit findings
+        shell: bash
+        run: |
+          npm audit --json > /tmp/trading-vault-npm-audit.json || true
+          node - <<'NODE'
+          const fs = require("node:fs");
+          let report;
+          try {
+            report = JSON.parse(fs.readFileSync("/tmp/trading-vault-npm-audit.json", "utf8"));
+          } catch {
+            console.log("Dependency audit report was unavailable or could not be parsed.");
+            process.exit(0);
+          }
+          const summary = report.metadata?.vulnerabilities || {};
+          console.log("Dependency audit summary:", JSON.stringify(summary));
+          for (const [name, item] of Object.entries(report.vulnerabilities || {})) {
+            console.log(JSON.stringify({ name, severity: item.severity, range: item.range, fixAvailable: item.fixAvailable }));
+          }
+          if ((summary.high || 0) + (summary.critical || 0) > 0) {
+            console.error("High or critical dependency vulnerabilities must be resolved before release.");
+            process.exitCode = 1;
+          }
+          NODE
+
       - name: Run ESLint
         run: npm run lint
 

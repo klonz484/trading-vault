@@ -113,7 +113,10 @@ export default function ScannerPage() {
                 onDrop={event => { event.preventDefault(); setDragging(false); selectFile(event.dataTransfer.files?.[0]); }}
                 className={`chart-dropzone flex min-h-[220px] w-full items-center justify-center overflow-hidden rounded-xl border border-dashed transition sm:min-h-[300px] ${dragging ? "border-white/70 bg-white/10" : "border-white/15 hover:border-white/35"}`}
                 aria-label="Upload trading chart screenshot">
-                {imagePreview ? <img src={imagePreview} alt="Selected trading chart preview" className="max-h-[420px] max-w-full object-contain" /> :
+                {imagePreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={imagePreview} alt="Selected trading chart preview" className="max-h-[420px] max-w-full object-contain" />
+                ) :
                   <div className="px-5 py-9 text-center">
                     <span className="platinum-mark mx-auto flex h-14 w-14 items-center justify-center rounded-full text-2xl font-light italic text-white">O</span>
                     <p className="mt-4 text-sm font-medium text-white">Drop your chart here</p>
