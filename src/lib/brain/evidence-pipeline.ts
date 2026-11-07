@@ -61,8 +61,13 @@ export function assessBrainWithEvidence(input: EvidencePipelineInput): BrainDeci
     input.eventContext.news.status === "RESTRICTED_WINDOW" ? "WARN" : "PASS";
   const intermarketGate: EvidenceStatus = !matches ? "FAIL" : input.intermarket.status === "READY" ? "PASS" :
     input.intermarket.status === "CONFLICTING" ? "WARN" : input.intermarket.status === "INVALID" ? "FAIL" : "UNKNOWN";
-  const riskGate: EvidenceStatus = input.propFirm.overall === "BLOCK" ? "FAIL" :
-    input.propFirm.overall === "REVIEW" ? "UNKNOWN" : "PASS";
+  const propChecks = Array.isArray(input.propFirm.checks) ? input.propFirm.checks : [];
+  const hasPropBlock = propChecks.some(check => check.status === "BLOCK");
+  const hasPropReview = propChecks.some(check => check.status === "REVIEW");
+  const allPropChecksPass = propChecks.length > 0 && propChecks.every(check => check.status === "PASS");
+  const riskGate: EvidenceStatus = input.propFirm.overall === "BLOCK" || hasPropBlock ? "FAIL" :
+    input.propFirm.overall === "REVIEW" || hasPropReview || !allPropChecksPass ? "UNKNOWN" :
+    input.propFirm.overall === "PASS" ? "PASS" : "UNKNOWN";
   const supporting = [...input.base.directionalCase.supporting];
   const opposing = [...input.base.directionalCase.opposing];
   if (matches && input.structure.status === "READY") supporting.push(`Structure module: ${input.structure.trend} trend from confirmed closed-candle evidence.`);
