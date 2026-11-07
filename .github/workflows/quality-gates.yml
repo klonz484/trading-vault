@@ -11,6 +11,7 @@ on:
       - "feat/**"
       - "fix/**"
       - "build/**"
+      - "security/**"
 
 permissions:
   contents: read
