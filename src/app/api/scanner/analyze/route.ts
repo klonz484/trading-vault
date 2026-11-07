@@ -83,6 +83,17 @@ export async function POST(request: Request) {
     return jsonError("Please sign in before analyzing a chart.", 401);
   }
 
+  // Defense in depth: enforce the permanent owner boundary inside the API
+  // handler as well as in the request proxy. This prevents accidental exposure
+  // if proxy configuration changes or this handler is reused elsewhere.
+  const ownerUserId = process.env.TRADING_VAULT_OWNER_USER_ID;
+  if (!ownerUserId) {
+    return jsonError("Chart analysis is unavailable because owner access is not configured.", 503);
+  }
+  if (user.id !== ownerUserId) {
+    return jsonError("This Trading Vault workspace is restricted to its owner.", 403);
+  }
+
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return jsonError(
