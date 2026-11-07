@@ -202,6 +202,9 @@ Rules:
 - BUY or SELL requires visible directional evidence and a clear invalidation condition. A directional bias alone is not an entry signal.
 - Confidence is an analytical evidence-strength score, not a win probability. Reduce it for missing context, blurry prices, conflicting signals or incomplete candles.
 - Separate supporting evidence from opposing evidence. Include structure, liquidity, displacement, key levels, session context and timeframe alignment only when visibly supported.
+- Keep the JSON evidence arrays consistent with the summary. If the summary identifies lower highs, displacement, a support test or another visible fact, put each relevant fact in supportingEvidence or opposingEvidence rather than leaving both arrays empty.
+- For NO TRADE, explain the actual blockers in uncertainties and confirmations: name the missing trigger, level, candle close, retest or context only when that is what the chart shows. Do not use generic filler such as "No clear evidence identified" when the summary contains evidence.
+- If the chart supports a conditional invalidation idea but not a precise price, describe the condition without inventing a level. If no defensible invalidation can be read, say so explicitly and explain what confirmation is needed before reassessing.
 - Do not infer live market conditions from an old screenshot. Do not claim market data is connected.
 - Never invent instrument, timeframe, indicators, volume, candles, levels or news. State uncertainty.
 - Do not calculate lot size or place trades. All execution is manual in MT5.
