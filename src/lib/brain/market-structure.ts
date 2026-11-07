@@ -51,7 +51,8 @@ export function analyzeMarketStructure(input:StructureInput):StructureResult {
   else if(h2.price<h1.price&&l2.price<l1.price)trend="BEARISH";
   else trend="RANGE";
  }
- let brokenHigh:number|null=null,brokenLow:number|null=null;\n let eventTrend:"BULLISH"|"BEARISH"|"UNDETERMINED"="UNDETERMINED";
+ let brokenHigh:number|null=null,brokenLow:number|null=null;
+ let eventTrend:"BULLISH"|"BEARISH"|"UNDETERMINED"="UNDETERMINED";
  for(let i=0;i<candles.length;i++){
   const priorHigh=highs.filter(x=>x.index+s<i).at(-1),priorLow=lows.filter(x=>x.index+s<i).at(-1);
   const c=candles[i];
