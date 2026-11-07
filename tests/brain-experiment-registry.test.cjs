@@ -15,3 +15,6 @@ test("handles lower-is-better primary metrics",()=>{const x=base();x.primaryMetr
 test("handles higher-is-better guardrails without accepting excess decline",()=>{const x=base();x.guardrails=[{name:"winRate",direction:"HIGHER_IS_BETTER",baseline:55,candidate:52,maximumDegradation:2}];assert.equal(evaluateExperiment(x).status,"REJECTED");});
 test("invalid metric definitions fail closed",()=>{const x=base();x.primaryMetric.minimumImprovement=-1;assert.equal(evaluateExperiment(x).status,"INVALID");});
 test("missing hypothesis or version identity fails closed",()=>{const x=base();x.hypothesis="";assert.equal(evaluateExperiment(x).status,"INVALID");});
+
+test("requires explicit UTC timestamps rather than local or offset-ambiguous dates",()=>{assert.equal(evaluateExperiment(base({trainStartUtc:"2025-01-01T00:00:00"})).status,"INVALID");assert.equal(evaluateExperiment(base({testEndUtc:"2025-12-31T23:59:59+02:00"})).status,"INVALID");});
+test("requires guardrails to be a real array",()=>{assert.equal(evaluateExperiment(base({guardrails:null})).status,"INVALID");});

@@ -14,3 +14,10 @@ Firm-specific rule values and account snapshots must be verified. Static drawdow
 
 ## Safety boundary
 This module is a pre-trade compliance aid, not a guarantee of prop-firm acceptance. It does not submit, modify or close orders. Manual review is required whenever firm terms or account values are missing or ambiguous.
+
+## Additional validation hardening
+- Non-finite or negative account equity/balance/reference/profit fields are flagged for manual review; PnL fields may be negative but must be finite.
+- Current open-position and completed-day counts must be non-negative integers.
+- Negative best-day profit cannot be used to satisfy a consistency calculation.
+- Experiment period boundaries must be explicit UTC ISO timestamps ending in Z. Local timestamps and numeric offsets are rejected to prevent timezone ambiguity.
+- Experiment guardrails must be supplied as an array, even when intentionally empty.
