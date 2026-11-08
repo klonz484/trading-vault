@@ -260,8 +260,8 @@ void CollectAndQueue()
       long fromMs = (previousTickMs > 0 ? previousTickMs + 1 : nowMs - 60000);
       if(fromMs < 0) fromMs = 0;
       MqlTick ticks[];
-      int copiedTicks = CopyTicksRange(canonical, ticks, COPY_TICKS_ALL,
-                                       (ulong)fromMs, (ulong)nowMs);
+      int copiedTicks = CopyTicks(canonical, ticks, COPY_TICKS_ALL,
+                                  (ulong)fromMs, InpMaxTicksPerSymbolPerScan);
       if(copiedTicks > 0)
       {
          int take = copiedTicks;
@@ -285,10 +285,10 @@ void CollectAndQueue()
             if(ticks[k].time_msc > maxTickMs) maxTickMs = ticks[k].time_msc;
          }
          if(maxTickMs > previousTickMs) StageTickCursor(tickCursorKey, maxTickMs);
-         if(copiedTicks > take)
-            Print("TV_RCG_TICK_BACKLOG; symbol=", canonical,
-                  "; copied=", copiedTicks, "; queuedThisScan=", take,
-                  "; remaining ticks will be collected in later scans");
+         if(copiedTicks == InpMaxTicksPerSymbolPerScan)
+            Print("TV_RCG_TICK_BATCH_LIMIT_REACHED; symbol=", canonical,
+                  "; queuedThisScan=", take,
+                  "; next scan resumes after the last queued millisecond cursor");
       }
 
       MqlTick latest;
