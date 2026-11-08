@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS public.scanner_rate_limit_events (
 
 ALTER TABLE public.scanner_rate_limit_events ENABLE ROW LEVEL SECURITY;
 
+CREATE INDEX IF NOT EXISTS scanner_rate_limit_events_user_created_idx
+  ON public.scanner_rate_limit_events (user_id, created_at DESC);
+
 CREATE POLICY "Users can read their scanner rate-limit events"
   ON public.scanner_rate_limit_events
   FOR SELECT
