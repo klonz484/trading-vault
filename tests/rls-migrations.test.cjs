@@ -53,6 +53,7 @@ const scannerRateLimit = fs.readFileSync(
 test("scanner rate-limit migration uses invoker rights and user-scoped RLS", () => {
   assert.match(scannerRateLimit, /CREATE TABLE IF NOT EXISTS public\.scanner_rate_limit_events/);
   assert.match(scannerRateLimit, /ALTER TABLE public\.scanner_rate_limit_events ENABLE ROW LEVEL SECURITY/);
+  assert.match(scannerRateLimit, /CREATE INDEX IF NOT EXISTS scanner_rate_limit_events_user_created_idx/);
   assert.match(scannerRateLimit, /FOR SELECT[\s\S]*?USING \(\(SELECT auth\.uid\(\)\) = user_id\)/);
   assert.match(scannerRateLimit, /FOR INSERT[\s\S]*?WITH CHECK/);
   assert.match(scannerRateLimit, /FOR DELETE[\s\S]*?created_at < pg_catalog\.now\(\) - interval '1 hour'/);
