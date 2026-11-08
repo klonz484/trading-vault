@@ -75,7 +75,7 @@ Compile with the terminal's MetaEditor for this exact MT5 environment. First run
 - [ ] Server-only `SUPABASE_SERVICE_ROLE_KEY` is configured in Vercel; never expose it to the EA or browser.
 - [ ] Owner-only credential issuance is tested after deployment; issue one RCG token bound to one stable terminal-instance ID.
 - [x] User confirms RCG Markets has approved the full intended scope: MT5 EA read-only collection, transmission to the private Trading Vault server, and use by other Trading Vault users. Approval is recorded here as user-confirmed; retain the broker's original approval correspondence/reference in the project evidence folder when available.
-- [ ] EA source is reviewed to verify the absence of trading/account-management operations.
+- [x] Static source review of the local queue prototype found no trading, account-management, or network APIs; MetaEditor compilation is still pending.
 - [x] Initial symbol-discovery scaffold compiles under the user's MT5 build 6257 with 0 errors and 0 warnings (version 1.00).\n- [ ] Local collection/queue prototype compiles under the user's MT5 build 6257 and passes the queue validation procedure.
 - [ ] Local durable queue, exact-body retry, and cursor recovery are tested under forced disconnect/restart.
 - [ ] WebRequest allowlist and HTTPS endpoint are tested.
