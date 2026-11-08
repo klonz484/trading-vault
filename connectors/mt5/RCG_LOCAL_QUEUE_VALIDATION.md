@@ -1,7 +1,8 @@
 # RCG MT5 local collection and queue prototype
 
 **Branch:** `build/rcg-mt5-local-collection-queue`  
-**Mode:** read-only, local-only; network transport is intentionally absent.
+**Mode:** read-only, local-only; network transport is intentionally absent.  
+**Implementation status:** committed prototype; static source review passed; MetaEditor compilation and terminal tests are still pending.
 
 ## What this increment does
 
@@ -32,7 +33,7 @@
 3. Confirm all eight symbols are matched exactly.
 4. Confirm queue files appear and are valid UTF-8 JSON.
 5. Parse each JSON file and validate it against `validateMT5IngestBatch` / the API schema.
-6. Restart MT5 and confirm cursors prevent already-queued candles/ticks from being re-collected.
+6. Restart MT5 and confirm cursors prevent already-queued closed candles and later tick timestamps from being re-collected.
 7. Interrupt terminal operation during a write and confirm temporary files are ignored and cursors are not advanced.
 8. Generate enough tick backlog to confirm bounded draining and no cursor leap over unqueued ticks.
 9. Inspect the local queue directory and confirm the files remain after removing the EA.
