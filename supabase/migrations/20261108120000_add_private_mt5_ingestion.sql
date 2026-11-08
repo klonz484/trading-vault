@@ -13,10 +13,12 @@ CREATE TABLE IF NOT EXISTS public.mt5_connector_credentials (
   created_at timestamptz NOT NULL DEFAULT pg_catalog.clock_timestamp(),
   expires_at timestamptz,
   revoked_at timestamptz,
-  last_used_at timestamptz,
-  CONSTRAINT mt5_connector_credentials_broker_terminal_unique
-    UNIQUE (broker_id, terminal_instance_id, id)
+  last_used_at timestamptz
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS mt5_connector_credentials_active_terminal_idx
+  ON public.mt5_connector_credentials (broker_id, terminal_instance_id)
+  WHERE revoked_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS mt5_connector_credentials_owner_idx
   ON public.mt5_connector_credentials (user_id, broker_id)
