@@ -31,8 +31,8 @@ export default function ScannerPage() {
     if (!(["image/png", "image/jpeg", "image/webp"].includes(selected.type))) {
       setError("Please choose a PNG, JPG, or WebP image."); return;
     }
-    if (selected.size < 1 || selected.size > 10 * 1024 * 1024) {
-      setError("Choose an image smaller than 10 MB."); return;
+    if (selected.size < 1 || selected.size > 4 * 1024 * 1024) {
+      setError("Choose an image smaller than 4 MB."); return;
     }
     setFile(selected);
     const reader = new FileReader();
@@ -121,7 +121,7 @@ export default function ScannerPage() {
                     <span className="platinum-mark mx-auto flex h-14 w-14 items-center justify-center rounded-full text-2xl font-light italic text-white">O</span>
                     <p className="mt-4 text-sm font-medium text-white">Drop your chart here</p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">Tap to browse or choose camera below</p>
-                    <p className="mt-3 text-[10px] uppercase tracking-wider text-slate-600">PNG · JPG · WEBP · MAX 10 MB</p>
+                    <p className="mt-3 text-[10px] uppercase tracking-wider text-slate-600">PNG · JPG · WEBP · MAX 4 MB</p>
                   </div>}
               </button>
               <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={event => selectFile(event.target.files?.[0])} className="hidden" />
