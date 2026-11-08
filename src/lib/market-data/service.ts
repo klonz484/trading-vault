@@ -26,6 +26,7 @@ export async function getTwelveDataSnapshot(
 
   const validation = validateCandles(result.candles, {
     maxAgeSeconds: options.maxAgeSeconds,
+    timeframe,
   });
   const individuallyValid = result.candles.filter(isCandleStructurallyValid);
   const hasBlockingSeriesErrors = validation.errors.length > 0 ||
