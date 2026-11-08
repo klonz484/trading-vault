@@ -44,7 +44,6 @@ export function buildBrainExecutionPlan(
   const definitions = new Map(input.registry.map((skill) => [skill.id, skill]));
   const lifecycle = new Map(input.lifecycle.map((item) => [item.skillId, item]));
   const selected = new Set(input.selectedSkillIds);
-  const included = new Set<string>();
   const visiting = new Set<string>();
   const visited = new Set<string>();
   const ordered: string[] = [];
@@ -82,7 +81,6 @@ export function buildBrainExecutionPlan(
     }
 
     visiting.add(id);
-    included.add(id);
     for (const dependency of definition.dependencies) {
       visit(dependency);
       if (invalid.has(dependency)) invalid.add(id);
