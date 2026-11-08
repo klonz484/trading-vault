@@ -4,8 +4,9 @@ import { useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Link from "next/link";
 import { readLocalList, SavedScan, SCAN_STORAGE_KEY, writeLocalList } from "@/lib/workspace";
+import { parseScannerSummary, type ScannerSummary } from "@/lib/scanner/summary";
 
-type AnalysisResponse = { analysis?: string; model?: string; error?: string };
+type AnalysisResponse = { analysis?: string; model?: string; error?: string; status?: "completed" | "incomplete"; warning?: string | null; setupSummary?: ScannerSummary };
 const instruments = ["EURUSD", "XAUUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"];
 const timeframes = ["M5", "M15", "M30", "H1", "H4", "D1", "W1", "Not sure"];
 
@@ -18,6 +19,7 @@ export default function ScannerPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [modelName, setModelName] = useState<string | null>(null);
+  const [summary, setSummary] = useState<ScannerSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -25,12 +27,12 @@ export default function ScannerPage() {
 
   const selectFile = (selected: File | undefined) => {
     if (!selected) return;
-    setError(null); setResult(null); setModelName(null);
+    setError(null); setResult(null); setModelName(null); setSummary(null);
     if (!(["image/png", "image/jpeg", "image/webp"].includes(selected.type))) {
       setError("Please choose a PNG, JPG, or WebP image."); return;
     }
-    if (selected.size < 1 || selected.size > 10 * 1024 * 1024) {
-      setError("Choose an image smaller than 10 MB."); return;
+    if (selected.size < 1 || selected.size > 4 * 1024 * 1024) {
+      setError("Choose an image smaller than 4 MB."); return;
     }
     setFile(selected);
     const reader = new FileReader();
@@ -50,6 +52,10 @@ export default function ScannerPage() {
       const analysis = data.analysis || "The model did not return an analysis.";
       const model = data.model || "Vision model";
       setResult(analysis); setModelName(model);
+      const parsedSummary = data.setupSummary ?? parseScannerSummary(analysis);
+      setSummary(data.status === "incomplete"
+        ? { ...parseScannerSummary(""), reason: data.warning || "This scan did not finish normally. Treat it as NO TRADE and run a fresh scan." }
+        : parsedSummary);
       const saved: SavedScan = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), symbol, timeframe, model, analysis };
       writeLocalList(SCAN_STORAGE_KEY, [saved, ...readLocalList<SavedScan>(SCAN_STORAGE_KEY)].slice(0, 50));
     } catch (caught) {
@@ -71,7 +77,7 @@ export default function ScannerPage() {
               </div>
               <p className="page-subtitle mt-1">Upload a chart. Capture the evidence. Review the read.</p>
             </div>
-            <Link href="/history" className="btn-secondary text-xs">Scan history <span aria-hidden="true">↗</span></Link>
+            <Link href="/scanner/history" className="btn-secondary text-xs">Private scan history <span aria-hidden="true">↗</span></Link>
           </header>
 
           <section className="panel relative mb-4 overflow-hidden p-4 sm:mb-5 sm:p-5">
@@ -107,12 +113,15 @@ export default function ScannerPage() {
                 onDrop={event => { event.preventDefault(); setDragging(false); selectFile(event.dataTransfer.files?.[0]); }}
                 className={`chart-dropzone flex min-h-[220px] w-full items-center justify-center overflow-hidden rounded-xl border border-dashed transition sm:min-h-[300px] ${dragging ? "border-white/70 bg-white/10" : "border-white/15 hover:border-white/35"}`}
                 aria-label="Upload trading chart screenshot">
-                {imagePreview ? <img src={imagePreview} alt="Selected trading chart preview" className="max-h-[420px] max-w-full object-contain" /> :
+                {imagePreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={imagePreview} alt="Selected trading chart preview" className="max-h-[420px] max-w-full object-contain" />
+                ) :
                   <div className="px-5 py-9 text-center">
                     <span className="platinum-mark mx-auto flex h-14 w-14 items-center justify-center rounded-full text-2xl font-light italic text-white">O</span>
                     <p className="mt-4 text-sm font-medium text-white">Drop your chart here</p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">Tap to browse or choose camera below</p>
-                    <p className="mt-3 text-[10px] uppercase tracking-wider text-slate-600">PNG · JPG · WEBP · MAX 10 MB</p>
+                    <p className="mt-3 text-[10px] uppercase tracking-wider text-slate-600">PNG · JPG · WEBP · MAX 4 MB</p>
                   </div>}
               </button>
               <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={event => selectFile(event.target.files?.[0])} className="hidden" />
@@ -157,12 +166,28 @@ export default function ScannerPage() {
               </div>}
               {analyzing && <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 sm:min-h-[420px]"><div className="h-9 w-9 animate-spin rounded-full border-2 border-slate-200/20 border-t-slate-100" /><p className="text-sm text-slate-300">Inspecting chart structure and visible levels…</p></div>}
               {error && !analyzing && <div role="alert" className="rounded-xl border border-rose-400/20 bg-rose-400/[0.06] p-4 text-sm text-rose-200"><p className="font-semibold">Analysis unavailable</p><p className="mt-1 text-xs leading-5">{error}</p></div>}
-              {result && <div className="max-h-[720px] overflow-y-auto rounded-xl border border-white/[0.08] bg-black/20 p-4 text-sm leading-7 text-slate-200 sm:p-5"><div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.16em] text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-slate-200" /> Model response</div><div className="whitespace-pre-wrap">{result}</div></div>}
+              {summary && <div className={`mb-4 rounded-xl border p-4 sm:p-5 ${summary.decision === "BUY" ? "border-emerald-400/30 bg-emerald-400/[0.06]" : summary.decision === "SELL" ? "border-rose-400/30 bg-rose-400/[0.06]" : "border-white/10 bg-white/[0.03]"}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div><p className="text-[10px] uppercase tracking-[.18em] text-slate-500">Trading decision</p><h4 className="mt-1 text-3xl font-semibold tracking-tight text-white">{summary.decision}</h4></div>
+                  {summary.orderType !== "NONE" && <span className="rounded-full border border-white/15 px-3 py-1 text-[10px] font-semibold tracking-wider text-slate-200">{summary.orderType} ORDER</span>}
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{summary.reason}</p>
+                {summary.decision !== "NO TRADE" && <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <div className="panel-soft rounded-lg p-3"><p className="eyebrow">Entry</p><p className="mt-1 break-words text-sm font-semibold text-white">{summary.entryType === "range" ? `${summary.entryLow} – ${summary.entryHigh}` : summary.entry ?? "—"}</p></div>
+                  <div className="panel-soft rounded-lg p-3"><p className="eyebrow">Stop loss</p><p className="mt-1 break-words text-sm font-semibold text-rose-200">{summary.stopLoss ?? "—"}</p></div>
+                  <div className="panel-soft rounded-lg p-3"><p className="eyebrow">Take profit 1</p><p className="mt-1 break-words text-sm font-semibold text-emerald-200">{summary.takeProfit1 ?? "—"}</p></div>
+                  {summary.takeProfit2 !== null && <div className="panel-soft rounded-lg p-3"><p className="eyebrow">Take profit 2</p><p className="mt-1 text-sm font-semibold text-emerald-200">{summary.takeProfit2}</p></div>}
+                  {summary.takeProfit3 !== null && <div className="panel-soft rounded-lg p-3"><p className="eyebrow">Take profit 3</p><p className="mt-1 text-sm font-semibold text-emerald-200">{summary.takeProfit3}</p></div>}
+                  {summary.invalidation !== null && <div className="panel-soft rounded-lg p-3"><p className="eyebrow">Invalidation</p><p className="mt-1 text-sm font-semibold text-white">{summary.invalidation}</p></div>}
+                </div>}
+                <div className="mt-4 border-t border-white/[0.08] pt-3 text-[10px] leading-5 text-slate-500">Confidence: not calibrated · Technical levels: unverified · Manual MT5 execution only</div>
+              </div>}
+              {result && <details className="rounded-xl border border-white/[0.08] bg-black/20 p-4 text-sm leading-7 text-slate-200 sm:p-5"><summary className="cursor-pointer text-xs font-semibold uppercase tracking-[.15em] text-slate-400">View detailed chart analysis</summary><div className="mt-4 whitespace-pre-wrap">{result}</div></details>}
             </section>
           </div>
 
           <section className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="panel-soft p-4"><p className="text-xs font-semibold text-slate-200">Private scan history</p><p className="mt-1 text-xs leading-5 text-slate-500">Successful chart reads are saved to this browser&apos;s local scan history.</p><Link href="/history" className="mt-3 inline-flex text-xs text-slate-300 hover:text-white">Open history →</Link></div>
+            <div className="panel-soft p-4"><p className="text-xs font-semibold text-slate-200">Private scan history</p><p className="mt-1 text-xs leading-5 text-slate-500">Successful chart reads are saved to your private account and kept as a browser-local convenience copy.</p><Link href="/scanner/history" className="mt-3 inline-flex text-xs text-slate-300 hover:text-white">Open private history →</Link></div>
             <div className="panel-soft p-4"><p className="text-xs font-semibold text-slate-200">Manual execution</p><p className="mt-1 text-xs leading-5 text-slate-500">Image-based reads can miss context. Verify every level and make all trade decisions manually.</p></div>
           </section>
           <footer className="mt-6 border-t border-white/[0.07] pt-4 text-[10px] leading-5 text-slate-600">OEM+ ChartScanner · Groq-hosted vision model · API key remains server-side · Output is research support, not financial advice.</footer>

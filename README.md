@@ -1,68 +1,50 @@
 # Trading Vault — OEM+ ChartScanner
 
-A responsive, mobile-first trading analysis workspace built with Next.js, React and TypeScript. The OEM+ visual system uses obsidian black, graphite panels, platinum-silver branding and restrained semantic colours for trading states.
+A mobile-first Forex and Gold research workspace built with Next.js, React and TypeScript. The OEM+ visual system uses obsidian black, graphite panels and platinum-silver branding.
 
-## Current workspace
+## Included in this codebase
 
-- Dashboard and Forex + Gold watchlist
-- AI chart scanner with image upload, mobile camera capture and Groq vision analysis
-- Browser-local scan history
-- Trading Brain architecture overview
-- Session setup planning and evidence checklist
-- Trading journal with browser-local records
-- Journal-based analytics
-- Risk calculator using broker-entered pip / point value
-- Market overview, profile and workspace settings
-- Responsive desktop sidebar and mobile bottom navigation
+- Mobile-first chart upload and camera capture for EURUSD, XAUUSD and selected Forex majors.
+- Groq vision-based chart interpretation with a structured BUY / SELL / NO TRADE summary, conditional order type, proposed levels and uncertainty.
+- Deterministic checks for trade-plan direction and arithmetic. These checks do **not** validate whether AI-proposed chart levels are technically correct.
+- Owner-only authentication gate, Supabase session handling, private scan history and private chart-image storage.
+- Browser-local journal and workspace tools.
+- Market Data Engine provider adapters, evidence-quality validation and provider-conflict foundations.
+- Trading Brain specialist modules, a versioned Scanner–Brain contract and deterministic tests.
 
-## AI Chart Scanner setup
+## Required environment
 
-The scanner uses Groq's vision-capable Qwen model by default. Availability and free-tier quotas can change.
+Copy `.env.example` to `.env.local` and fill in the required values. Never commit `.env.local`.
 
-1. Create a GroqCloud account and generate an API key at <https://console.groq.com/keys>.
-2. Copy `.env.example` to `.env.local`.
-3. Add your key:
+- `GROQ_API_KEY` is server-only and powers image analysis.
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` configure the Supabase client.
+- `TRADING_VAULT_OWNER_USER_ID` is required by the owner-only proxy. It must be the permanent owner's Supabase Auth UUID. Do not deploy the owner-only gate to an environment until this value is configured and the owner login has been verified.
+- `TWELVE_DATA_API_KEY` and `ALPHA_VANTAGE_API_KEY` are optional provider credentials. The provider adapters are not activated by default.
 
-   ```env
-   GROQ_API_KEY=your_real_key_here
-   GROQ_VISION_MODEL=qwen/qwen3.8-27b
-   ```
-
-4. Install dependencies and start the app:
-
-   ```bash
-   npm install
-   npm run dev
-   ```
-
-5. Open <http://localhost:3000/scanner>, upload or take a chart photo, select the instrument and timeframe, and run the analysis.
-
-The API key is read only by the server route at `src/app/api/scanner/analyze/route.ts`; it is not exposed to the browser. Never commit `.env.local` or share your API key. `.env*` files are ignored by Git.
-
-## Data, account and trading boundaries
-
-- Market Overview intentionally shows no prices until a licensed and validated market-data provider is configured.
-- The scanner analyses the uploaded image; it is not a live market feed and cannot guarantee that chart levels or indicators are interpreted correctly.
-- Successful scan text and journal entries are currently stored in the current browser only. They are not synced to Supabase or another device.
-- The Profile page is a design shell. Authentication, registration and multi-user access are not changed by this UI redesign.
-- No automated order execution is included. All execution remains manual in MT5.
-- The Trading Brain page documents the approved independent-but-collaborative architecture; it does not claim that the full Brain engine is active yet.
-- The Risk Calculator requires the trader to enter the broker's pip / point value per standard lot. This avoids guessing the XAUUSD contract value. Verify contract size, tick size, currency conversion, commission and broker volume steps in MT5.
-
-Treat all chart reads and calculator outputs as research support. Verify the information independently before making trading decisions.
-
-## Commands
+## Run locally
 
 ```bash
-npm run dev
+npm ci
 npm run lint
+npm test
 npm run build
+npm run dev
 ```
 
-## Next engineering integrations
+Open `http://localhost:3000`.
 
-- Supabase Auth, private profiles, row-level security and approved registration rollout
-- Licensed market-data providers and data-quality validation
-- Supabase storage and sync for chart history and journal records
-- Structured scanner evidence and validated analysis outputs
-- Trading Brain reasoning pipeline, experiment registry and owner-controlled Core Brain releases
+## Data and security boundaries
+
+- Protected pages and API routes require the configured owner identity. Signup URLs redirect to login; public registration remains closed at the application layer.
+- Supabase Row Level Security and storage policies remain the data-isolation boundary. The `chart-images` bucket is private and accepts PNG, JPEG and WebP images up to 10 MB.
+- The scanner stores chart scans and image paths under the authenticated user's identity. Browser-local history remains a convenience copy, not the authoritative private account record.
+- Do not place service-role keys or provider secrets in browser code or `NEXT_PUBLIC_` variables.
+- Market Overview must not display prices until an entitled provider, data-quality checks and licensing are verified.
+- Market Data Engine adapters are a foundation; no live feed, background polling or production data entitlement is implied.
+- Trading Brain specialist modules have explicit lifecycle states. Several remain in development; this is not a fully trained or production-enabled Brain.
+- Scanner and Brain remain independent but collaborative. Shared Core Brain changes require controlled experiments and owner approval.
+- All execution remains manual in MT5. No order placement, modification or closing is implemented.
+
+## Trading safeguards
+
+Treat all image-based reads and proposed levels as research support. Verify instrument, timeframe, current price, spread, contract details and every level independently in MT5. Confidence remains uncalibrated until a validated scoring method exists. If evidence is incomplete or a scan does not finish normally, the safe result is NO TRADE.
