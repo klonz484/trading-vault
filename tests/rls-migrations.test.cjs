@@ -50,14 +50,17 @@ const scannerRateLimit = fs.readFileSync(
   "utf8",
 );
 
-test("scanner rate-limit migration keeps counters private and exposes only an authenticated atomic RPC", () => {
-  assert.match(scannerRateLimit, /CREATE TABLE IF NOT EXISTS public\.scanner_rate_limits/);
-  assert.match(scannerRateLimit, /ALTER TABLE public\.scanner_rate_limits ENABLE ROW LEVEL SECURITY/);
-  assert.match(scannerRateLimit, /REVOKE ALL PRIVILEGES ON TABLE public\.scanner_rate_limits FROM anon, authenticated/);
-  assert.match(scannerRateLimit, /SECURITY DEFINER/);
-  assert.match(scannerRateLimit, /SET search_path = ''/);
-  assert.match(scannerRateLimit, /auth\.uid\(\)/);
-  assert.match(scannerRateLimit, /ON CONFLICT \(user_id\) DO UPDATE/);
-  assert.match(scannerRateLimit, /GRANT EXECUTE ON FUNCTION public\.consume_scanner_rate_limit\(integer, integer\) TO authenticated/);
+test("scanner rate-limit migration uses invoker rights and user-scoped RLS", () => {
+  assert.match(scannerRateLimit, /CREATE TABLE IF NOT EXISTS public\\.scanner_rate_limit_events/);
+  assert.match(scannerRateLimit, /ALTER TABLE public\\.scanner_rate_limit_events ENABLE ROW LEVEL SECURITY/);
+  assert.match(scannerRateLimit, /FOR SELECT[\\s\\S]*?USING \\(\\(SELECT auth\\.uid\\(\\)\\) = user_id\\)/);
+  assert.match(scannerRateLimit, /FOR INSERT[\\s\\S]*?WITH CHECK/);
+  assert.match(scannerRateLimit, /FOR DELETE[\\s\\S]*?created_at < pg_catalog\\.now\\(\\) - interval '1 hour'/);
+  assert.match(scannerRateLimit, /SECURITY INVOKER/);
+  assert.doesNotMatch(scannerRateLimit, /SECURITY DEFINER/);
+  assert.match(scannerRateLimit, /pg_catalog\\.pg_advisory_xact_lock/);
+  assert.match(scannerRateLimit, /ON CONFLICT|INSERT INTO public\\.scanner_rate_limit_events/);
+  assert.match(scannerRateLimit, /GRANT EXECUTE ON FUNCTION public\\.consume_scanner_rate_limit\\(integer, integer\\) TO authenticated/);
   assert.match(scannerRateLimit, /FROM PUBLIC, anon/);
+  assert.match(scannerRateLimit, /GRANT SELECT, INSERT, DELETE ON TABLE public\\.scanner_rate_limit_events TO authenticated/);
 });
