@@ -60,7 +60,15 @@ export async function POST(request: Request) {
     return response({ error: "The MT5 batch failed validation.", validation }, 400);
   }
   const batch = payload as MT5IngestBatch;
-  // The request timestamp is checked independently from batch.sentAt so an\n  // offline collector can safely replay an older durable local-queue batch.\n  const requestTimestamp = request.headers.get("x-tv-request-timestamp") ?? "";\n  const requestTimestampMs = Date.parse(requestTimestamp);\n  if (!requestTimestamp || !Number.isFinite(requestTimestampMs) ||\n      Math.abs(Date.now() - requestTimestampMs) > MAX_CLOCK_SKEW_MS) {\n    return response({ error: "A valid request timestamp within five minutes is required." }, 400);\n  }\n
+  // The request timestamp is checked independently from batch.sentAt so an
+  // offline collector can safely replay an older durable local-queue batch.
+  const requestTimestamp = request.headers.get("x-tv-request-timestamp") ?? "";
+  const requestTimestampMs = Date.parse(requestTimestamp);
+  if (!requestTimestamp || !Number.isFinite(requestTimestampMs) ||
+      Math.abs(Date.now() - requestTimestampMs) > MAX_CLOCK_SKEW_MS) {
+    return response({ error: "A valid request timestamp within five minutes is required." }, 400);
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceRoleKey) {
