@@ -6,8 +6,8 @@
 ## What this increment does
 
 - Uses the eight exact RCG canonical symbols already confirmed in the demo dry-run.
-- Samples the most recently closed candle for M1, M5, M15, M30, H1, H4 and D1.
-- Retrieves bounded incremental tick slices with `CopyTicksRange`.
+- Collects closed candles for M1, M5, M15, M30, H1, H4 and D1. It backfills the latest closed candle on first install, then retrieves later closed candles from the persisted timestamp in bounded slices of up to 50 per symbol/timeframe per scan.
+- Retrieves bounded incremental tick slices with `CopyTicks`, using a persisted millisecond cursor and a configurable per-symbol cap (default 500 per scan).
 - Builds batches matching the existing `1.0.0` ingestion schema.
 - Writes each serialized batch as a UTF-8 `.json` file under the MT5 terminal's local `MQL5/Files/TradingVaultRCGQueue` directory.
 - Writes to a temporary file and renames it to `.json` before advancing terminal Global Variable cursors.
@@ -21,7 +21,7 @@
 - No token or password is required.
 - Exact symbol matching only; suffix/prefix aliases are not guessed.
 - Only the most recently closed candle is collected per symbol/timeframe on each scan. Forming candles are not emitted in this increment.
-- Tick retrieval is bounded by `InpMaxTicksPerSymbolPerScan` (default 500). If the returned slice exceeds the cap, the log reports backlog and later scans continue from the persisted cursor.
+- Tick retrieval is bounded by `InpMaxTicksPerSymbolPerScan` (default 500). A full-cap result is logged so the next scan can continue from the persisted cursor.
 - Tick cursor uses millisecond timestamps and starts with a 60-second lookback on first install. The implementation advances to the latest queued tick timestamp after the batch file is committed. Multiple distinct ticks sharing the exact same millisecond may require a later sequence/fingerprint refinement; this prototype must be validated against the broker feed before being treated as lossless.
 - Candle timestamps are emitted with the terminal server's current UTC offset. Historical broker daylight-saving transitions are not backfilled in this prototype; initial scope is incremental latest-closed candles.
 
