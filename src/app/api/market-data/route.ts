@@ -5,7 +5,6 @@ import { canDisplayMarketPrices } from "@/lib/market-data/readiness";
 import { MarketDataProviderError } from "@/lib/market-data/types";
 
 export const maxDuration = 20;
-export const dynamic = "force-dynamic";
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
