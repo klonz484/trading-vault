@@ -57,6 +57,7 @@ test("scanner rate-limit migration uses invoker rights and user-scoped RLS", () 
   assert.match(scannerRateLimit, /FOR SELECT[\s\S]*?USING \(\(SELECT auth\.uid\(\)\) = user_id\)/);
   assert.match(scannerRateLimit, /FOR INSERT[\s\S]*?WITH CHECK/);
   assert.match(scannerRateLimit, /FOR DELETE[\s\S]*?created_at < pg_catalog\.now\(\) - interval '1 hour'/);
+  assert.match(scannerRateLimit, /p_window_seconds IS NULL OR p_max_requests IS NULL/);
   assert.match(scannerRateLimit, /SECURITY INVOKER/);
   assert.doesNotMatch(scannerRateLimit, /SECURITY DEFINER/);
   assert.match(scannerRateLimit, /pg_catalog\.pg_advisory_xact_lock/);
