@@ -1,17 +1,42 @@
 -- Trading Vault: enforce a per-user scanner request limit across serverless instances.
--- The table is private; authenticated users can only invoke the atomic RPC for themselves.
+-- The RPC is SECURITY INVOKER; RLS and grants keep event rows scoped to auth.uid().
 
 BEGIN;
 
-CREATE TABLE IF NOT EXISTS public.scanner_rate_limits (
-  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  window_started_at timestamptz NOT NULL DEFAULT now(),
-  request_count integer NOT NULL DEFAULT 0 CHECK (request_count >= 0),
-  updated_at timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS public.scanner_rate_limit_events (
+  id uuid PRIMARY KEY DEFAULT pg_catalog.gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT pg_catalog.clock_timestamp()
 );
 
-ALTER TABLE public.scanner_rate_limits ENABLE ROW LEVEL SECURITY;
-REVOKE ALL PRIVILEGES ON TABLE public.scanner_rate_limits FROM anon, authenticated;
+ALTER TABLE public.scanner_rate_limit_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read their scanner rate-limit events"
+  ON public.scanner_rate_limit_events
+  FOR SELECT
+  TO authenticated
+  USING ((SELECT auth.uid()) = user_id);
+
+CREATE POLICY "Users can record their scanner rate-limit events"
+  ON public.scanner_rate_limit_events
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    (SELECT auth.uid()) = user_id
+    AND created_at <= pg_catalog.now() + interval '1 minute'
+  );
+
+CREATE POLICY "Users can only clean up expired scanner rate-limit events"
+  ON public.scanner_rate_limit_events
+  FOR DELETE
+  TO authenticated
+  USING (
+    (SELECT auth.uid()) = user_id
+    AND created_at < pg_catalog.now() - interval '1 hour'
+  );
+
+REVOKE ALL PRIVILEGES ON TABLE public.scanner_rate_limit_events FROM anon, authenticated;
+GRANT SELECT, INSERT, DELETE ON TABLE public.scanner_rate_limit_events TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.consume_scanner_rate_limit(
   p_window_seconds integer DEFAULT 60,
@@ -19,12 +44,13 @@ CREATE OR REPLACE FUNCTION public.consume_scanner_rate_limit(
 )
 RETURNS boolean
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = ''
 AS $function$
 DECLARE
   v_user_id uuid := auth.uid();
-  v_request_count integer;
+  v_now timestamptz;
+  v_recent_count bigint;
 BEGIN
   IF v_user_id IS NULL THEN
     RETURN false;
@@ -35,26 +61,32 @@ BEGIN
     RAISE EXCEPTION 'Invalid scanner rate-limit parameters';
   END IF;
 
-  INSERT INTO public.scanner_rate_limits AS limits (
-    user_id, window_started_at, request_count, updated_at
-  )
-  VALUES (v_user_id, pg_catalog.now(), 1, pg_catalog.now())
-  ON CONFLICT (user_id) DO UPDATE
-  SET
-    window_started_at = CASE
-      WHEN limits.window_started_at <= pg_catalog.now() - pg_catalog.make_interval(secs => p_window_seconds)
-      THEN pg_catalog.now()
-      ELSE limits.window_started_at
-    END,
-    request_count = CASE
-      WHEN limits.window_started_at <= pg_catalog.now() - pg_catalog.make_interval(secs => p_window_seconds)
-      THEN 1
-      ELSE limits.request_count + 1
-    END,
-    updated_at = pg_catalog.now()
-  RETURNING request_count INTO v_request_count;
+  -- Serialize requests for one user so concurrent requests cannot all pass
+  -- the count check before any of them records its event.
+  PERFORM pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(v_user_id::text, 0)
+  );
 
-  RETURN v_request_count <= p_max_requests;
+  v_now := pg_catalog.clock_timestamp();
+
+  DELETE FROM public.scanner_rate_limit_events
+  WHERE user_id = v_user_id
+    AND created_at < v_now - interval '1 hour';
+
+  SELECT count(*)
+    INTO v_recent_count
+  FROM public.scanner_rate_limit_events
+  WHERE user_id = v_user_id
+    AND created_at >= v_now - pg_catalog.make_interval(secs => p_window_seconds);
+
+  IF v_recent_count >= p_max_requests THEN
+    RETURN false;
+  END IF;
+
+  INSERT INTO public.scanner_rate_limit_events (user_id, created_at)
+  VALUES (v_user_id, v_now);
+
+  RETURN true;
 END;
 $function$;
 
