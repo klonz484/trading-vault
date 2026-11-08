@@ -1,11 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeInternalRedirect } from "@/lib/auth/safe-redirect";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const next = url.searchParams.get("next");
-  const destination = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
+  const destination = safeInternalRedirect(url.searchParams.get("next"), url.origin);
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (code && supabaseUrl && publishableKey) {
