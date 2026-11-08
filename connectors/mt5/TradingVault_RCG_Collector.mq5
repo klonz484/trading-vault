@@ -5,7 +5,7 @@
 //| broker permission, and supervised validation.                    |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "0.1.0"
+#property version   "1.00"
 #property description "Trading Vault RCG read-only collector preparation scaffold"
 
 input string InpTerminalInstanceId = "rcg-demo-terminal-01";
