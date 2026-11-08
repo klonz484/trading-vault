@@ -88,8 +88,8 @@ test("login and auth callback both use same-origin redirect validation", () => {
 test("scanner analysis applies an atomic per-user rate limit before provider usage", () => {
   assert.match(scannerRouteSource, /supabase\.rpc\(\s*"consume_scanner_rate_limit"/);
   assert.match(scannerRouteSource, /p_window_seconds: 60, p_max_requests: 5/);
-  assert.match(scannerRouteSource, /if \(rateLimitError\)[\s\S]*?status: 503/);
-  assert.match(scannerRouteSource, /if \(withinRateLimit !== true\)[\s\S]*?status: 429/);
+  assert.match(scannerRouteSource, /if \(rateLimitError\)[\s\S]*?jsonError\([^;]*, 503\)/);
+  assert.match(scannerRouteSource, /if \(withinRateLimit !== true\)[\s\S]*?jsonError\([^;]*, 429\)/);
   assert.ok(scannerRouteSource.indexOf('"consume_scanner_rate_limit"') < scannerRouteSource.indexOf('process.env.GROQ_API_KEY'));
 });
 
