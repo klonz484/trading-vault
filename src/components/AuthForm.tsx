@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { safeInternalRedirect } from "@/lib/auth/safe-redirect";
 
 export default function AuthForm() {
   const router = useRouter();
@@ -40,8 +41,7 @@ export default function AuthForm() {
 
       if (signInError) throw signInError;
 
-      const next = searchParams.get("next");
-      const destination = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
+      const destination = safeInternalRedirect(searchParams.get("next"), window.location.origin);
       router.replace(destination);
       router.refresh();
     } catch (cause) {
