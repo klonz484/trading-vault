@@ -214,10 +214,19 @@ void CollectAndQueue()
          ArraySetAsSeries(rates, false);
          datetime fromTime = (previousTime > 0 ? previousTime + 1 : 0);
          int copied = 0;
+         ResetLastError();
          if(fromTime > 0)
             copied = CopyRates(canonical, g_timeframes[t], fromTime, TimeCurrent(), rates);
          else
             copied = CopyRates(canonical, g_timeframes[t], 1, 1, rates);
+         int ratesError = GetLastError();
+         if(ratesError != 0)
+         {
+            Print("TV_RCG_CANDLE_HISTORY_INCOMPLETE; symbol=", canonical,
+                  "; timeframe=", tf, "; error=", ratesError,
+                  "; cursor_not_advanced=true");
+            continue;
+         }
          if(copied <= 0) continue;
 
          // Exclude the still-forming candle and cap each timeframe slice.
@@ -260,8 +269,16 @@ void CollectAndQueue()
       long fromMs = (previousTickMs > 0 ? previousTickMs + 1 : nowMs - 60000);
       if(fromMs < 0) fromMs = 0;
       MqlTick ticks[];
+      ResetLastError();
       int copiedTicks = CopyTicks(canonical, ticks, COPY_TICKS_ALL,
                                   (ulong)fromMs, InpMaxTicksPerSymbolPerScan);
+      int ticksError = GetLastError();
+      if(ticksError != 0)
+      {
+         Print("TV_RCG_TICK_HISTORY_INCOMPLETE; symbol=", canonical,
+               "; error=", ticksError, "; cursor_not_advanced=true");
+         copiedTicks = 0;
+      }
       if(copiedTicks > 0)
       {
          int take = copiedTicks;
