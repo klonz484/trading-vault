@@ -43,3 +43,21 @@ test("optimized RLS migration evaluates JWT once per statement", () => {
   assert.match(optimizedGate, /AS RESTRICTIVE/);
   assert.match(optimizedGate, /WITH CHECK/);
 });
+
+
+const scannerRateLimit = fs.readFileSync(
+  path.join(migrationsDir, "20261108100000_add_scanner_rate_limit.sql"),
+  "utf8",
+);
+
+test("scanner rate-limit migration keeps counters private and exposes only an authenticated atomic RPC", () => {
+  assert.match(scannerRateLimit, /CREATE TABLE IF NOT EXISTS public\.scanner_rate_limits/);
+  assert.match(scannerRateLimit, /ALTER TABLE public\.scanner_rate_limits ENABLE ROW LEVEL SECURITY/);
+  assert.match(scannerRateLimit, /REVOKE ALL PRIVILEGES ON TABLE public\.scanner_rate_limits FROM anon, authenticated/);
+  assert.match(scannerRateLimit, /SECURITY DEFINER/);
+  assert.match(scannerRateLimit, /SET search_path = ''/);
+  assert.match(scannerRateLimit, /auth\.uid\(\)/);
+  assert.match(scannerRateLimit, /ON CONFLICT \(user_id\) DO UPDATE/);
+  assert.match(scannerRateLimit, /GRANT EXECUTE ON FUNCTION public\.consume_scanner_rate_limit\(integer, integer\) TO authenticated/);
+  assert.match(scannerRateLimit, /FROM PUBLIC, anon/);
+});
