@@ -65,3 +65,15 @@ The following engineering foundations have since been added on the Trading Brain
 7. Verify live market-data rights and quality before Scanner/Brain integration is enabled.
 
 Until these gates close, do not label the Brain directionally operational, calibrated, accurate or production-ready.
+
+
+## Chronological replay foundation — 8 November 2026
+
+A generic closed-candle replay boundary is now implemented in `src/lib/trading-brain/replay.ts`. It:
+- exposes only the chronological closed-candle prefix available at each decision time;
+- excludes provisional candles from strategy inputs;
+- rejects invalid OHLC, duplicate/out-of-order timestamps and invalid replay windows;
+- rejects strategy decisions that cite future or unavailable candle timestamps;
+- stops safely on strategy errors or incomplete decision evidence.
+
+This is replay infrastructure only. It does not implement the approved methodology predicates, simulate fills, calculate P&L, estimate performance, or certify a strategy. Strategies must not obtain future observations through external captured state or side channels. Historical EURUSD/XAUUSD calibration and independent out-of-sample review remain mandatory.
