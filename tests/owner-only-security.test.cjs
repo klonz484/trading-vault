@@ -95,6 +95,7 @@ test("scanner analysis applies an atomic per-user rate limit before provider usa
 
 test("scanner rejects oversized requests and verifies actual image signatures", () => {
   assert.match(scannerRouteSource, /content-length/);
+  assert.match(scannerRouteSource, /const MAX_IMAGE_BYTES = 4 \* 1024 \* 1024/);
   assert.match(scannerRouteSource, /MAX_IMAGE_BYTES \+ 64 \* 1024/);
   assert.match(scannerRouteSource, /function hasValidImageSignature/);
   assert.match(scannerRouteSource, /bytes\[0\] === 0xff/);
