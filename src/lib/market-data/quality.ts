@@ -91,7 +91,7 @@ export function validateCandles(
         }
         if (
           intervalSeconds !== null &&
-          Math.abs(timestampMs - previousTimestamp) > intervalSeconds * 1.5
+          Math.abs(timestampMs - previousTimestamp) > intervalSeconds * 1000 * 1.5
         ) {
           missingIntervals.push(
             `${new Date(previousTimestamp).toISOString()} <-> ${candle.timestamp}`,
