@@ -12,7 +12,7 @@ export function safeInternalRedirect(
     !value.startsWith("/") ||
     value.startsWith("//") ||
     value.includes("\\") ||
-    /[\\u0000-\\u001f]/.test(value)
+    [...value].some((character) => character.charCodeAt(0) < 0x20)
   ) {
     return "/";
   }
