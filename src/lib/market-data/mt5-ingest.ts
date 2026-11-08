@@ -66,6 +66,11 @@ function finite(value: unknown): value is number {
 function positive(value: unknown): value is number {
   return finite(value) && value > 0;
 }
+function isoTimestamp(value: unknown): value is string {
+  return nonEmpty(value) &&
+    /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$/.test(value) &&
+    Number.isFinite(Date.parse(value));
+}
 function nullableNonNegative(value: unknown): boolean {
   return value === null || (finite(value) && value >= 0);
 }
@@ -95,7 +100,7 @@ export function validateMT5IngestBatch(value: unknown): MT5BatchValidation {
   if (!nonEmpty(value.batchId) || value.batchId.length > 128) errors.push("A non-empty batch identifier of at most 128 characters is required.");
   if (value.brokerId !== "RCG_MARKETS" && value.brokerId !== "VAULT_MARKETS") errors.push("Broker identity must be RCG_MARKETS or VAULT_MARKETS.");
   if (!nonEmpty(value.terminalInstanceId) || value.terminalInstanceId.length > 128) errors.push("A bounded terminal instance identifier is required.");
-  if (!nonEmpty(value.sentAt) || !Number.isFinite(Date.parse(value.sentAt))) errors.push("Batch sentAt must be a valid ISO timestamp.");
+  if (!isoTimestamp(value.sentAt)) errors.push("Batch sentAt must be a valid ISO timestamp.");
   if (!Array.isArray(value.candles) || !Array.isArray(value.ticks)) errors.push("Candles and ticks must both be arrays.");
 
   const candles = Array.isArray(value.candles) ? value.candles : [];
@@ -116,7 +121,7 @@ export function validateMT5IngestBatch(value: unknown): MT5BatchValidation {
     if (!validInstrument) errors.push(`Candle ${index} has an unsupported instrument.`);
     if (!nonEmpty(item.brokerSymbol) || item.brokerSymbol.length > 64) errors.push(`Candle ${index} has an invalid broker symbol.`);
     if (!TIMEFRAMES.has(item.timeframe as MarketDataTimeframe)) errors.push(`Candle ${index} has an unsupported timeframe.`);
-    if (!nonEmpty(item.sourceTime) || !Number.isFinite(Date.parse(item.sourceTime))) errors.push(`Candle ${index} has an invalid source timestamp.`);
+    if (!isoTimestamp(item.sourceTime)) errors.push(`Candle ${index} has an invalid source timestamp.`);
     const prices = [item.open, item.high, item.low, item.close];
     if (
       prices.some((price) => !positive(price)) ||
@@ -137,7 +142,7 @@ export function validateMT5IngestBatch(value: unknown): MT5BatchValidation {
     if (
       validInstrument && nonEmpty(item.brokerSymbol) &&
       TIMEFRAMES.has(item.timeframe as MarketDataTimeframe) &&
-      nonEmpty(item.sourceTime) && Number.isFinite(Date.parse(item.sourceTime)) &&
+      isoTimestamp(item.sourceTime) &&
       prices.every(positive) && finite(item.tickVolume) && item.tickVolume >= 0 &&
       nullableNonNegative(item.realVolume) && nullableNonNegative(item.spreadPoints) &&
       typeof item.provisional === "boolean"
