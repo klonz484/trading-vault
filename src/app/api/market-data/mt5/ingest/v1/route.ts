@@ -3,7 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { validateMT5IngestBatch, type MT5IngestBatch } from "@/lib/market-data/mt5-ingest";
 
-export const runtime = "nodejs";
 export const maxDuration = 20;
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024;
