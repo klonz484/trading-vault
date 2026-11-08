@@ -59,7 +59,8 @@ BEGIN
     RETURN false;
   END IF;
 
-  IF p_window_seconds < 1 OR p_window_seconds > 3600
+  IF p_window_seconds IS NULL OR p_max_requests IS NULL
+     OR p_window_seconds < 1 OR p_window_seconds > 3600
      OR p_max_requests < 1 OR p_max_requests > 100 THEN
     RAISE EXCEPTION 'Invalid scanner rate-limit parameters';
   END IF;
