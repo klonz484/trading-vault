@@ -51,16 +51,16 @@ const scannerRateLimit = fs.readFileSync(
 );
 
 test("scanner rate-limit migration uses invoker rights and user-scoped RLS", () => {
-  assert.match(scannerRateLimit, /CREATE TABLE IF NOT EXISTS public\\.scanner_rate_limit_events/);
-  assert.match(scannerRateLimit, /ALTER TABLE public\\.scanner_rate_limit_events ENABLE ROW LEVEL SECURITY/);
-  assert.match(scannerRateLimit, /FOR SELECT[\\s\\S]*?USING \\(\\(SELECT auth\\.uid\\(\\)\\) = user_id\\)/);
-  assert.match(scannerRateLimit, /FOR INSERT[\\s\\S]*?WITH CHECK/);
-  assert.match(scannerRateLimit, /FOR DELETE[\\s\\S]*?created_at < pg_catalog\\.now\\(\\) - interval '1 hour'/);
+  assert.match(scannerRateLimit, /CREATE TABLE IF NOT EXISTS public\.scanner_rate_limit_events/);
+  assert.match(scannerRateLimit, /ALTER TABLE public\.scanner_rate_limit_events ENABLE ROW LEVEL SECURITY/);
+  assert.match(scannerRateLimit, /FOR SELECT[\s\S]*?USING \(\(SELECT auth\.uid\(\)\) = user_id\)/);
+  assert.match(scannerRateLimit, /FOR INSERT[\s\S]*?WITH CHECK/);
+  assert.match(scannerRateLimit, /FOR DELETE[\s\S]*?created_at < pg_catalog\.now\(\) - interval '1 hour'/);
   assert.match(scannerRateLimit, /SECURITY INVOKER/);
   assert.doesNotMatch(scannerRateLimit, /SECURITY DEFINER/);
-  assert.match(scannerRateLimit, /pg_catalog\\.pg_advisory_xact_lock/);
-  assert.match(scannerRateLimit, /ON CONFLICT|INSERT INTO public\\.scanner_rate_limit_events/);
-  assert.match(scannerRateLimit, /GRANT EXECUTE ON FUNCTION public\\.consume_scanner_rate_limit\\(integer, integer\\) TO authenticated/);
+  assert.match(scannerRateLimit, /pg_catalog\.pg_advisory_xact_lock/);
+  assert.match(scannerRateLimit, /INSERT INTO public\.scanner_rate_limit_events/);
+  assert.match(scannerRateLimit, /GRANT EXECUTE ON FUNCTION public\.consume_scanner_rate_limit\(integer, integer\) TO authenticated/);
   assert.match(scannerRateLimit, /FROM PUBLIC, anon/);
-  assert.match(scannerRateLimit, /GRANT SELECT, INSERT, DELETE ON TABLE public\\.scanner_rate_limit_events TO authenticated/);
+  assert.match(scannerRateLimit, /GRANT SELECT, INSERT, DELETE ON TABLE public\.scanner_rate_limit_events TO authenticated/);
 });
