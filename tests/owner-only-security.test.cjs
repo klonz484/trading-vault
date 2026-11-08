@@ -102,3 +102,13 @@ test("scanner rejects oversized requests and verifies actual image signatures", 
   assert.match(scannerRouteSource, /String\.fromCharCode\(\.\.\.bytes\.slice\(0, 4\)\) === "RIFF"/);
   assert.match(scannerRouteSource, /!hasValidImageSignature\(image\.type, imageBytes\)/);
 });
+
+test("password recovery callback accepts both PKCE codes and recovery token hashes", () => {
+  assert.match(authCallbackSource, /url\.searchParams\.get\("code"\)/);
+  assert.match(authCallbackSource, /url\.searchParams\.get\("token_hash"\)/);
+  assert.match(authCallbackSource, /otpType === "recovery"/);
+  assert.match(authCallbackSource, /exchangeCodeForSession\(code\)/);
+  assert.match(authCallbackSource, /verifyOtp\([\s\S]*?type: "recovery"/);
+  assert.match(authCallbackSource, /password_reset_failed/);
+  assert.match(authFormSource, /case "password_reset_failed"/);
+});

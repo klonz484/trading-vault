@@ -22,6 +22,8 @@ export default function AuthForm() {
         return "Owner access has not been configured for this deployment yet.";
       case "sign_in_required":
         return "Please sign in with the owner account to continue.";
+      case "password_reset_failed":
+        return "That password-reset link could not be verified. Request a fresh link and open the newest email.";
       default:
         return "";
     }
