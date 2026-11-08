@@ -4,7 +4,7 @@ import { parseScannerSummary } from "@/lib/scanner/summary";
 
 export const maxDuration = 60;
 
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 const EXTENSIONS: Record<string, string> = {
   "image/png": "png",
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
 
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (Number.isFinite(contentLength) && contentLength > MAX_IMAGE_BYTES + 64 * 1024) {
-    return jsonError("The upload is larger than the 10 MB limit.", 413);
+    return jsonError("The upload is larger than the 4 MB limit.", 413);
   }
 
   let formData: FormData;
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
     return jsonError("Unsupported image type. Use PNG, JPG, or WebP.", 415);
   }
   if (image.size === 0 || image.size > MAX_IMAGE_BYTES) {
-    return jsonError("The image must be between 1 byte and 10 MB.", 413);
+    return jsonError("The image must be between 1 byte and 4 MB.", 413);
   }
 
   const imageBytes = new Uint8Array(await image.arrayBuffer());
