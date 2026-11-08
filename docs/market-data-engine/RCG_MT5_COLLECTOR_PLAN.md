@@ -74,7 +74,7 @@ Compile with the terminal's MetaEditor for this exact MT5 environment. First run
 - [ ] Production deployment includes the merged ingestion and credential routes.
 - [ ] Server-only `SUPABASE_SERVICE_ROLE_KEY` is configured in Vercel; never expose it to the EA or browser.
 - [ ] Owner-only credential issuance is tested after deployment; issue one RCG token bound to one stable terminal-instance ID.
-- [ ] Written broker permission for the intended collection/transmission use is obtained.
+- [x] User confirms RCG Markets has approved the full intended scope: MT5 EA read-only collection, transmission to the private Trading Vault server, and use by other Trading Vault users. Approval is recorded here as user-confirmed; retain the broker's original approval correspondence/reference in the project evidence folder when available.
 - [ ] EA source is reviewed to verify the absence of trading/account-management operations.
 - [ ] EA compiles under the user's MT5 build 6257.
 - [ ] Local durable queue, exact-body retry, and cursor recovery are tested under forced disconnect/restart.
@@ -86,6 +86,6 @@ Compile with the terminal's MetaEditor for this exact MT5 environment. First run
 
 - Vercel previously rejected production deployment creation with HTTP 402 because the daily deployment API limit had been exceeded; retry was requested after 24 hours. This is a platform limit, not a code or MT5-build failure.
 - The production Vercel environment did not contain `SUPABASE_SERVICE_ROLE_KEY` at the last read-only check.
-- Broker permission for exporting/transmitting the feed has not been confirmed in writing.
+- Broker permission is no longer treated as an open blocker: the user confirmed RCG Markets approved collection, server transmission, and multi-user Trading Vault use. Preserve the original approval evidence and check any scope, account-type, instrument, or redistribution conditions against the implementation before public launch.
 - No connector token has been issued, no EA has been installed or enabled, and no market data has been transmitted.
 - This preparation does not authorize a funded account, trade execution, public data redistribution, paid service, or changes to production configuration.
