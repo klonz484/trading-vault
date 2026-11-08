@@ -83,3 +83,21 @@ test("login and auth callback both use same-origin redirect validation", () => {
   assert.doesNotMatch(authFormSource, /next\?\.startsWith\("\/"\)/);
   assert.doesNotMatch(authCallbackSource, /next\?\.startsWith\("\/"\)/);
 });
+
+
+test("scanner analysis applies an atomic per-user rate limit before provider usage", () => {
+  assert.match(scannerRouteSource, /supabase\.rpc\(\s*"consume_scanner_rate_limit"/);
+  assert.match(scannerRouteSource, /p_window_seconds: 60, p_max_requests: 5/);
+  assert.match(scannerRouteSource, /if \(rateLimitError\)[\s\S]*?status: 503/);
+  assert.match(scannerRouteSource, /if \(withinRateLimit !== true\)[\s\S]*?status: 429/);
+  assert.ok(scannerRouteSource.indexOf('"consume_scanner_rate_limit"') < scannerRouteSource.indexOf('process.env.GROQ_API_KEY'));
+});
+
+test("scanner rejects oversized requests and verifies actual image signatures", () => {
+  assert.match(scannerRouteSource, /content-length/);
+  assert.match(scannerRouteSource, /MAX_IMAGE_BYTES \+ 64 \* 1024/);
+  assert.match(scannerRouteSource, /function hasValidImageSignature/);
+  assert.match(scannerRouteSource, /bytes\[0\] === 0xff/);
+  assert.match(scannerRouteSource, /String\.fromCharCode\(\.\.\.bytes\.slice\(0, 4\)\) === "RIFF"/);
+  assert.match(scannerRouteSource, /!hasValidImageSignature\(image\.type, imageBytes\)/);
+});
