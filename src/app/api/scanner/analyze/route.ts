@@ -68,6 +68,25 @@ function auditTradePlans(analysis: string, symbol: string): PlanAudit[] {
   return audits;
 }
 
+
+function hasValidImageSignature(type: string, bytes: Uint8Array): boolean {
+  if (type === "image/png") {
+    return bytes.length >= 8 &&
+      bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e &&
+      bytes[3] === 0x47 && bytes[4] === 0x0d && bytes[5] === 0x0a &&
+      bytes[6] === 0x1a && bytes[7] === 0x0a;
+  }
+  if (type === "image/jpeg") {
+    return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  }
+  if (type === "image/webp") {
+    return bytes.length >= 12 &&
+      String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+      String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
+  }
+  return false;
+}
+
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
@@ -94,12 +113,31 @@ export async function POST(request: Request) {
     return jsonError("This Trading Vault workspace is restricted to its owner.", 403);
   }
 
+  // Use a database-backed atomic counter so limits apply across serverless instances.
+  // Fail closed if the migration/RPC is unavailable; do not silently disable abuse protection.
+  const { data: withinRateLimit, error: rateLimitError } = await supabase.rpc(
+    "consume_scanner_rate_limit",
+    { p_window_seconds: 60, p_max_requests: 5 },
+  );
+  if (rateLimitError) {
+    console.error("Scanner rate-limit check failed:", rateLimitError.message);
+    return jsonError("Chart analysis is temporarily unavailable. Please try again shortly.", 503);
+  }
+  if (withinRateLimit !== true) {
+    return jsonError("You have reached the chart-analysis limit. Please wait one minute and try again.", 429);
+  }
+
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return jsonError(
       "Chart Scanner is not connected yet. Add GROQ_API_KEY to your server environment and restart the app.",
       503,
     );
+  }
+
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (Number.isFinite(contentLength) && contentLength > MAX_IMAGE_BYTES + 64 * 1024) {
+    return jsonError("The upload is larger than the 10 MB limit.", 413);
   }
 
   let formData: FormData;
@@ -123,6 +161,11 @@ export async function POST(request: Request) {
   if (image.size === 0 || image.size > MAX_IMAGE_BYTES) {
     return jsonError("The image must be between 1 byte and 10 MB.", 413);
   }
+
+  const imageBytes = new Uint8Array(await image.arrayBuffer());
+  if (!hasValidImageSignature(image.type, imageBytes)) {
+    return jsonError("The uploaded file does not match its declared image type.", 415);
+  }
   if (!/^[A-Z0-9_]{3,20}$/.test(symbol)) {
     return jsonError("Use a valid instrument symbol containing 3–20 letters, numbers, or underscores.", 400);
   }
@@ -132,8 +175,6 @@ export async function POST(request: Request) {
 
   const scanId = crypto.randomUUID();
   const imagePath = `${user.id}/${scanId}.${EXTENSIONS[image.type]}`;
-  const imageBytes = new Uint8Array(await image.arrayBuffer());
-
   const { error: uploadError } = await supabase.storage
     .from("chart-images")
     .upload(imagePath, imageBytes, {
