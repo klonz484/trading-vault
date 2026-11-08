@@ -10,9 +10,9 @@ function loadModule(relativePath) {
   const javascript = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
-  const module = { exports: {} };
-  new Function("require", "module", "exports", javascript)(require, module, module.exports);
-  return module.exports;
+  const testModule = { exports: {} };
+  new Function("require", "module", "exports", javascript)(require, testModule, testModule.exports);
+  return testModule.exports;
 }
 
 const { canDisplayMarketPrices } = loadModule("src/lib/market-data/readiness.ts");
