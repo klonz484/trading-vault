@@ -62,3 +62,12 @@ Before any terminal can send data, the owner must separately approve and complet
 7. Test disconnects, durable local queue recovery, retries, duplicate acknowledgement, stale data and broker symbol aliases before enabling live collection.
 
 No MT5 terminal has been connected and no market data has been transmitted by this implementation.
+
+
+## Owner-only credential lifecycle API
+
+`POST /api/market-data/mt5/credentials` issues a cryptographically random 256-bit token for one broker/terminal pair. It requires an authenticated owner session and the configured `TRADING_VAULT_OWNER_USER_ID`. The token hash is stored; the raw token is returned once and must be copied into the local terminal's secret configuration. The default expiry is 90 days; the owner may request 1–365 days.
+
+`PATCH /api/market-data/mt5/credentials` revokes an active credential by its credential UUID. Revocation is owner-scoped and immediately prevents subsequent ingest authentication.
+
+The API does not list or reveal existing tokens. Issuing a replacement for an active broker/terminal pair returns HTTP 409; revoke the old credential first. Both operations require the staged private connector migration and server-only service-role key. Creating credentials does not enable data collection, connect a terminal, or establish broker permission.
