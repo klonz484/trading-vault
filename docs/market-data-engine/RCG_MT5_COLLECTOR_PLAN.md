@@ -1,6 +1,6 @@
 # RCG Markets MT5 collector — implementation plan
 
-**Status:** preparation only; not installed, compiled, or enabled.  
+**Status:** initial symbol-discovery scaffold compiled cleanly and passed a supervised RCG demo dry-run on 2026-11-09; local candle/tick queue prototype is now in development. No transmission has occurred.  
 **Target terminal:** MetaTrader 5 build 6257 on Debian 13 x86-64 (Wine environment).  
 **Broker identity:** `RCG_MARKETS` only.  
 **Execution policy:** read-only market-data collection; no trading or account-management actions.
@@ -76,7 +76,7 @@ Compile with the terminal's MetaEditor for this exact MT5 environment. First run
 - [ ] Owner-only credential issuance is tested after deployment; issue one RCG token bound to one stable terminal-instance ID.
 - [x] User confirms RCG Markets has approved the full intended scope: MT5 EA read-only collection, transmission to the private Trading Vault server, and use by other Trading Vault users. Approval is recorded here as user-confirmed; retain the broker's original approval correspondence/reference in the project evidence folder when available.
 - [ ] EA source is reviewed to verify the absence of trading/account-management operations.
-- [ ] EA compiles under the user's MT5 build 6257.
+- [x] Initial symbol-discovery scaffold compiles under the user's MT5 build 6257 with 0 errors and 0 warnings (version 1.00).\n- [ ] Local collection/queue prototype compiles under the user's MT5 build 6257 and passes the queue validation procedure.
 - [ ] Local durable queue, exact-body retry, and cursor recovery are tested under forced disconnect/restart.
 - [ ] WebRequest allowlist and HTTPS endpoint are tested.
 - [ ] First transmitted batch is a small, supervised demo-account test and receives a durable server acknowledgement.
@@ -87,5 +87,5 @@ Compile with the terminal's MetaEditor for this exact MT5 environment. First run
 - Vercel previously rejected production deployment creation with HTTP 402 because the daily deployment API limit had been exceeded; retry was requested after 24 hours. This is a platform limit, not a code or MT5-build failure.
 - The production Vercel environment did not contain `SUPABASE_SERVICE_ROLE_KEY` at the last read-only check.
 - Broker permission is no longer treated as an open blocker: the user confirmed RCG Markets approved collection, server transmission, and multi-user Trading Vault use. Preserve the original approval evidence and check any scope, account-type, instrument, or redistribution conditions against the implementation before public launch.
-- No connector token has been issued, no EA has been installed or enabled, and no market data has been transmitted.
+- The initial read-only symbol-discovery scaffold was attached only to the RCG demo EURUSD M15 chart for a supervised dry-run, then removed. The Experts log confirmed repeated dryRun=true scans, 136 visible symbols, and exact symbol/tick availability for all eight canonical instruments.\n- No connector token has been issued and no market data has been transmitted. The local queue prototype is not yet compiled or installed.
 - This preparation does not authorize a funded account, trade execution, public data redistribution, paid service, or changes to production configuration.
