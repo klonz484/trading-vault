@@ -59,3 +59,27 @@ test("chart analysis API independently enforces the configured owner identity", 
   assert.match(scannerRouteSource, /if \(user\.id !== ownerUserId\)[\s\S]*?jsonError\([^\n]*, 403\)/);
   assert.ok(scannerRouteSource.indexOf("user.id !== ownerUserId") < scannerRouteSource.indexOf("process.env.GROQ_API_KEY"));
 });
+
+const safeRedirectPath = path.join(process.cwd(), "src", "lib", "auth", "safe-redirect.ts");
+const safeRedirectSource = fs.readFileSync(safeRedirectPath, "utf8");
+const authFormSource = fs.readFileSync(
+  path.join(process.cwd(), "src", "components", "AuthForm.tsx"),
+  "utf8",
+);
+const authCallbackSource = fs.readFileSync(
+  path.join(process.cwd(), "src", "app", "auth", "callback", "route.ts"),
+  "utf8",
+);
+
+test("safe redirect rejects protocol-relative and backslash URL tricks", () => {
+  assert.match(safeRedirectSource, /value\.startsWith\("\/\/"\)/);
+  assert.match(safeRedirectSource, /value\.includes\("\\\\"\)/);
+  assert.match(safeRedirectSource, /target\.origin !== expectedOrigin/);
+});
+
+test("login and auth callback both use same-origin redirect validation", () => {
+  assert.match(authFormSource, /safeInternalRedirect\(searchParams\.get\("next"\), window\.location\.origin\)/);
+  assert.match(authCallbackSource, /safeInternalRedirect\(url\.searchParams\.get\("next"\), url\.origin\)/);
+  assert.doesNotMatch(authFormSource, /next\?\.startsWith\("\/"\)/);
+  assert.doesNotMatch(authCallbackSource, /next\?\.startsWith\("\/"\)/);
+});
