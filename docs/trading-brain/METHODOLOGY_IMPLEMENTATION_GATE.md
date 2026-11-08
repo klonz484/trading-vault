@@ -39,3 +39,29 @@ The following must be formalised and validated before directional assessments ar
 ## Next engineering stage
 
 Translate the approved Trading Vault methodology decisions into a versioned, measurable rule specification. For each rule, define inputs, confirmation state, thresholds or formula, invalidation, contrary evidence, output explanation, and positive/negative test cases. Only then implement the rule modules and replay them against reviewed historical chart cases.
+
+
+## Development progress update — 8 November 2026
+
+The following engineering foundations have since been added on the Trading Brain development branch:
+
+- Dependency-aware execution planning and specialist orchestration with fail-closed lifecycle and evidence checks.
+- Conditional scenario validation for strategy-supplied trigger, entry reference, invalidation, source provenance and expiry.
+- Independent CURRENT and SESSION scenario tracks using the existing signal lifecycle guard.
+- Separate internal 2/2 and external 5/5 closed-candle swing assessments. External structure remains primary; internal disagreement is exposed as a challenge.
+- Strict evidence-quality and market-structure module contracts with explicit policies rather than hidden thresholds.
+- Automated tests for orchestration, scenarios, structure hierarchy, evidence gates and signal lifecycle.
+
+**These are implementation foundations, not methodology certification.** The market-structure module can identify local swing and close-break candidates, but it does not yet certify BOS/CHoCH/MSS, displacement, liquidity sweeps, FVG/order-block qualification or a trade setup. The hierarchy wrapper also requires explicit swing-spacing and break-buffer calibration inputs. The full directional Brain remains fail-closed.
+
+## Remaining closure gates
+
+1. Finalize instrument/timeframe calibration with reviewed EURUSD and XAUUSD datasets.
+2. Implement and test displacement, liquidity sweep/reclaim, FVG and order-block predicates with explicit formulas and contrary evidence.
+3. Complete multi-timeframe alignment, session/volatility context and setup qualification.
+4. Complete deterministic risk geometry with instrument-specific precision, spread and slippage constraints.
+5. Build chronological replay, out-of-sample review, no-look-ahead checks and regression certification.
+6. Complete independent human review and owner approval before any skill is promoted to influence collaborative decisions.
+7. Verify live market-data rights and quality before Scanner/Brain integration is enabled.
+
+Until these gates close, do not label the Brain directionally operational, calibrated, accurate or production-ready.
