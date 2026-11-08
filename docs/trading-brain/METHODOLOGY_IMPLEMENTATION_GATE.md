@@ -1,6 +1,6 @@
 # Trading Brain methodology implementation gate
 
-**Branch:** `feat/trading-brain-foundation`  
+**Branch:** `build/trading-brain-orchestration-v1`  
 **Status:** Open engineering gate; no directional Brain analysis is enabled.
 
 ## What is implemented
@@ -38,7 +38,7 @@ The following must be formalised and validated before directional assessments ar
 
 ## Next engineering stage
 
-Translate the approved Trading Vault methodology decisions into a versioned, measurable rule specification. For each rule, define inputs, confirmation state, thresholds or formula, invalidation, contrary evidence, output explanation, and positive/negative test cases. Only then implement the rule modules and replay them against reviewed historical chart cases.
+Use `docs/trading-brain/METHODOLOGY_RULE_SPEC_V1.md` as the versioned rule-contract baseline. Complete its calibration register with reviewed EURUSD/XAUUSD data, then implement each predicate with positive, negative, boundary and replay tests. Do not fill unresolved numeric parameters with guessed defaults.
 
 
 ## Development progress update — 8 November 2026
