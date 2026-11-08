@@ -272,3 +272,66 @@ test("service withholds all analytical candles when series validation fails", as
     else process.env.TWELVE_DATA_API_KEY = previousKey;
   }
 });
+
+
+test("accepts consecutive descending M15 candles without false interval gaps", () => {
+  const newest = candle({
+    timeframe: "M15",
+    timestamp: "2026-11-06T12:30:00.000Z",
+  });
+  const middle = candle({
+    timeframe: "M15",
+    timestamp: "2026-11-06T12:15:00.000Z",
+  });
+  const oldest = candle({
+    timeframe: "M15",
+    timestamp: "2026-11-06T12:00:00.000Z",
+  });
+  const result = validateCandles([newest, middle, oldest], {
+    now: new Date("2026-11-06T12:31:00.000Z"),
+    maxAgeSeconds: 3600,
+    timeframe: "M15",
+  });
+  assert.equal(result.missingIntervals.length, 0);
+  assert.equal(result.errors.length, 0);
+  assert.equal(result.status, "READY");
+});
+
+test("continues to report a genuine missing M15 interval", () => {
+  const newest = candle({
+    timeframe: "M15",
+    timestamp: "2026-11-06T12:30:00.000Z",
+  });
+  const older = candle({
+    timeframe: "M15",
+    timestamp: "2026-11-06T12:00:00.000Z",
+  });
+  const result = validateCandles([newest, older], {
+    now: new Date("2026-11-06T12:31:00.000Z"),
+    maxAgeSeconds: 3600,
+    timeframe: "M15",
+  });
+  assert.equal(result.missingIntervals.length, 1);
+  assert.equal(result.errors.length, 0);
+  assert.equal(result.status, "READY");
+});
+
+test("rejects candle metadata that conflicts with the requested timeframe", () => {
+  const result = validateCandles([
+    candle({
+      timeframe: "M1",
+      timestamp: "2026-11-06T12:30:00.000Z",
+    }),
+    candle({
+      timeframe: "M1",
+      timestamp: "2026-11-06T12:15:00.000Z",
+    }),
+  ], {
+    now: new Date("2026-11-06T12:31:00.000Z"),
+    maxAgeSeconds: 3600,
+    timeframe: "M15",
+  });
+  assert.ok(result.errors.some((entry) => entry.includes("does not match requested timeframe M15")));
+  assert.equal(result.status, "INCOMPLETE");
+  assert.equal(result.eligibleCandleCount, 0);
+});

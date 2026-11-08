@@ -47,7 +47,7 @@ export function isCandleStructurallyValid(candle: NormalizedCandle): boolean {
  */
 export function validateCandles(
   candles: NormalizedCandle[],
-  options: { maxAgeSeconds?: number; now?: Date } = {},
+  options: { maxAgeSeconds?: number; now?: Date; timeframe?: MarketDataTimeframe } = {},
 ): CandleValidation {
   const now = options.now ?? new Date();
   const checkedAt = Number.isFinite(now.getTime()) ? now.toISOString() : new Date(0).toISOString();
@@ -64,9 +64,10 @@ export function validateCandles(
   if (candles.length === 0) errors.push("Provider returned no candle observations.");
 
   const firstTimeframe = candles[0]?.timeframe;
+  const expectedTimeframe = options.timeframe ?? firstTimeframe;
   const firstInstrument = candles[0]?.instrument;
   const firstProvider = candles[0]?.provider;
-  const intervalSeconds = firstTimeframe ? TIMEFRAME_SECONDS[firstTimeframe] : null;
+  const intervalSeconds = expectedTimeframe ? TIMEFRAME_SECONDS[expectedTimeframe] : null;
   let previousTimestamp: number | null = null;
   let sourceOrder: "ASC" | "DESC" | null = null;
 
@@ -90,7 +91,7 @@ export function validateCandles(
         }
         if (
           intervalSeconds !== null &&
-          Math.abs(timestampMs - previousTimestamp) > intervalSeconds * 1.5
+          Math.abs(timestampMs - previousTimestamp) > intervalSeconds * 1000 * 1.5
         ) {
           missingIntervals.push(
             `${new Date(previousTimestamp).toISOString()} <-> ${candle.timestamp}`,
@@ -102,8 +103,12 @@ export function validateCandles(
 
     if (seen.has(candle.timestamp)) duplicateTimestamps.push(candle.timestamp);
     seen.add(candle.timestamp);
-    if (candle.timeframe !== firstTimeframe) {
-      errors.push("Mixed timeframe observations were returned in one series.");
+    if (candle.timeframe !== expectedTimeframe) {
+      errors.push(
+        options.timeframe
+          ? `Candle timeframe ${candle.timeframe} does not match requested timeframe ${options.timeframe}.`
+          : "Mixed timeframe observations were returned in one series.",
+      );
     }
     if (candle.instrument !== firstInstrument) {
       errors.push("Mixed instrument observations were returned in one series.");
