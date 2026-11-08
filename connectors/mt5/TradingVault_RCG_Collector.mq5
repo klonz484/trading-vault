@@ -39,10 +39,6 @@ string TimeframeName(const ENUM_TIMEFRAMES timeframe)
    return "UNSUPPORTED";
 }
 
-bool IsVisibleSymbol(const string symbol)
-{
-   return SymbolSelect(symbol, false) || SymbolInfoInteger(symbol, SYMBOL_SELECT);
-}
 
 // Deliberately conservative: only exact symbol matches are auto-mapped.
 // Suffix/prefix variants are reported for manual review and never guessed.
@@ -69,11 +65,12 @@ void ScanSymbols()
             exactMatches++;
             MqlTick tick;
             const bool hasTick = SymbolInfoTick(brokerSymbol, tick);
+            const int symbolDigits = (int)SymbolInfoInteger(brokerSymbol, SYMBOL_DIGITS);
             Print("TV_RCG_SYMBOL; canonical=", canonical,
                   "; brokerSymbol=", brokerSymbol,
                   "; exact=true; tickAvailable=", (hasTick ? "true" : "false"),
-                  "; bid=", (hasTick ? DoubleToString(tick.bid, _Digits) : "n/a"),
-                  "; ask=", (hasTick ? DoubleToString(tick.ask, _Digits) : "n/a"));
+                  "; bid=", (hasTick ? DoubleToString(tick.bid, symbolDigits) : "n/a"),
+                  "; ask=", (hasTick ? DoubleToString(tick.ask, symbolDigits) : "n/a"));
          }
       }
 
