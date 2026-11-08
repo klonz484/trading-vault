@@ -212,25 +212,44 @@ void CollectAndQueue()
          datetime previousTime = (datetime)ReadCursor(cursorKey);
          MqlRates rates[];
          ArraySetAsSeries(rates, false);
-         int copied = CopyRates(canonical, g_timeframes[t], 1, 1, rates);
-         if(copied != 1) continue;
-         if(rates[0].time <= previousTime) continue;
+         datetime fromTime = (previousTime > 0 ? previousTime + 1 : 0);
+         int copied = 0;
+         if(fromTime > 0)
+            copied = CopyRates(canonical, g_timeframes[t], fromTime, TimeCurrent(), rates);
+         else
+            copied = CopyRates(canonical, g_timeframes[t], 1, 1, rates);
+         if(copied <= 0) continue;
 
-         if(candleCount > 0) candlesJson += ",";
-         candlesJson += "{\"instrument\":\"" + canonical +
-            "\",\"brokerSymbol\":\"" + JsonEscape(canonical) +
-            "\",\"timeframe\":\"" + tf +
-            "\",\"sourceTime\":\"" + FormatIsoServerTime(rates[0].time) +
-            "\",\"open\":" + DoubleToString(rates[0].open, digits) +
-            ",\"high\":" + DoubleToString(rates[0].high, digits) +
-            ",\"low\":" + DoubleToString(rates[0].low, digits) +
-            ",\"close\":" + DoubleToString(rates[0].close, digits) +
-            ",\"tickVolume\":" + StringFormat("%I64d", rates[0].tick_volume) +
-            ",\"realVolume\":" + StringFormat("%I64d", rates[0].real_volume) +
-            ",\"spreadPoints\":" + IntegerToString(rates[0].spread) +
-            ",\"provisional\":false}";
-         candleCount++;
-         StageCandleCursor(cursorKey, rates[0].time);
+         // Exclude the still-forming candle and cap each timeframe slice.
+         datetime formingBarTime = iTime(canonical, g_timeframes[t], 0);
+         int takeRates = copied;
+         if(takeRates > 50) takeRates = 50;
+         datetime maxCandleTime = previousTime;
+         for(int r = 0; r < takeRates; r++)
+         {
+            if(rates[r].time <= previousTime || rates[r].time >= formingBarTime) continue;
+            if(candleCount > 0) candlesJson += ",";
+            candlesJson += "{\"instrument\":\"" + canonical +
+               "\",\"brokerSymbol\":\"" + JsonEscape(canonical) +
+               "\",\"timeframe\":\"" + tf +
+               "\",\"sourceTime\":\"" + FormatIsoServerTime(rates[r].time) +
+               "\",\"open\":" + DoubleToString(rates[r].open, digits) +
+               ",\"high\":" + DoubleToString(rates[r].high, digits) +
+               ",\"low\":" + DoubleToString(rates[r].low, digits) +
+               ",\"close\":" + DoubleToString(rates[r].close, digits) +
+               ",\"tickVolume\":" + StringFormat("%I64d", rates[r].tick_volume) +
+               ",\"realVolume\":" + StringFormat("%I64d", rates[r].real_volume) +
+               ",\"spreadPoints\":" + IntegerToString(rates[r].spread) +
+               ",\"provisional\":false}";
+            candleCount++;
+            if(rates[r].time > maxCandleTime) maxCandleTime = rates[r].time;
+         }
+         if(maxCandleTime > previousTime) StageCandleCursor(cursorKey, maxCandleTime);
+         if(copied > takeRates)
+            Print("TV_RCG_CANDLE_BACKLOG; symbol=", canonical,
+                  "; timeframe=", tf, "; copied=", copied,
+                  "; queuedThisScan=", takeRates,
+                  "; remaining candles will be collected in later scans");
       }
 
       // Copy a bounded incremental slice of ticks. Cursor advances only after
