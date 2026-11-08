@@ -20,6 +20,36 @@ function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
+async function readBodyLimited(request: Request): Promise<{ body: string | null; tooLarge: boolean }> {
+  if (!request.body) return { body: null, tooLarge: false };
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_BODY_BYTES) {
+        await reader.cancel();
+        return { body: null, tooLarge: true };
+      }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return { body: new TextDecoder("utf-8", { fatal: true }).decode(bytes), tooLarge: false };
+  } catch {
+    return { body: null, tooLarge: false };
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 /**
  * Private, credential-scoped MT5 ingestion endpoint.
  * Requires the staged migration and a server-only Supabase service-role key.
@@ -38,15 +68,14 @@ export async function POST(request: Request) {
     return response({ error: "The ingest batch exceeds the 5 MB limit." }, 413);
   }
 
-  let rawBody: string;
-  try {
-    rawBody = await request.text();
-  } catch {
-    return response({ error: "The ingest request body could not be read." }, 400);
-  }
-  if (Buffer.byteLength(rawBody, "utf8") > MAX_BODY_BYTES) {
+  const readResult = await readBodyLimited(request);
+  if (readResult.tooLarge) {
     return response({ error: "The ingest batch exceeds the 5 MB limit." }, 413);
   }
+  if (readResult.body === null) {
+    return response({ error: "The ingest request body could not be read as valid UTF-8." }, 400);
+  }
+  const rawBody = readResult.body;
 
   let payload: unknown;
   try {
