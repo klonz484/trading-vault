@@ -195,7 +195,6 @@ void CollectAndQueue()
    string ticksJson = "";
    int candleCount = 0;
    int tickCount = 0;
-   int exactMatches = 0;
 
    for(int i = 0; i < ArraySize(g_canonical); i++)
    {
@@ -208,7 +207,6 @@ void CollectAndQueue()
          string brokerSymbol = SymbolName(s, false);
          if(brokerSymbol != canonical) continue;
          found = true;
-         exactMatches++;
          break;
       }
 
@@ -285,7 +283,6 @@ void CollectAndQueue()
       long packedCursor = (long)ReadCursor(tickCursorKey);
       long previousTickMs = 0;
       int previousOrdinal = 0;
-      bool cursorReady = true;
 
       if(packedCursor > 0)
       {
@@ -321,13 +318,7 @@ void CollectAndQueue()
          }
       }
 
-      if(!cursorReady)
-      {
-         Print("TV_RCG_TICK_CURSOR_NOT_READY; symbol=", canonical,
-               "; hardStop=true; cursor_not_advanced=true");
-      }
-      else if(previousOrdinal >= InpMaxTickCursorPrefix ||
-         previousOrdinal + InpMaxTicksPerSymbolPerScan > InpMaxTickCursorPrefix)
+      if(previousOrdinal > InpMaxTickCursorPrefix)
       {
          Print("TV_RCG_TICK_CURSOR_PREFIX_LIMIT; symbol=", canonical,
                "; committedOrdinal=", previousOrdinal,
@@ -412,16 +403,19 @@ void CollectAndQueue()
                if(finalTickMs == previousTickMs)
                   finalTimestampOrdinal += previousOrdinal;
 
+               bool invalidTickSeen = false;
                for(int k = firstUncommitted; k < firstUncommitted + take; k++)
                {
-                  // Advance through the ordered source stream even if a malformed
-                  // quote is omitted from the JSON payload; log the omission.
+                  // Do not commit this symbol's cursor if any source observation
+                  // in the page is malformed. Valid records may be spooled, but
+                  // will be replayed on the next scan rather than skipping the bad one.
                   if(ticks[k].bid <= 0.0 || ticks[k].ask <= 0.0 ||
                      ticks[k].ask < ticks[k].bid)
                   {
+                     invalidTickSeen = true;
                      Print("TV_RCG_TICK_OBSERVATION_SKIPPED; symbol=", canonical,
                            "; sourceTimeMs=", (long)ticks[k].time_msc,
-                           "; reason=invalid_bid_ask");
+                           "; reason=invalid_bid_ask; cursor_not_advanced=true");
                      continue;
                   }
 
@@ -439,13 +433,19 @@ void CollectAndQueue()
                }
 
                long newPackedCursor = finalTickMs * TICK_CURSOR_RADIX + finalTimestampOrdinal;
-               if(finalTimestampOrdinal >= TICK_CURSOR_RADIX ||
+               if(finalTimestampOrdinal > InpMaxTickCursorPrefix ||
+                  finalTimestampOrdinal >= TICK_CURSOR_RADIX ||
                   newPackedCursor > 9007199254740991)
                {
                   Print("TV_RCG_TICK_CURSOR_UNSAFE_VALUE; symbol=", canonical,
                         "; finalTimestampMs=", finalTickMs,
                         "; finalOrdinal=", finalTimestampOrdinal,
                         "; cursor_not_advanced=true");
+               }
+               else if(invalidTickSeen)
+               {
+                  Print("TV_RCG_TICK_PAGE_INVALID; symbol=", canonical,
+                        "; cursor_not_advanced=true; valid_records_may_be_replayed=true");
                }
                else
                {
