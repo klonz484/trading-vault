@@ -137,3 +137,18 @@ test("malformed tick observations prevent cursor advancement for that symbol pag
   assert.match(source, /if\(invalidTickSeen\)/);
   assert.match(source, /cursor_not_advanced=true; valid_records_may_be_replayed=true/);
 });
+
+test("EA emits server/UTC clock and per-symbol candle/tick freshness diagnostics", () => {
+  assert.match(source, /TV_RCG_CLOCK_DIAGNOSTIC/);
+  assert.match(source, /TimeTradeServer\(\)/);
+  assert.match(source, /TimeCurrent\(\)/);
+  assert.match(source, /TimeGMT\(\)/);
+  assert.match(source, /TV_RCG_CANDLE_WINDOW/);
+  assert.match(source, /oldestReturned=/);
+  assert.match(source, /newestReturned=/);
+  assert.match(source, /TV_RCG_TICK_WINDOW/);
+  assert.match(source, /oldestReturnedMs=/);
+  assert.match(source, /newestReturnedMs=/);
+  assert.match(source, /pageFull=/);
+  assert.match(source, /latestTickVsServerNowMs=/);
+});
