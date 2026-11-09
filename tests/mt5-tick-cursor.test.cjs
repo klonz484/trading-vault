@@ -152,3 +152,10 @@ test("EA emits server/UTC clock and per-symbol candle/tick freshness diagnostics
   assert.match(source, /pageFull=/);
   assert.match(source, /latestTickVsServerNowMs=/);
 });
+
+test("server-time calculations do not use the potentially stale last-quote clock", () => {
+  assert.match(source, /TimeTradeServer\(\) - TimeGMT\(\)/);
+  assert.match(source, /CopyRates\(canonical, g_timeframes\[t\], fromTime, TimeTradeServer\(\), rates\)/);
+  assert.match(source, /long nowMs = \(long\)TimeTradeServer\(\) \* 1000/);
+  assert.doesNotMatch(source, /TimeCurrent\(\) - TimeGMT\(\)/);
+});
