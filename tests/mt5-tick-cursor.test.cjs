@@ -93,3 +93,21 @@ test("EA source contains the packed cursor and fail-closed boundary checks", () 
   assert.match(source, /TV_RCG_TICK_CURSOR_HISTORY_CHANGED/);
   assert.match(source, /StageTickCursor\(tickCursorKey, newPackedCursor\)/);
 });
+
+
+test("EA JSON escaping and queue paths use valid escaped literals", () => {
+  assert.ok(source.includes(String.raw`if(ch == 34) out += "\\\"";`));
+  assert.ok(source.includes(String.raw`else if(ch == 92) out += "\\\\";`));
+  assert.ok(source.includes(String.raw`g_queueFolder + "\\" + batchId + ".tmp"`));
+  assert.ok(source.includes(String.raw`g_queueFolder + "\\" + batchId + ".json"`));
+});
+
+test("tick cursor is committed only after the local JSON batch is saved", () => {
+  const saveIndex = source.indexOf("if(PersistBatch(batchId, payload))");
+  const commitIndex = source.indexOf("CommitCursorsAfterQueueSave();", saveIndex);
+  const failureIndex = source.indexOf("TV_RCG_BATCH_NOT_COMMITTED", saveIndex);
+  assert.ok(saveIndex >= 0);
+  assert.ok(commitIndex > saveIndex);
+  assert.ok(failureIndex > commitIndex);
+  assert.match(source.slice(saveIndex, failureIndex), /if\(!PersistBatch|CommitCursorsAfterQueueSave/);
+});
