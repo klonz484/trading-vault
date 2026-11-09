@@ -37,8 +37,8 @@ string JsonEscape(const string value)
    for(int i = 0; i < StringLen(value); i++)
    {
       ushort ch = StringGetCharacter(value, i);
-      if(ch == 34) out += "\\"";
-      else if(ch == 92) out += "\\\";
+      if(ch == 34) out += "\\\"";
+      else if(ch == 92) out += "\\\\";
       else if(ch == 10) out += "\\n";
       else if(ch == 13) out += "\\r";
       else if(ch == 9) out += "\\t";
@@ -151,8 +151,8 @@ bool AppendUtf8File(const string path, const string payload)
 
 bool PersistBatch(const string batchId, const string payload)
 {
-   string temporaryPath = g_queueFolder + "\" + batchId + ".tmp";
-   string finalPath = g_queueFolder + "\" + batchId + ".json";
+   string temporaryPath = g_queueFolder + "\\" + batchId + ".tmp";
+   string finalPath = g_queueFolder + "\\" + batchId + ".json";
    if(!AppendUtf8File(temporaryPath, payload)) return false;
 
    ResetLastError();
