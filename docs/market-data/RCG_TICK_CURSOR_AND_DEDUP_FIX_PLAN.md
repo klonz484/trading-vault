@@ -64,3 +64,31 @@ Implementation review caveats:
 - Inspect JSON and verify no gaps/duplicates introduced by pagination.
 - Keep the current running EA untouched until the replacement has passed compile and supervised validation.
 - Do not issue a connector credential, upload local queue files, merge, or deploy without a separate explicit approval.
+
+
+## 2026-11-09 batch forensic review (Grok report + source inspection)
+
+The reviewed batch `rcg-1794224950-368576` was reported to contain 1,279 candles and exactly 500 ticks for each of eight symbols. The supplied report identifies tick timestamps around 02:22–02:35 while `sentAt` is 11:49:10Z, and NZDUSD M1/M5 candles from October. The original JSON was not available in this review, so the per-record metrics remain externally reported rather than independently recomputed here.
+
+### Source-level findings
+
+1. **Candle backlog is processed oldest-first.** The EA calls the date-range `CopyRates(symbol, timeframe, fromTime, TimeCurrent(), rates)`, then caps `takeRates` at 50 and iterates from `rates[0]`. MetaQuotes documents that copied rates are physically arranged oldest-first regardless of `ArraySetAsSeries`. Therefore, when the cursor has a large backlog, each scan intentionally emits the oldest 50 bars first. This can explain old M1/M5 windows and slow catch-up; it does not by itself prove NZDUSD's cursor is corrupt. A safe fix must choose and document one policy: (a) complete chronological backfill with explicit backlog/freshness status, or (b) skip old backlog to a recent window while emitting an explicit gap/reset marker. It must not silently jump the cursor to the newest 50 bars and pretend history is contiguous.
+2. **The tick page size is 500 by default.** `InpMaxTicksPerSymbolPerScan=500` and `CopyTicks(..., requestedCount)` requests at most the configured page plus the committed same-millisecond prefix. Exactly 500 in one batch proves the page filled, not that the lifetime stream is capped. Consecutive batches are required to determine whether the cursor advances and catches up.
+3. **Tick timestamp domain needs explicit treatment.** Candle JSON uses a broker-wall-clock ISO string with a numeric offset. Tick JSON currently writes raw `MqlTick.time_msc` as `sourceTimeMs`, without carrying the broker UTC offset or a normalized UTC value. `sentAt` is produced from `TimeGMT()`. The raw tick timestamp must not be compared to UTC `sentAt` until the MQL5/broker time basis is verified and normalized. MetaQuotes documents `TimeCurrent()` as last known server time and `TimeGMT()` as GMT; server time can differ from GMT. The source currently derives its offset from `TimeCurrent()-TimeGMT()`, rounds to whole hours, and uses `TimeCurrent()` as the tick request's "now" reference. This is a potential source of stale offset/clock behavior when quotes are delayed. Prefer a separately logged server-clock diagnostic using `TimeTradeServer()`, `TimeCurrent()`, and `TimeGMT()`, then explicitly normalize tick timestamps using a verified offset policy.
+4. **The NZDUSD October data needs cursor-state evidence.** Candle cursors are terminal Global Variables keyed by terminal instance, symbol and timeframe. A stale persisted NZDUSD M1/M5 cursor can make a collector backfill old bars. Inspect/log the saved cursor, requested range, returned oldest/newest bar, and queue range per symbol/timeframe before resetting any cursor. Do not clear all terminal globals or delete local queue files.
+5. **Tick freshness diagnostics are missing.** Each batch should log, per symbol, server clock, UTC clock, raw oldest/newest tick milliseconds, converted UTC oldest/newest timestamps, count returned, count queued, and computed lag. The batch should carry a clear quality/backlog status. A page-full flag must be distinguished from true truncation or source delay.
+
+### Corrections to the external report
+
+- The statement "exactly 500 proves a hard total collection limit" is too strong. The source proves a 500-per-scan page limit; only a sequence of batches can show whether the cursor is progressing.
+- The claim that ticks are 9+ hours stale is not yet fully established until raw `time_msc` is interpreted in the broker's server-time domain and compared against a server clock, not only UTC `sentAt`.
+- The `-01:00` candle offset is not automatically wrong. It may correctly represent broker server time. The mismatch is that tick JSON lacks an explicit equivalent timezone/normalization contract.
+- The NZDUSD October candles are real stale history in the batch as reported, but the cause could be a persisted per-symbol/timeframe cursor plus oldest-first backfill, rather than a cross-symbol cursor collision.
+
+### Next safe validation
+
+- Capture three consecutive local-only batches at least one scan interval apart.
+- For each symbol, compare raw tick first/last times and batch-to-batch cursor progression using the same server-time basis.
+- For NZDUSD M1 and M5, record the saved Global Variable cursor and each CopyRates request/result window; do not reset it until its effect is understood.
+- Add diagnostics before altering cursor behavior.
+- Keep the current running EA and local queue untouched. No transmission, token issuance, merge, or deployment is authorized by this forensic review.
