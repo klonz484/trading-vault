@@ -92,3 +92,32 @@ The reviewed batch `rcg-1794224950-368576` was reported to contain 1,279 candles
 - For NZDUSD M1 and M5, record the saved Global Variable cursor and each CopyRates request/result window; do not reset it until its effect is understood.
 - Add diagnostics before altering cursor behavior.
 - Keep the current running EA and local queue untouched. No transmission, token issuance, merge, or deployment is authorized by this forensic review.
+
+## 2026-11-09 follow-up: diagnostic-first collector update
+
+A safe diagnostic-only source update was committed after the single-batch forensic review.
+
+### New local Experts log records
+
+- `TV_RCG_CLOCK_DIAGNOSTIC`: records `TimeTradeServer()`, `TimeCurrent()`, `TimeGMT()`, rounded server/UTC offset, and quote-vs-server clock difference.
+- `TV_RCG_CANDLE_WINDOW`: records each symbol/timeframe candle cursor, requested start, returned count, oldest/newest returned bar, and explicitly labels the current policy as oldest-first backfill with a 50-bar page cap.
+- `TV_RCG_TICK_WINDOW`: records requested tick start/count, returned count, oldest/newest raw `time_msc`, saved timestamp/ordinal cursor, server and UTC clock readings, and whether the requested page filled.
+- `TV_RCG_SYMBOL`: now includes the latest `SymbolInfoTick` timestamp and raw differences against server and UTC clock readings.
+
+### Why this update is diagnostic-first
+
+The batch report alone cannot prove that the 500-tick page is a lifetime cap or that the broker's raw tick timestamp is UTC. The new logs let the next consecutive local batches distinguish:
+- a collector that is draining a historical tick backlog;
+- a collector that is not advancing its saved cursor;
+- a source/broker timestamp basis mismatch;
+- a full page that is being returned continuously;
+- candle backfill depth versus the latest closed bar.
+
+No candle cursor or tick cursor is reset. No queue file is deleted. No historical backlog is silently skipped. The update remains local-only and has not been compiled in MetaEditor or run on the broker terminal.
+
+### Next validation gate
+
+1. Run the updated EA only after a separate MetaEditor compile reports zero errors and warnings.
+2. Capture at least three local-only scans.
+3. Compare `TV_RCG_CLOCK_DIAGNOSTIC`, `TV_RCG_TICK_WINDOW`, `TV_RCG_SYMBOL`, and `TV_RCG_CANDLE_WINDOW` for EURUSD, NZDUSD, and XAUUSD.
+4. Only then decide whether a separate live-lane/backfill-lane design or a cursor migration is required.
