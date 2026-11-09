@@ -1,6 +1,6 @@
 # RCG Markets MT5 collector — implementation plan
 
-**Status:** initial symbol-discovery scaffold compiled cleanly and passed a supervised RCG demo dry-run on 2026-11-09; local candle/tick queue prototype is now in development. No transmission has occurred.  
+**Status:** initial symbol-discovery scaffold passed a supervised RCG demo dry-run; local candle/tick queue prototype compiled with 0 errors and 0 warnings and created inspectable JSON batches on 2026-11-09. A follow-up feature-branch commit now generates batch `sentAt` in UTC and rounds the current broker offset to a whole hour. Recompile and repeat the local-only test before any further validation. No transmission has occurred.  
 **Target terminal:** MetaTrader 5 build 6257 on Debian 13 x86-64 (Wine environment).  
 **Broker identity:** `RCG_MARKETS` only.  
 **Execution policy:** read-only market-data collection; no trading or account-management actions.
@@ -75,8 +75,10 @@ Compile with the terminal's MetaEditor for this exact MT5 environment. First run
 - [ ] Server-only `SUPABASE_SERVICE_ROLE_KEY` is configured in Vercel; never expose it to the EA or browser.
 - [ ] Owner-only credential issuance is tested after deployment; issue one RCG token bound to one stable terminal-instance ID.
 - [x] User confirms RCG Markets has approved the full intended scope: MT5 EA read-only collection, transmission to the private Trading Vault server, and use by other Trading Vault users. Approval is recorded here as user-confirmed; retain the broker's original approval correspondence/reference in the project evidence folder when available.
-- [x] Static source review of the local queue prototype found no trading, account-management, or network APIs; MetaEditor compilation is still pending.
-- [x] Initial symbol-discovery scaffold compiles under the user's MT5 build 6257 with 0 errors and 0 warnings (version 1.00).\n- [ ] Local collection/queue prototype compiles under the user's MT5 build 6257 and passes the queue validation procedure.
+- [x] Static source review of the local queue prototype found no trading, account-management, or network APIs.
+- [x] User compiled the local queue prototype with 0 errors and 0 warnings and confirmed local JSON batch files were created and inspected.
+- [x] Follow-up feature-branch correction separates UTC batch `sentAt` from broker candle time and normalizes the current server offset to a whole hour; user-side recompile and retest are pending.
+- [x] Initial symbol-discovery scaffold compiles under the user's MT5 build 6257 with 0 errors and 0 warnings (version 1.00).\n- [ ] Timestamp-corrected local collection/queue prototype recompiles under the user's MT5 build 6257 and passes the remaining queue validation procedure.
 - [ ] Local durable queue, exact-body retry, and cursor recovery are tested under forced disconnect/restart.
 - [ ] WebRequest allowlist and HTTPS endpoint are tested.
 - [ ] First transmitted batch is a small, supervised demo-account test and receives a durable server acknowledgement.
@@ -87,5 +89,5 @@ Compile with the terminal's MetaEditor for this exact MT5 environment. First run
 - Vercel previously rejected production deployment creation with HTTP 402 because the daily deployment API limit had been exceeded; retry was requested after 24 hours. This is a platform limit, not a code or MT5-build failure.
 - The production Vercel environment did not contain `SUPABASE_SERVICE_ROLE_KEY` at the last read-only check.
 - Broker permission is no longer treated as an open blocker: the user confirmed RCG Markets approved collection, server transmission, and multi-user Trading Vault use. Preserve the original approval evidence and check any scope, account-type, instrument, or redistribution conditions against the implementation before public launch.
-- The initial read-only symbol-discovery scaffold was attached only to the RCG demo EURUSD M15 chart for a supervised dry-run, then removed. The Experts log confirmed repeated dryRun=true scans, 136 visible symbols, and exact symbol/tick availability for all eight canonical instruments.\n- No connector token has been issued and no market data has been transmitted. The local queue prototype is not yet compiled or installed. Its first implementation is committed on `build/rcg-mt5-local-collection-queue`; it uses bounded `CopyTicks`, closed-candle backfill, UTF-8 JSON spool files, and post-commit cursor advancement. This prototype still requires MetaEditor compilation and on-terminal queue/restart/backlog tests.
+- The initial read-only symbol-discovery scaffold was attached only to the RCG demo EURUSD M15 chart for a supervised dry-run, then removed. The later LocalQueue prototype was also removed from the EURUSD chart after the local JSON inspection. The Experts log confirmed repeated dryRun=true scans, 136 visible symbols, and exact symbol/tick availability for all eight canonical instruments.\n- No connector token has been issued and no market data has been transmitted. The local queue prototype is committed on `build/rcg-mt5-local-collection-queue`; the initial version compiled and produced local JSON spool files. The timestamp correction is also committed on that feature branch and still needs user-side recompile/retest. Full JSON/schema, restart, cursor, tick-backlog, historical-timezone and data-freshness tests remain outstanding.
 - This preparation does not authorize a funded account, trade execution, public data redistribution, paid service, or changes to production configuration.
