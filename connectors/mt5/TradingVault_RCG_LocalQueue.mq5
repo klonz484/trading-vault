@@ -196,6 +196,15 @@ void CollectAndQueue()
    int candleCount = 0;
    int tickCount = 0;
 
+   datetime clockServer = TimeTradeServer();
+   datetime clockLastQuote = TimeCurrent();
+   datetime clockUtc = TimeGMT();
+   Print("TV_RCG_CLOCK_DIAGNOSTIC; serverTime=", TimeToString(clockServer, TIME_DATE|TIME_SECONDS),
+         "; lastQuoteTime=", TimeToString(clockLastQuote, TIME_DATE|TIME_SECONDS),
+         "; utcTime=", TimeToString(clockUtc, TIME_DATE|TIME_SECONDS),
+         "; serverUtcOffsetMinutes=", ServerUtcOffsetMinutes(),
+         "; quoteVsServerSeconds=", (long)(clockLastQuote-clockServer));
+
    for(int i = 0; i < ArraySize(g_canonical); i++)
    {
       string canonical = g_canonical[i];
@@ -242,6 +251,17 @@ void CollectAndQueue()
             continue;
          }
          if(copied <= 0) continue;
+
+         Print("TV_RCG_CANDLE_WINDOW; symbol=", canonical,
+               "; timeframe=", tf,
+               "; previousCursor=", (long)previousTime,
+               "; requestedFrom=", (long)fromTime,
+               "; returned=", copied,
+               "; oldestReturned=", (long)rates[0].time,
+               "; newestReturned=", (long)rates[copied-1].time,
+               "; serverNow=", (long)TimeTradeServer(),
+               "; utcNow=", (long)TimeGMT(),
+               "; policy=oldest_first_backfill; pageCap=50");
 
          // Exclude the still-forming candle and cap each timeframe slice.
          datetime formingBarTime = iTime(canonical, g_timeframes[t], 0);
@@ -347,6 +367,17 @@ void CollectAndQueue()
 
          if(copiedTicks > 0)
          {
+            Print("TV_RCG_TICK_WINDOW; symbol=", canonical,
+                  "; requestedFromMs=", fromMs,
+                  "; requestedCount=", requestedCount,
+                  "; returned=", copiedTicks,
+                  "; oldestReturnedMs=", (long)ticks[0].time_msc,
+                  "; newestReturnedMs=", (long)ticks[copiedTicks-1].time_msc,
+                  "; savedCursorMs=", previousTickMs,
+                  "; savedOrdinal=", previousOrdinal,
+                  "; serverNowMs=", (long)TimeTradeServer()*1000,
+                  "; utcNowMs=", (long)TimeGMT()*1000,
+                  "; pageFull=", (copiedTicks >= requestedCount ? "true" : "false"));
             int firstUncommitted = 0;
             bool cursorHistoryValid = true;
 
@@ -468,7 +499,10 @@ void CollectAndQueue()
          Print("TV_RCG_SYMBOL; canonical=", canonical,
                "; brokerSymbol=", canonical, "; exact=true; tickAvailable=true",
                "; bid=", DoubleToString(latest.bid, digits),
-               "; ask=", DoubleToString(latest.ask, digits));
+               "; ask=", DoubleToString(latest.ask, digits),
+               "; latestTickTimeMs=", (long)latest.time_msc,
+               "; latestTickVsServerNowMs=", ((long)latest.time_msc-(long)TimeTradeServer()*1000),
+               "; latestTickVsUtcNowMs=", ((long)latest.time_msc-(long)TimeGMT()*1000));
    }
 
    if(candleCount == 0 && tickCount == 0)
