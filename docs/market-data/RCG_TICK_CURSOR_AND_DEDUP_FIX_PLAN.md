@@ -33,6 +33,7 @@ Important limitation: the cursor ordinal is meaningful only while the broker's h
 
 - `src/lib/market-data/mt5-ingest.ts`: removed value-derived tick duplicate rejection. Repeated tick observations are retained in input order; candle duplicate detection remains.
 - `tests/mt5-ingest.test.cjs`: added coverage for same-millisecond ticks with differing trade metadata, fully identical repeated ticks, and duplicate candle identities.
+- `tests/mt5-tick-cursor.test.cjs`: added an executable reference-model test for same-millisecond pagination, crossing into a later millisecond, prefix-bound hard stops, and static presence of the EA cursor safeguards. This is not a substitute for MetaEditor compilation or a broker-backed test.
 - `connectors/mt5/TradingVault_RCG_LocalQueue.mq5`: added a packed timestamp-plus-ordinal cursor in one terminal global variable. The packed integer uses a radix of 4096 so the timestamp and ordinal remain exactly representable in a double for current Unix-millisecond timestamps. Resume requests replay the saved millisecond prefix, skip only the committed ordinal, and fail closed if the returned history no longer contains that prefix or the configured prefix bound is reached. The old timestamp-only cursor is migrated with ordinal zero, intentionally replaying that millisecond rather than risking a gap.
 - The collector remains local-only. Its network/trading guards are unchanged.
 
