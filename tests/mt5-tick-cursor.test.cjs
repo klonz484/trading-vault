@@ -12,7 +12,7 @@ const source = fs.readFileSync(
 // pagination contract. MetaEditor compilation and broker-history validation
 // remain separate acceptance gates.
 function takePage(history, cursor, pageSize, prefixLimit) {
-  if (cursor.ordinal + pageSize > prefixLimit) {
+  if (cursor.ordinal > prefixLimit) {
     return { hardStop: true, selected: [], cursor };
   }
   const response = history
@@ -40,6 +40,9 @@ function takePage(history, cursor, pageSize, prefixLimit) {
   for (let i = selected.length - 1; i >= 0 &&
     selected[i].timeMs === finalTime; i--) finalOrdinal++;
   if (finalTime === cursor.timeMs) finalOrdinal += cursor.ordinal;
+  if (finalOrdinal > prefixLimit) {
+    return { hardStop: true, selected: [], cursor };
+  }
   return {
     hardStop: false,
     selected,
@@ -86,6 +89,20 @@ test("prefix safety bound hard-stops without moving the cursor", () => {
   assert.deepEqual(result.selected, []);
 });
 
+
+test("a page may cross into a later millisecond even when ordinal plus page exceeds the prefix limit", () => {
+  const history = [
+    { id: "a", timeMs: 1000 }, { id: "b", timeMs: 1000 },
+    { id: "c", timeMs: 1000 }, { id: "d", timeMs: 1001 },
+    { id: "e", timeMs: 1002 },
+  ];
+  const cursor = { timeMs: 1000, ordinal: 3 };
+  const result = takePage(history, cursor, 3, 4);
+  assert.equal(result.hardStop, false);
+  assert.deepEqual(result.selected.map((tick) => tick.id), ["d", "e"]);
+  assert.deepEqual(result.cursor, { timeMs: 1002, ordinal: 1 });
+});
+
 test("EA source contains the packed cursor and fail-closed boundary checks", () => {
   assert.match(source, /TICK_CURSOR_RADIX = 4096/);
   assert.match(source, /firstUncommitted = previousOrdinal/);
@@ -110,4 +127,10 @@ test("tick cursor is committed only after the local JSON batch is saved", () => 
   assert.ok(commitIndex > saveIndex);
   assert.ok(failureIndex > commitIndex);
   assert.match(source.slice(saveIndex, failureIndex), /if\(!PersistBatch|CommitCursorsAfterQueueSave/);
+});
+
+test("malformed tick observations prevent cursor advancement for that symbol page", () => {
+  assert.match(source, /invalidTickSeen = true/);
+  assert.match(source, /if\(invalidTickSeen\)/);
+  assert.match(source, /cursor_not_advanced=true; valid_records_may_be_replayed=true/);
 });
