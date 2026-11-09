@@ -285,6 +285,7 @@ void CollectAndQueue()
       long packedCursor = (long)ReadCursor(tickCursorKey);
       long previousTickMs = 0;
       int previousOrdinal = 0;
+      bool cursorReady = true;
 
       if(packedCursor > 0)
       {
@@ -320,7 +321,12 @@ void CollectAndQueue()
          }
       }
 
-      if(previousOrdinal >= InpMaxTickCursorPrefix ||
+      if(!cursorReady)
+      {
+         Print("TV_RCG_TICK_CURSOR_NOT_READY; symbol=", canonical,
+               "; hardStop=true; cursor_not_advanced=true");
+      }
+      else if(previousOrdinal >= InpMaxTickCursorPrefix ||
          previousOrdinal + InpMaxTicksPerSymbolPerScan > InpMaxTickCursorPrefix)
       {
          Print("TV_RCG_TICK_CURSOR_PREFIX_LIMIT; symbol=", canonical,
