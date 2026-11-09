@@ -83,7 +83,10 @@ test("crossing into a later millisecond resets the ordinal to that timestamp", (
 
 test("prefix safety bound hard-stops without moving the cursor", () => {
   const cursor = { timeMs: 1000, ordinal: 19 };
-  const result = takePage([{ id: "a", timeMs: 1000 }], cursor, 2, 20);
+  const history = Array.from({ length: 21 }, (_, i) => ({
+    id: String(i), timeMs: 1000,
+  }));
+  const result = takePage(history, cursor, 2, 20);
   assert.equal(result.hardStop, true);
   assert.deepEqual(result.cursor, cursor);
   assert.deepEqual(result.selected, []);
