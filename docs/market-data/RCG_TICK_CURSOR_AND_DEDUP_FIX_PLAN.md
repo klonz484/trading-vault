@@ -1,6 +1,6 @@
 # RCG MT5 Tick Cursor and Duplicate-Identity Hardening
 
-Status: engineering plan; no production code, credentials, deployment, or collector configuration changed.
+Status: implementation draft committed on an isolated development branch. It has not been compiled or run in MetaEditor; repository tests have not yet been executed. No production code, credentials, deployment, merge, or running collector configuration changed.
 
 ## Findings confirmed in source
 
@@ -28,6 +28,18 @@ Important limitation: the cursor ordinal is meaningful only while the broker's h
 - Keep duplicate candle detection, since the candle identity (instrument, timeframe, sourceTime) is stable and unique by definition.
 - Keep whole-batch idempotency at the API layer using broker + batchId and payload hash. Same batch ID + same bytes returns the existing durable acknowledgement; same batch ID + changed bytes remains HTTP 409.
 - If tick diagnostics are retained, make them non-blocking warnings only and do not collapse or remove observations.
+
+## Implementation draft committed on the isolated branch
+
+- `src/lib/market-data/mt5-ingest.ts`: removed value-derived tick duplicate rejection. Repeated tick observations are retained in input order; candle duplicate detection remains.
+- `tests/mt5-ingest.test.cjs`: added coverage for same-millisecond ticks with differing trade metadata, fully identical repeated ticks, and duplicate candle identities.
+- `connectors/mt5/TradingVault_RCG_LocalQueue.mq5`: added a packed timestamp-plus-ordinal cursor in one terminal global variable. The packed integer uses a radix of 4096 so the timestamp and ordinal remain exactly representable in a double for current Unix-millisecond timestamps. Resume requests replay the saved millisecond prefix, skip only the committed ordinal, and fail closed if the returned history no longer contains that prefix or the configured prefix bound is reached. The old timestamp-only cursor is migrated with ordinal zero, intentionally replaying that millisecond rather than risking a gap.
+- The collector remains local-only. Its network/trading guards are unchanged.
+
+Implementation review caveats:
+- The same-millisecond ordinal depends on stable broker tick ordering for that millisecond. A changed/revised history hard-stops collection rather than silently skipping.
+- A crash after JSON queue commit but before cursor persistence may replay observations into a later local batch. This is at-least-once behavior; batch-level idempotency does not deduplicate observations across different batch IDs.
+- The packed cursor's 4096 radix imposes a hard same-millisecond prefix ceiling. The collector logs and stops before exceeding the configured bound; no silent cursor advancement is allowed.
 
 ## Required regression tests
 
