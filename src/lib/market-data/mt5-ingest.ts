@@ -160,11 +160,10 @@ export function validateMT5IngestBatch(value: unknown): MT5BatchValidation {
     if (!positive(item.bid) || !positive(item.ask) || (finite(item.bid) && finite(item.ask) && item.ask < item.bid)) errors.push(`Tick ${index} has invalid bid/ask prices.`);
     if (!nullableNonNegative(item.last) || !nullableNonNegative(item.volume) || !nullableNonNegative(item.volumeReal)) errors.push(`Tick ${index} has invalid optional last/volume values.`);
     if (!Number.isSafeInteger(item.flags) || (item.flags as number) < 0) errors.push(`Tick ${index} has invalid MT5 tick flags.`);
-    if (INSTRUMENTS.has(item.instrument as InstrumentId) && nonEmpty(item.brokerSymbol) && finite(item.sourceTimeMs)) {
-      const key = `T:${item.instrument}:${item.sourceTimeMs}:${item.bid}:${item.ask}:${item.flags}`;
-      if (keys.has(key)) duplicateKeys.push(key);
-      keys.add(key);
-    }
+    // Ticks are an ordered observation stream, not uniquely identified by
+    // market values and millisecond timestamps. Multiple distinct or even
+    // byte-identical ticks can legitimately share those fields; never reject
+    // or collapse them here. Batch-level idempotency is enforced by the API.
     if (
       INSTRUMENTS.has(item.instrument as InstrumentId) && nonEmpty(item.brokerSymbol) &&
       finite(item.sourceTimeMs) && Number.isSafeInteger(item.sourceTimeMs) && item.sourceTimeMs > 0 &&
