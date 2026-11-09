@@ -59,8 +59,19 @@ string TimeframeName(const ENUM_TIMEFRAMES timeframe)
 
 int ServerUtcOffsetMinutes()
 {
+   // TimeCurrent() is the last quote time while TimeGMT() advances with the
+   // local clock. Their seconds can differ, producing false offsets such as
+   // -01:01. RCG server offsets are represented as whole-hour offsets here.
    int offsetSeconds = (int)(TimeCurrent() - TimeGMT());
-   return (int)MathRound((double)offsetSeconds / 60.0);
+   return (int)(MathRound((double)offsetSeconds / 3600.0) * 60.0);
+}
+
+string FormatIsoUtcTime(const datetime value)
+{
+   string stamp = TimeToString(value, TIME_DATE | TIME_SECONDS);
+   StringReplace(stamp, ".", "-");
+   StringReplace(stamp, " ", "T");
+   return stamp + "Z";
 }
 
 string FormatIsoServerTime(const datetime value)
@@ -324,7 +335,9 @@ void CollectAndQueue()
 
    string batchId = "rcg-" + IntegerToString((int)TimeGMT()) + "-" +
                     StringFormat("%I64u", GetTickCount64());
-   string sentAt = FormatIsoServerTime(TimeCurrent());
+   // sentAt is the batch creation time in UTC, not broker server time.
+   // Candle sourceTime remains expressed in the broker server's current offset.
+   string sentAt = FormatIsoUtcTime(TimeGMT());
    string payload = "{\"schemaVersion\":\"1.0.0\",\"batchId\":\"" +
       JsonEscape(batchId) + "\",\"brokerId\":\"RCG_MARKETS\",\"terminalInstanceId\":\"" +
       JsonEscape(InpTerminalInstanceId) + "\",\"sentAt\":\"" + sentAt +
