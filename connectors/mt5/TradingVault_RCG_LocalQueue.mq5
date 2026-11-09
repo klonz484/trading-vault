@@ -37,8 +37,8 @@ string JsonEscape(const string value)
    for(int i = 0; i < StringLen(value); i++)
    {
       ushort ch = StringGetCharacter(value, i);
-      if(ch == 34) out += "\\\"";
-      else if(ch == 92) out += "\\\\";
+      if(ch == 34) out += "\\"";
+      else if(ch == 92) out += "\\\";
       else if(ch == 10) out += "\\n";
       else if(ch == 13) out += "\\r";
       else if(ch == 9) out += "\\t";
@@ -151,8 +151,8 @@ bool AppendUtf8File(const string path, const string payload)
 
 bool PersistBatch(const string batchId, const string payload)
 {
-   string temporaryPath = g_queueFolder + "\\" + batchId + ".tmp";
-   string finalPath = g_queueFolder + "\\" + batchId + ".json";
+   string temporaryPath = g_queueFolder + "\" + batchId + ".tmp";
+   string finalPath = g_queueFolder + "\" + batchId + ".json";
    if(!AppendUtf8File(temporaryPath, payload)) return false;
 
    ResetLastError();
@@ -383,6 +383,15 @@ void CollectAndQueue()
             else
             {
                int available = copiedTicks - firstUncommitted;
+               if(available <= 0)
+               {
+                  Print("TV_RCG_TICK_NO_NEW_OBSERVATIONS; symbol=", canonical,
+                        "; savedTimestampMs=", previousTickMs,
+                        "; savedOrdinal=", previousOrdinal,
+                        "; cursor_not_advanced=true");
+               }
+               else
+               {
                int take = available;
                if(take > InpMaxTicksPerSymbolPerScan)
                   take = InpMaxTicksPerSymbolPerScan;
@@ -411,15 +420,15 @@ void CollectAndQueue()
                   }
 
                   if(tickCount > 0) ticksJson += ",";
-                  ticksJson += "{\\"instrument\\":\\"" + canonical +
-                     "\\",\\"brokerSymbol\\":\\"" + JsonEscape(canonical) +
-                     "\\",\\"sourceTimeMs\\":" + StringFormat("%I64d", ticks[k].time_msc) +
-                     ",\\"bid\\":" + DoubleToString(ticks[k].bid, digits) +
-                     ",\\"ask\\":" + DoubleToString(ticks[k].ask, digits) +
-                     ",\\"last\\":" + (ticks[k].last > 0.0 ? DoubleToString(ticks[k].last, digits) : "null") +
-                     ",\\"volume\\":" + (ticks[k].volume > 0 ? StringFormat("%I64u", ticks[k].volume) : "null") +
-                     ",\\"volumeReal\\":" + (ticks[k].volume_real > 0.0 ? DoubleToString(ticks[k].volume_real, 8) : "null") +
-                     ",\\"flags\\":" + IntegerToString((int)ticks[k].flags) + "}";
+                  ticksJson += "{\"instrument\":\"" + canonical +
+                     "\",\"brokerSymbol\":\"" + JsonEscape(canonical) +
+                     "\",\"sourceTimeMs\":" + StringFormat("%I64d", ticks[k].time_msc) +
+                     ",\"bid\":" + DoubleToString(ticks[k].bid, digits) +
+                     ",\"ask\":" + DoubleToString(ticks[k].ask, digits) +
+                     ",\"last\":" + (ticks[k].last > 0.0 ? DoubleToString(ticks[k].last, digits) : "null") +
+                     ",\"volume\":" + (ticks[k].volume > 0 ? StringFormat("%I64u", ticks[k].volume) : "null") +
+                     ",\"volumeReal\":" + (ticks[k].volume_real > 0.0 ? DoubleToString(ticks[k].volume_real, 8) : "null") +
+                     ",\"flags\":" + IntegerToString((int)ticks[k].flags) + "}";
                   tickCount++;
                }
 
@@ -443,6 +452,7 @@ void CollectAndQueue()
                         "; finalTimestampMs=", finalTickMs,
                         "; finalTimestampOrdinal=", finalTimestampOrdinal,
                         "; cursorMode=timestamp_plus_ordinal");
+               }
             }
          }
       }
