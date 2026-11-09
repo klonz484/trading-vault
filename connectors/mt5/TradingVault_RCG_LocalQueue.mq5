@@ -64,10 +64,10 @@ string TimeframeName(const ENUM_TIMEFRAMES timeframe)
 
 int ServerUtcOffsetMinutes()
 {
-   // TimeCurrent() is the last quote time while TimeGMT() advances with the
-   // local clock. Their seconds can differ, producing false offsets such as
-   // -01:01. RCG server offsets are represented as whole-hour offsets here.
-   int offsetSeconds = (int)(TimeCurrent() - TimeGMT());
+   // TimeCurrent() is only the last quote time and may be stale during quiet
+   // markets. Use the terminal's advancing broker-server clock for the offset.
+   // RCG server offsets are represented as whole-hour offsets here.
+   int offsetSeconds = (int)(TimeTradeServer() - TimeGMT());
    return (int)(MathRound((double)offsetSeconds / 3600.0) * 60.0);
 }
 
@@ -239,7 +239,7 @@ void CollectAndQueue()
          int copied = 0;
          ResetLastError();
          if(fromTime > 0)
-            copied = CopyRates(canonical, g_timeframes[t], fromTime, TimeCurrent(), rates);
+            copied = CopyRates(canonical, g_timeframes[t], fromTime, TimeTradeServer(), rates);
          else
             copied = CopyRates(canonical, g_timeframes[t], 1, 1, rates);
          int ratesError = GetLastError();
@@ -348,7 +348,7 @@ void CollectAndQueue()
       }
       else
       {
-         long nowMs = (long)TimeCurrent() * 1000;
+         long nowMs = (long)TimeTradeServer() * 1000;
          long fromMs = (previousTickMs > 0 ? previousTickMs : nowMs - 60000);
          if(fromMs < 0) fromMs = 0;
 
