@@ -107,3 +107,21 @@
 2. Arrange an isolated non-production Supabase database, then review and apply the prepared migration there. The connected project has no development branch, and no schema changes have been made.
 3. Configure the server-only Supabase secret in Preview and use the existing owner-only credential route only when the user explicitly chooses to issue a token.
 4. Build the local uploader with bounded retries, queue-retention-on-timeout and matching durable acknowledgements; keep it disabled until synthetic Preview testing is complete.
+
+
+### Implementation progress — MT5 uploader scaffold
+
+- Added `connectors/mt5/tradingvault_mt5_uploader.py`, a separate one-shot Linux/Python uploader. It is **dry-run by default** and reads only committed `.json` files (not temporary files or symlinks).
+- Transmission requires an explicit `--send` flag plus endpoint/token environment variables. The token is never accepted as a command-line argument or printed.
+- Retries are bounded; HTTP 429/5xx and uncertain network outcomes retain the local queue file. A file is eligible for optional archive movement only after a matching `200/201` response confirms `accepted=true`, `acknowledged=true`, `durable=true`, the exact `batchId`, and a server `receivedAt`.
+- Archiving is a separate opt-in flag, `--archive-acknowledged`; by default even acknowledged files remain untouched. The uploader does not edit MT5 terminal global variables or cursor state.
+- Added Python unit tests for JSON validation, symlink rejection, exact acknowledgement matching, HTTPS enforcement and archive overwrite protection, plus a dedicated GitHub Actions workflow.
+- These files are committed to the Development branch. CI verification is pending. No live request has been sent; no credential has been issued; no Supabase migration or environment secret has been changed.
+
+### Remaining immediate steps
+
+1. Verify the new uploader CI run and fix any failures.
+2. Add clear Linux/Wine path and dry-run instructions without exposing credentials.
+3. Inspect the RCG collector's broker-symbol mapping and source-time handling against actual broker metadata; do not alter the running EA.
+4. Arrange an isolated non-production Supabase database and review the staged migration there. Do not apply schema changes to the connected project or Production.
+5. Only after the isolated server path is ready, deliberately configure Preview secrets and issue a scoped credential; transmission still requires a supervised test approval.
