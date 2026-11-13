@@ -34,6 +34,7 @@ function validCandleForSnapshot(
   retrievedAtMs: number,
 ): boolean {
   const timestampMs = Date.parse(candle.timestamp);
+  const candleRetrievedAtMs = Date.parse(candle.retrievedAt);
   const prices = [candle.open, candle.high, candle.low, candle.close];
   const validPrices =
     prices.every((value) => Number.isFinite(value) && value > 0) &&
@@ -48,15 +49,32 @@ function validCandleForSnapshot(
     Number.isFinite(timestampMs) &&
     new Date(timestampMs).toISOString() === candle.timestamp &&
     timestampMs <= retrievedAtMs &&
+    Number.isFinite(candleRetrievedAtMs) &&
+    candleRetrievedAtMs <= retrievedAtMs &&
     validPrices &&
     validVolume &&
     typeof candle.provisional === "boolean" &&
     nonEmptyString(candle.sourceTimestamp) &&
     nonEmptyString(candle.sourceTimezone) &&
-    Number.isFinite(Date.parse(candle.retrievedAt)) &&
+    candle.sourceTimezone === snapshot.source.sourceTimezone &&
     candle.instrument === snapshot.instrument &&
     candle.timeframe === snapshot.timeframe &&
     candle.provider === snapshot.provider
+  );
+}
+
+function hasValidValidationShape(
+  validation: MarketDataSnapshot["validation"] | null | undefined,
+): validation is MarketDataSnapshot["validation"] {
+  return (
+    !!validation &&
+    Array.isArray(validation.errors) &&
+    Array.isArray(validation.duplicateTimestamps) &&
+    Array.isArray(validation.outOfOrderTimestamps) &&
+    Array.isArray(validation.futureTimestamps) &&
+    Number.isInteger(validation.candleCount) &&
+    Number.isInteger(validation.eligibleCandleCount) &&
+    Number.isInteger(validation.invalidCandles)
   );
 }
 
@@ -89,6 +107,7 @@ export function adaptMarketDataSnapshotForBrain(
     nonEmptyString(source.endpoint) &&
     nonEmptyString(source.attribution) &&
     nonEmptyString(source.sourceTimezone);
+  const validValidation = hasValidValidationShape(validation);
   const sourceTimezone = validSource ? source.sourceTimezone : "";
   const sourceSymbol = validSource ? source.symbol : "";
   const candlesInput = Array.isArray(snapshot.candles) ? snapshot.candles : [];
@@ -132,6 +151,7 @@ export function adaptMarketDataSnapshotForBrain(
     !validSnapshotVersion ||
     !validSchema ||
     !validSource ||
+    !validValidation ||
     !validCandles
   ) {
     return {
@@ -141,7 +161,7 @@ export function adaptMarketDataSnapshotForBrain(
       sourceReferences: [],
       limitations: [
         ...limitations,
-        "Snapshot failed runtime schema, provenance, timestamp, candle-integrity, or identity checks.",
+        "Snapshot failed runtime schema, provenance, validation-shape, timestamp, candle-integrity, or identity checks.",
       ],
     };
   }
@@ -156,7 +176,6 @@ export function adaptMarketDataSnapshotForBrain(
     validation.freshnessSeconds <= validation.freshnessThresholdSeconds;
   const validationClean =
     validation.status === "READY" &&
-    Array.isArray(validation.errors) &&
     validation.errors.length === 0 &&
     validation.invalidCandles === 0 &&
     validation.eligibleCandleCount === candles.length &&
