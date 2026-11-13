@@ -177,3 +177,32 @@ test("READY label with validation errors or mismatched counts cannot be live eli
   });
   assert.equal(adaptMarketDataSnapshotForBrain(mismatched).gate, "REPLAY_ONLY");
 });
+
+ 
+test("duplicate or unordered candles cannot pass the live gate", () => {
+  const first = snapshot().candles[0];
+  const duplicate = snapshot({
+    candles: [first, { ...first }],
+    validation: {
+      ...snapshot().validation,
+      candleCount: 2,
+      eligibleCandleCount: 2,
+      duplicateTimestamps: [],
+    },
+  });
+  assert.equal(adaptMarketDataSnapshotForBrain(duplicate).gate, "REPLAY_ONLY");
+
+  const later = {
+    ...first,
+    timestamp: "2026-11-12T10:05:00.000Z",
+  };
+  const unordered = snapshot({
+    candles: [later, first],
+    validation: {
+      ...snapshot().validation,
+      candleCount: 2,
+      eligibleCandleCount: 2,
+    },
+  });
+  assert.equal(adaptMarketDataSnapshotForBrain(unordered).gate, "REPLAY_ONLY");
+});
