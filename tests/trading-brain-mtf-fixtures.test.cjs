@@ -12,12 +12,12 @@ const { replayClosedCandles } = require("../src/lib/trading-brain/replay.ts");
 const expectedTimeframes = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1"];
 const expectedInstruments = ["EURUSD", "XAUUSD"];
 
-function noTradeStrategy({ asOf, current, history }) {
+function noTradeStrategy(context) {
   return {
     action: "NO_TRADE",
     ruleSetVersion: "synthetic-mtf-fixture/1.0.0",
     rationale: "Boundary validation only; no trading methodology is evaluated.",
-    sourceTimestamps: [current.timestamp],
+    sourceTimestamps: [context.current.timestamp],
   };
 }
 
