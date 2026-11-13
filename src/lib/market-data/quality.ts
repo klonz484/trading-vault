@@ -44,6 +44,9 @@ export function isCandleStructurallyValid(candle: NormalizedCandle): boolean {
  * Validates observations without repairing or silently discarding source evidence.
  * Gaps are warnings because market closures and provider-specific calendars must
  * be considered before a gap can safely be classified as missing market data.
+ *
+ * Provisional (forming) candles remain in the observation count and raw evidence,
+ * but never count as eligible confirmed candles.
  */
 export function validateCandles(
   candles: NormalizedCandle[],
@@ -161,12 +164,24 @@ export function validateCandles(
     warnings.push("Latest observation exceeds the configured freshness threshold.");
   }
 
-  const structurallyValidCandleCount = candles.filter(
+  const structurallyValidCandles = candles.filter(
     (candle) => isCandleStructurallyValid(candle) && !futureTimestamps.includes(candle.timestamp),
+  );
+  const provisionalCandleCount = structurallyValidCandles.filter(
+    (candle) => candle.provisional,
+  ).length;
+  const confirmedEligibleCandleCount = structurallyValidCandles.filter(
+    (candle) => !candle.provisional,
   ).length;
 
+  if (provisionalCandleCount > 0) {
+    warnings.push(
+      `${provisionalCandleCount} forming candle(s) retained as provisional observations and excluded from confirmed eligibility.`,
+    );
+  }
+
   let status: DataReadiness = "READY";
-  if (errors.length || structurallyValidCandleCount === 0) status = "INCOMPLETE";
+  if (errors.length || confirmedEligibleCandleCount === 0) status = "INCOMPLETE";
   else if (freshnessThresholdSeconds === null) status = "DEGRADED";
   else if (
     freshnessSeconds !== null &&
@@ -175,7 +190,7 @@ export function validateCandles(
   ) status = "STALE";
 
   const eligibleCandleCount = status === "READY" || status === "DEGRADED"
-    ? structurallyValidCandleCount
+    ? confirmedEligibleCandleCount
     : 0;
 
   return {
