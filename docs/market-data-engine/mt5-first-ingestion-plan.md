@@ -125,3 +125,28 @@
 3. Inspect the RCG collector's broker-symbol mapping and source-time handling against actual broker metadata; do not alter the running EA.
 4. Arrange an isolated non-production Supabase database and review the staged migration there. Do not apply schema changes to the connected project or Production.
 5. Only after the isolated server path is ready, deliberately configure Preview secrets and issue a scoped credential; transmission still requires a supervised test approval.
+
+### Timestamp-domain review — 2026-11-13 (ingestion remains blocked)
+
+A source-time review found a correctness blocker that must be resolved before any real MT5 batch is transmitted or promoted to Brain evidence.
+
+- The collector currently formats historical candle timestamps using the **current** broker-server UTC offset. That is not safe for candles spanning a broker daylight-saving/time-zone transition. Historical offsets must come from a verified RCG server-time schedule or a defensible per-observation conversion method; the current offset must not be retroactively applied.
+- The collector currently serializes native `MqlTick.time_msc` directly into `sourceTimeMs`. The field name and server-side future-time check currently imply UTC milliseconds. Native MT5 documentation describes it as a millisecond timestamp but does not explicitly guarantee UTC semantics. MetaQuotes documentation distinguishes broker server time from computer/GMT time; `TimeTradeServer()` is an estimate based on the local computer clock and the last-known timezone difference, while `TimeGMT()` depends on the local computer's timezone/DST configuration.
+- Consequently, raw server-time ticks may appear hours in the future to the UTC-based API check, while naïvely subtracting today's offset from historical ticks can mislabel data across DST changes. The current API fails closed on future timestamps; do not weaken that guard simply to accept the current collector payload.
+- The current `ServerUtcOffsetMinutes()` rounds the estimated offset to whole hours. This assumption must be verified against the actual RCG server, and the local machine's clock/timezone/NTP health must be checked before using it as a conversion reference.
+- The current ingest contract has no explicit per-observation time basis, original broker wall-clock value, offset provenance, or DST-regime identifier. Do not infer those values from an ISO suffix added by the collector.
+
+**Required resolution before ingestion:**
+
+1. Obtain written confirmation from RCG of the trade-server timezone and historical DST/UTC-offset schedule, including effective transition dates and whether historical candle/tick timestamps are broker-server wall time.
+2. Capture a supervised, read-only live sample pairing raw `TimeCurrent()`, `TimeTradeServer()`, `TimeGMT()`, `MqlTick.time`, `MqlTick.time_msc`, and an independent UTC clock. Repeat around a known server offset change if possible. Do not use Strategy Tester timestamps for this validation.
+3. Define a versioned timestamp contract that preserves raw broker time and conversion provenance while exposing normalized UTC only when the offset is verified for that observation. Ambiguous repeated/nonexistent wall-clock times must be quarantined, not guessed.
+4. Add tests for standard-time and daylight-time offsets, historical backfill across both transitions, repeated local times, stale local clocks, and server/UTC disagreement. Verify the API future-time check operates only on normalized UTC values.
+5. Until all of the above pass, keep the uploader in dry-run mode and keep MT5 observations ineligible for ingestion/Brain evidence.
+
+References reviewed:
+- MetaQuotes MQL5 Date and Time: https://www.mql5.com/en/docs/dateandtime
+- MetaQuotes MqlTick structure: https://www.mql5.com/en/docs/constants/structures/mqltick
+- MetaQuotes local and server time explanation: https://www.mql5.com/en/book/common/timing/timing_local_server
+
+This is a fail-closed data-integrity gate, not a reason to change the user's MT5 terminal or queue/cursor state.
