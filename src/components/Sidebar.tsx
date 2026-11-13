@@ -13,6 +13,7 @@ const primary=[
 ];
 const tools=[
  {href:"/risk",label:"Risk Calculator",icon:"⊞"},
+ {href:"/market-data",label:"Market Data Monitor",icon:"◉"},
  {href:"/market",label:"Market Overview",icon:"◎"},
  {href:"/history",label:"Scan History",icon:"◷"},
 ];
