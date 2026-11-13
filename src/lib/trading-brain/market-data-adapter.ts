@@ -85,6 +85,7 @@ function hasValidValidationShape(
  *
  * Non-READY or unverified provider data may be replayed for controlled
  * development/testing, but is never marked eligible for live Brain analysis.
+ * Forming candles may be retained for replay, but can never pass the live gate.
  * Invalid snapshots are blocked entirely.
  */
 export function adaptMarketDataSnapshotForBrain(
@@ -181,12 +182,14 @@ export function adaptMarketDataSnapshotForBrain(
       index === 0 ||
       Date.parse(candle.timestamp) > Date.parse(candles[index - 1].timestamp),
   );
+  const containsProvisionalCandles = candles.some((candle) => candle.provisional);
   const validationClean =
     validation.status === "READY" &&
     validation.errors.length === 0 &&
     validation.invalidCandles === 0 &&
     validation.eligibleCandleCount === candles.length &&
-    validation.candleCount === candles.length &&
+    validation.candleCount >= candles.length &&
+    !containsProvisionalCandles &&
     validation.duplicateTimestamps.length === 0 &&
     validation.outOfOrderTimestamps.length === 0 &&
     validation.futureTimestamps.length === 0 &&
@@ -197,9 +200,14 @@ export function adaptMarketDataSnapshotForBrain(
     source.entitlementStatus === "VERIFIED" &&
     source.licenceStatus === "VERIFIED";
 
+  if (containsProvisionalCandles) {
+    limitations.push(
+      "One or more forming candles are present; they are replay-only and cannot qualify for live Brain analysis.",
+    );
+  }
   if (!liveEligible) {
     limitations.push(
-      "Snapshot is available for controlled replay only; live Brain assessment is blocked until data readiness, freshness, entitlement, licence, and chronological-integrity checks pass.",
+      "Snapshot is available for controlled replay only; live Brain assessment is blocked until data readiness, freshness, entitlement, licence, confirmed-candle, and chronological-integrity checks pass.",
     );
   }
 
