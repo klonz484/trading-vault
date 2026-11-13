@@ -140,6 +140,26 @@ test("mismatched candle identity or invalid OHLC is blocked", () => {
   assert.equal(adaptMarketDataSnapshotForBrain(invalidOhlc).gate, "BLOCKED");
 });
 
+test("invalid validation metadata and source provenance are blocked safely", () => {
+  const noValidationArrays = snapshot({
+    validation: { ...snapshot().validation, duplicateTimestamps: null },
+  });
+  assert.equal(adaptMarketDataSnapshotForBrain(noValidationArrays).gate, "BLOCKED");
+
+  const mismatchedTimezone = snapshot({
+    candles: [{ ...snapshot().candles[0], sourceTimezone: "Europe/London" }],
+  });
+  assert.equal(adaptMarketDataSnapshotForBrain(mismatchedTimezone).gate, "BLOCKED");
+
+  const laterCandleRetrieval = snapshot({
+    candles: [{
+      ...snapshot().candles[0],
+      retrievedAt: "2026-11-12T10:16:00.000Z",
+    }],
+  });
+  assert.equal(adaptMarketDataSnapshotForBrain(laterCandleRetrieval).gate, "BLOCKED");
+});
+
 test("READY label with validation errors or mismatched counts cannot be live eligible", () => {
   const dirty = snapshot({
     validation: {
