@@ -151,8 +151,8 @@ bool AppendUtf8File(const string path, const string payload)
 
 bool PersistBatch(const string batchId, const string payload)
 {
-   string temporaryPath = g_queueFolder + "\\\\" + batchId + ".tmp";
-   string finalPath = g_queueFolder + "\\\\" + batchId + ".json";
+   string temporaryPath = g_queueFolder + "\\" + batchId + ".tmp";
+   string finalPath = g_queueFolder + "\\" + batchId + ".json";
 
    // Never replace an already committed batch. A reused/colliding batch ID
    // must fail closed so an older unprocessed queue file cannot be lost.
