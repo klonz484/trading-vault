@@ -11,7 +11,6 @@ import {
   isWithinMT5ClockSkew,
 } from "@/lib/market-data/mt5-ingest-server";
 
-export const runtime = "nodejs";
 export const maxDuration = 20;
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
