@@ -160,11 +160,9 @@ export function validateMT5IngestBatch(value: unknown): MT5BatchValidation {
     if (!positive(item.bid) || !positive(item.ask) || (finite(item.bid) && finite(item.ask) && item.ask < item.bid)) errors.push(`Tick ${index} has invalid bid/ask prices.`);
     if (!nullableNonNegative(item.last) || !nullableNonNegative(item.volume) || !nullableNonNegative(item.volumeReal)) errors.push(`Tick ${index} has invalid optional last/volume values.`);
     if (!Number.isSafeInteger(item.flags) || (item.flags as number) < 0) errors.push(`Tick ${index} has invalid MT5 tick flags.`);
-    if (INSTRUMENTS.has(item.instrument as InstrumentId) && nonEmpty(item.brokerSymbol) && finite(item.sourceTimeMs)) {
-      const key = `T:${item.instrument}:${item.sourceTimeMs}:${item.bid}:${item.ask}:${item.flags}`;
-      if (keys.has(key)) duplicateKeys.push(key);
-      keys.add(key);
-    }
+    // MT5 may emit multiple distinct (or even byte-identical) tick records
+    // with the same millisecond timestamp. Without a collector sequence ID,
+    // do not collapse or reject ticks based on timestamp/price/flags.
     if (
       INSTRUMENTS.has(item.instrument as InstrumentId) && nonEmpty(item.brokerSymbol) &&
       finite(item.sourceTimeMs) && Number.isSafeInteger(item.sourceTimeMs) && item.sourceTimeMs > 0 &&
