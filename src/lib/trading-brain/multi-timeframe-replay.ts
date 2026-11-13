@@ -92,7 +92,6 @@ export function selectClosedMultiTimeframeEvidence(input: {
     }
 
     let previousTimestamp = Number.NEGATIVE_INFINITY;
-    let selected: ReplayCandle | undefined;
 
     for (const candle of stream.candles) {
       if (!isCanonicalTimestamp(candle.timestamp)) {
@@ -117,7 +116,6 @@ export function selectClosedMultiTimeframeEvidence(input: {
         continue;
       }
 
-      if (timestampMs <= asOfMs) selected = candle;
     }
   }
 
