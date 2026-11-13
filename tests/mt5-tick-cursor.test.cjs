@@ -160,13 +160,14 @@ test("server-time calculations do not use the potentially stale last-quote clock
   assert.doesNotMatch(source, /TimeCurrent\(\) - TimeGMT\(\)/);
 });
 
+
 test("queue commit refuses to overwrite an existing committed batch file", () => {
   const start = source.indexOf("bool PersistBatch");
-  const end = source.indexOf("\\nvoid CommitCursorsAfterQueueSave", start);
+  const end = source.indexOf("\nvoid CommitCursorsAfterQueueSave", start);
   const persist = source.slice(start, end);
   assert.ok(start >= 0);
-  assert.match(persist, /FileIsExist\\(finalPath\\)/);
-  assert.match(persist, /FileMove\\(temporaryPath, 0, finalPath, 0\\)/);
+  assert.match(persist, /FileIsExist\(finalPath\)/);
+  assert.match(persist, /FileMove\(temporaryPath, 0, finalPath, 0\)/);
   assert.doesNotMatch(persist, /FILE_REWRITE/);
   assert.match(persist, /TV_RCG_QUEUE_BATCH_ID_COLLISION/);
 });
