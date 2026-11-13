@@ -17,13 +17,17 @@ require.extensions[".ts"] = (module, filename) => {
   module._compile(output, filename);
 };
 
-const { assessWithTradingBrain } = require("../src/lib/trading-brain/assessment.ts");
+const {
+  assessWithTradingBrain,
+  createBrainAssessmentInputFromMarketData,
+} = require("../src/lib/trading-brain/assessment.ts");
 
 test("Brain service remains non-directional until methodology rules are implemented", () => {
   const result = assessWithTradingBrain({
     analysisId: "brain-stub-test",
     instrument: "EURUSD",
     timeframe: "H1",
+    marketDataGate: "LIVE_ELIGIBLE",
     evidenceReadiness: "READY",
     sourceReferences: ["validated-snapshot:test"],
     limitations: [],
@@ -45,6 +49,7 @@ test("Brain service records missing evidence and non-ready market data", () => {
     analysisId: "brain-missing-evidence-test",
     instrument: "XAUUSD",
     timeframe: "H1",
+    marketDataGate: "REPLAY_ONLY",
     evidenceReadiness: "DEGRADED",
     sourceReferences: [],
     limitations: ["Provider snapshot is incomplete."],
@@ -58,4 +63,47 @@ test("Brain service records missing evidence and non-ready market data", () => {
   assert.ok(result.uncertainties.some((item) => item.includes("closed-candle")));
   assert.ok(result.uncertainties.some((item) => item.includes("higher-timeframe")));
   assert.ok(result.uncertainties.some((item) => item.includes("DEGRADED")));
+  assert.ok(result.uncertainties.some((item) => item.includes("REPLAY_ONLY")));
+});
+
+test("typed constructor derives only closed-candle evidence and preserves gate", () => {
+  const input = createBrainAssessmentInputFromMarketData({
+    analysisId: "adapter-constructor-test",
+    marketData: {
+      contractVersion: "1.0.0",
+      snapshotVersion: "snapshot:test",
+      instrument: "EURUSD",
+      timeframe: "M15",
+      provider: "twelve_data",
+      retrievedAt: "2026-11-12T10:15:00.000Z",
+      sourceSymbol: "EUR/USD",
+      sourceTimezone: "UTC",
+      entitlementStatus: "UNVERIFIED",
+      licenceStatus: "UNVERIFIED",
+      readiness: "READY",
+      gate: "REPLAY_ONLY",
+      candles: [
+        {
+          timestamp: "2026-11-12T10:00:00.000Z",
+          open: 1.1,
+          high: 1.12,
+          low: 1.09,
+          close: 1.11,
+          provisional: true,
+        },
+      ],
+      sourceReferences: ["market-data:snapshot:test"],
+      limitations: ["Replay only."],
+    },
+  });
+
+  assert.equal(input.marketDataGate, "REPLAY_ONLY");
+  assert.equal(input.closedCandleEvidenceAvailable, false);
+  assert.equal(input.higherTimeframeEvidenceAvailable, false);
+  assert.equal(input.validatedMarketStructureAvailable, false);
+  assert.deepEqual(input.sourceReferences, ["market-data:snapshot:test"]);
+
+  const result = assessWithTradingBrain(input);
+  assert.equal(result.decision, "INSUFFICIENT_EVIDENCE");
+  assert.ok(result.uncertainties.some((item) => item.includes("REPLAY_ONLY")));
 });
