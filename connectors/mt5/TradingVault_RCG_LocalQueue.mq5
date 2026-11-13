@@ -151,12 +151,22 @@ bool AppendUtf8File(const string path, const string payload)
 
 bool PersistBatch(const string batchId, const string payload)
 {
-   string temporaryPath = g_queueFolder + "\\" + batchId + ".tmp";
-   string finalPath = g_queueFolder + "\\" + batchId + ".json";
+   string temporaryPath = g_queueFolder + "\\\\" + batchId + ".tmp";
+   string finalPath = g_queueFolder + "\\\\" + batchId + ".json";
+
+   // Never replace an already committed batch. A reused/colliding batch ID
+   // must fail closed so an older unprocessed queue file cannot be lost.
+   if(FileIsExist(finalPath))
+   {
+      Print("TV_RCG_QUEUE_BATCH_ID_COLLISION; batchId=", batchId,
+            "; existing_file_preserved=true; cursors_not_advanced=true");
+      return false;
+   }
    if(!AppendUtf8File(temporaryPath, payload)) return false;
 
    ResetLastError();
-   if(!FileMove(temporaryPath, 0, finalPath, FILE_REWRITE))
+   // Deliberately omit FILE_REWRITE: FileMove must refuse an existing target.
+   if(!FileMove(temporaryPath, 0, finalPath, 0))
    {
       Print("TV_RCG_QUEUE_COMMIT_FAILED; error=", GetLastError());
       return false;
@@ -165,7 +175,6 @@ bool PersistBatch(const string batchId, const string payload)
          "; file=", finalPath, "; bytes=", StringLen(payload));
    return true;
 }
-
 void CommitCursorsAfterQueueSave()
 {
    for(int i = 0; i < ArraySize(g_pendingCandleKeys); i++)
