@@ -19,7 +19,7 @@ export interface MultiTimeframeReplayEvidence {
   instrument: InstrumentId;
   asOf: string;
   status: "COMPLETE" | "INCOMPLETE" | "REJECTED";
-  evidence: Partial<Record<MarketDataTimeframe, Readonly<ReplayCandle>>>;
+  evidence: Partial<Record<MarketDataTimeframe, Readonly<MultiTimeframeReplayCandle>>>;
   missingTimeframes: MarketDataTimeframe[];
   excludedProvisionalCount: number;
   findings: string[];
@@ -49,7 +49,7 @@ export function selectClosedMultiTimeframeEvidence(input: {
   asOf: string;
   streams: readonly MultiTimeframeCandleStream[];
 }): MultiTimeframeReplayEvidence {
-  const evidence: Partial<Record<MarketDataTimeframe, Readonly<ReplayCandle>>> = {};
+  const evidence: Partial<Record<MarketDataTimeframe, Readonly<MultiTimeframeReplayCandle>>> = {};
   const findings: string[] = [];
   let excludedProvisionalCount = 0;
 
