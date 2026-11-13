@@ -237,8 +237,10 @@ export class TwelveDataProvider {
         !Number.isFinite(timestampMs) ||
         timestampMs + TIMEFRAME_SECONDS[timeframe] * 1000 > retrievedAtMs;
 
-      const explicitTimezone = /(?:Z|[+-]\\d{2}:?\\d{2})$/i.exec(sourceTimestamp)?.[0];
-      const sourceTimezone = explicitTimezone ?? "UTC (requested)";
+      // The request explicitly asks Twelve Data to return UTC timestamps.
+      // Preserve the exact source text separately; use the same canonical
+      // timezone contract as the enclosing snapshot for downstream checks.
+      const sourceTimezone = "UTC";
 
       return {
         instrument: instrument.id,
