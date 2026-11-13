@@ -5,9 +5,14 @@ import {
 } from "../market-data/types";
 import type { ReplayCandle } from "./replay";
 
+export interface MultiTimeframeReplayCandle extends ReplayCandle {
+  /** First instant at which this completed observation is safe to know. */
+  availableAt: string;
+}
+
 export interface MultiTimeframeCandleStream {
   timeframe: MarketDataTimeframe;
-  candles: readonly ReplayCandle[];
+  candles: readonly MultiTimeframeReplayCandle[];
 }
 
 export interface MultiTimeframeReplayEvidence {
@@ -100,6 +105,10 @@ export function selectClosedMultiTimeframeEvidence(input: {
       }
 
       const timestampMs = Date.parse(candle.timestamp);
+      if (!isCanonicalTimestamp(candle.availableAt) || Date.parse(candle.availableAt) < timestampMs) {
+        findings.push(`${stream.timeframe} contains invalid candle availability metadata.`);
+        break;
+      }
       if (timestampMs <= previousTimestamp) {
         findings.push(`${stream.timeframe} candles must be strictly chronological with no duplicates.`);
         break;
@@ -113,9 +122,7 @@ export function selectClosedMultiTimeframeEvidence(input: {
 
       if (candle.provisional) {
         excludedProvisionalCount += 1;
-        continue;
       }
-
     }
   }
 
@@ -133,7 +140,9 @@ export function selectClosedMultiTimeframeEvidence(input: {
 
   for (const stream of input.streams) {
     const eligible = stream.candles.filter(
-      (candle) => !candle.provisional && Date.parse(candle.timestamp) <= asOfMs,
+      (candle) => !candle.provisional &&
+        Date.parse(candle.timestamp) <= asOfMs &&
+        Date.parse(candle.availableAt) <= asOfMs,
     );
     const latest = eligible[eligible.length - 1];
     if (latest) evidence[stream.timeframe] = Object.freeze({ ...latest });
