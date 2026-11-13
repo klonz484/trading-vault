@@ -4,6 +4,7 @@ import { getInstrument, isMarketDataTimeframe, getTwelveDataSnapshot } from "@/l
 import { canDisplayMarketPrices } from "@/lib/market-data/readiness";
 import { MarketDataProviderError } from "@/lib/market-data/types";
 import { createMarketDataBrainHandoff } from "@/lib/market-data/brain-bridge";
+import { resolveFreshnessThresholdSeconds } from "@/lib/market-data/freshness-policy";
 
 export const maxDuration = 20;
 
@@ -56,10 +57,11 @@ export async function GET(request: Request) {
   }
   if (withinRateLimit !== true) return jsonError("The market-data request limit has been reached. Please wait one minute.", 429);
 
-  const configuredFreshness = Number(process.env.TRADING_VAULT_MARKET_DATA_MAX_AGE_SECONDS);
-  const maxAgeSeconds = Number.isInteger(configuredFreshness) && configuredFreshness > 0
-    ? configuredFreshness
-    : undefined;
+  const maxAgeSeconds = resolveFreshnessThresholdSeconds(
+    process.env.TRADING_VAULT_MARKET_DATA_FRESHNESS_POLICY_JSON,
+    instrumentId,
+    timeframe,
+  );
 
   try {
     const snapshot = await getTwelveDataSnapshot(instrumentId as Parameters<typeof getTwelveDataSnapshot>[0], timeframe, {
