@@ -17,6 +17,10 @@ The fixture is explicitly labelled `SYNTHETIC_TEST_DATA_NOT_MARKET_DATA`. Its OH
 
 The fixtures do not contain provider entitlement or licence evidence and must never be passed off as live data or promoted to `LIVE_ELIGIBLE`. They are not a substitute for provider-backed historical validation.
 
+## Multi-timeframe evidence selection
+
+The Brain integration includes `selectClosedMultiTimeframeEvidence`, which selects the latest non-provisional candle at or before one shared `asOf` instant for each supported timeframe. It rejects duplicate streams, unordered/duplicate timestamps, invalid OHLC and malformed candle states. It reports `INCOMPLETE` when any supported timeframe lacks confirmed evidence at the boundary. This helper aligns evidence only; it does not create a directional conclusion.
+
 ## Replay semantics
 
 Fixture timestamps are observation timestamps. The replay test supplies the fixture's fixed `asOf` timestamp as the inclusive `endAt` boundary. A provisional observation at or before that boundary must remain excluded from strategy history; a closed observation after that boundary must not be exposed.
