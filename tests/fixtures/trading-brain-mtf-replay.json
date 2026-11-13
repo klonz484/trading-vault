@@ -14,7 +14,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:57:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:57:00.000Z",
@@ -22,7 +23,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:58:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:58:00.000Z",
@@ -30,7 +32,8 @@
             "high": 1.1004,
             "low": 1.0997,
             "close": 1.1001,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-12T11:59:00.000Z"
           },
           {
             "timestamp": "2026-11-12T12:01:00.000Z",
@@ -38,7 +41,8 @@
             "high": 1.1007,
             "low": 1.1,
             "close": 1.1004,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T12:02:00.000Z"
           }
         ]
       },
@@ -50,7 +54,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:45:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:45:00.000Z",
@@ -58,7 +63,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:50:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:50:00.000Z",
@@ -66,7 +72,8 @@
             "high": 1.1004,
             "low": 1.0997,
             "close": 1.1001,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-12T11:55:00.000Z"
           },
           {
             "timestamp": "2026-11-12T12:05:00.000Z",
@@ -74,7 +81,8 @@
             "high": 1.1007,
             "low": 1.1,
             "close": 1.1004,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T12:10:00.000Z"
           }
         ]
       },
@@ -86,7 +94,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:15:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:15:00.000Z",
@@ -94,7 +103,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:30:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:30:00.000Z",
@@ -102,7 +112,8 @@
             "high": 1.1004,
             "low": 1.0997,
             "close": 1.1001,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-12T11:45:00.000Z"
           },
           {
             "timestamp": "2026-11-12T12:15:00.000Z",
@@ -110,7 +121,8 @@
             "high": 1.1007,
             "low": 1.1,
             "close": 1.1004,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T12:30:00.000Z"
           }
         ]
       },
@@ -122,7 +134,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T10:30:00.000Z"
           },
           {
             "timestamp": "2026-11-12T10:30:00.000Z",
@@ -130,7 +143,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:00:00.000Z",
@@ -138,7 +152,8 @@
             "high": 1.1004,
             "low": 1.0997,
             "close": 1.1001,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-12T11:30:00.000Z"
           },
           {
             "timestamp": "2026-11-12T12:30:00.000Z",
@@ -146,7 +161,8 @@
             "high": 1.1007,
             "low": 1.1,
             "close": 1.1004,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T13:00:00.000Z"
           }
         ]
       },
@@ -158,7 +174,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T09:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T09:00:00.000Z",
@@ -166,7 +183,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T10:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T10:00:00.000Z",
@@ -174,7 +192,8 @@
             "high": 1.1004,
             "low": 1.0997,
             "close": 1.1001,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-12T11:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T13:00:00.000Z",
@@ -182,7 +201,8 @@
             "high": 1.1007,
             "low": 1.1,
             "close": 1.1004,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T14:00:00.000Z"
           }
         ]
       },
@@ -194,7 +214,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T00:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T00:00:00.000Z",
@@ -202,7 +223,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T04:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T04:00:00.000Z",
@@ -210,7 +232,8 @@
             "high": 1.1004,
             "low": 1.0997,
             "close": 1.1001,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-12T08:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T16:00:00.000Z",
@@ -218,7 +241,8 @@
             "high": 1.1007,
             "low": 1.1,
             "close": 1.1004,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T20:00:00.000Z"
           }
         ]
       },
@@ -230,7 +254,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-09T12:00:00.000Z"
           },
           {
             "timestamp": "2026-11-09T12:00:00.000Z",
@@ -238,7 +263,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-10T12:00:00.000Z"
           },
           {
             "timestamp": "2026-11-10T12:00:00.000Z",
@@ -246,7 +272,8 @@
             "high": 1.1004,
             "low": 1.0997,
             "close": 1.1001,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-11T12:00:00.000Z"
           },
           {
             "timestamp": "2026-11-13T12:00:00.000Z",
@@ -254,7 +281,8 @@
             "high": 1.1007,
             "low": 1.1,
             "close": 1.1004,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-14T12:00:00.000Z"
           }
         ]
       },
@@ -266,7 +294,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-10-22T12:00:00.000Z"
           },
           {
             "timestamp": "2026-10-22T12:00:00.000Z",
@@ -274,7 +303,8 @@
             "high": 1.1002,
             "low": 1.0995,
             "close": 1.0999,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-10-29T12:00:00.000Z"
           },
           {
             "timestamp": "2026-10-29T12:00:00.000Z",
@@ -282,7 +312,8 @@
             "high": 1.1004,
             "low": 1.0997,
             "close": 1.1001,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-05T12:00:00.000Z"
           },
           {
             "timestamp": "2026-11-19T12:00:00.000Z",
@@ -290,7 +321,8 @@
             "high": 1.1007,
             "low": 1.1,
             "close": 1.1004,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-26T12:00:00.000Z"
           }
         ]
       }
@@ -304,7 +336,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:57:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:57:00.000Z",
@@ -312,7 +345,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:58:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:58:00.000Z",
@@ -320,7 +354,8 @@
             "high": 2600.4,
             "low": 2599.7,
             "close": 2600.1,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-12T11:59:00.000Z"
           },
           {
             "timestamp": "2026-11-12T12:01:00.000Z",
@@ -328,7 +363,8 @@
             "high": 2600.7,
             "low": 2600,
             "close": 2600.4,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T12:02:00.000Z"
           }
         ]
       },
@@ -340,7 +376,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:45:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:45:00.000Z",
@@ -348,7 +385,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:50:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:50:00.000Z",
@@ -356,7 +394,8 @@
             "high": 2600.4,
             "low": 2599.7,
             "close": 2600.1,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-12T11:55:00.000Z"
           },
           {
             "timestamp": "2026-11-12T12:05:00.000Z",
@@ -364,7 +403,8 @@
             "high": 2600.7,
             "low": 2600,
             "close": 2600.4,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T12:10:00.000Z"
           }
         ]
       },
@@ -376,7 +416,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:15:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:15:00.000Z",
@@ -384,7 +425,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:30:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:30:00.000Z",
@@ -392,7 +434,8 @@
             "high": 2600.4,
             "low": 2599.7,
             "close": 2600.1,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-12T11:45:00.000Z"
           },
           {
             "timestamp": "2026-11-12T12:15:00.000Z",
@@ -400,7 +443,8 @@
             "high": 2600.7,
             "low": 2600,
             "close": 2600.4,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T12:30:00.000Z"
           }
         ]
       },
@@ -412,7 +456,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T10:30:00.000Z"
           },
           {
             "timestamp": "2026-11-12T10:30:00.000Z",
@@ -420,7 +465,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T11:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T11:00:00.000Z",
@@ -428,7 +474,8 @@
             "high": 2600.4,
             "low": 2599.7,
             "close": 2600.1,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-12T11:30:00.000Z"
           },
           {
             "timestamp": "2026-11-12T12:30:00.000Z",
@@ -436,7 +483,8 @@
             "high": 2600.7,
             "low": 2600,
             "close": 2600.4,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T13:00:00.000Z"
           }
         ]
       },
@@ -448,7 +496,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T09:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T09:00:00.000Z",
@@ -456,7 +505,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T10:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T10:00:00.000Z",
@@ -464,7 +514,8 @@
             "high": 2600.4,
             "low": 2599.7,
             "close": 2600.1,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-12T11:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T13:00:00.000Z",
@@ -472,7 +523,8 @@
             "high": 2600.7,
             "low": 2600,
             "close": 2600.4,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T14:00:00.000Z"
           }
         ]
       },
@@ -484,7 +536,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T00:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T00:00:00.000Z",
@@ -492,7 +545,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T04:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T04:00:00.000Z",
@@ -500,7 +554,8 @@
             "high": 2600.4,
             "low": 2599.7,
             "close": 2600.1,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-12T08:00:00.000Z"
           },
           {
             "timestamp": "2026-11-12T16:00:00.000Z",
@@ -508,7 +563,8 @@
             "high": 2600.7,
             "low": 2600,
             "close": 2600.4,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-12T20:00:00.000Z"
           }
         ]
       },
@@ -520,7 +576,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-09T12:00:00.000Z"
           },
           {
             "timestamp": "2026-11-09T12:00:00.000Z",
@@ -528,7 +585,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-10T12:00:00.000Z"
           },
           {
             "timestamp": "2026-11-10T12:00:00.000Z",
@@ -536,7 +594,8 @@
             "high": 2600.4,
             "low": 2599.7,
             "close": 2600.1,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-11T12:00:00.000Z"
           },
           {
             "timestamp": "2026-11-13T12:00:00.000Z",
@@ -544,7 +603,8 @@
             "high": 2600.7,
             "low": 2600,
             "close": 2600.4,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-14T12:00:00.000Z"
           }
         ]
       },
@@ -556,7 +616,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-10-22T12:00:00.000Z"
           },
           {
             "timestamp": "2026-10-22T12:00:00.000Z",
@@ -564,7 +625,8 @@
             "high": 2600.2,
             "low": 2599.5,
             "close": 2599.9,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-10-29T12:00:00.000Z"
           },
           {
             "timestamp": "2026-10-29T12:00:00.000Z",
@@ -572,7 +634,8 @@
             "high": 2600.4,
             "low": 2599.7,
             "close": 2600.1,
-            "provisional": true
+            "provisional": true,
+            "availableAt": "2026-11-05T12:00:00.000Z"
           },
           {
             "timestamp": "2026-11-19T12:00:00.000Z",
@@ -580,7 +643,8 @@
             "high": 2600.7,
             "low": 2600,
             "close": 2600.4,
-            "provisional": false
+            "provisional": false,
+            "availableAt": "2026-11-26T12:00:00.000Z"
           }
         ]
       }
