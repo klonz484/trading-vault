@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getInstrument, isMarketDataTimeframe, getTwelveDataSnapshot } from "@/lib/market-data";
 import { canDisplayMarketPrices } from "@/lib/market-data/readiness";
 import { MarketDataProviderError } from "@/lib/market-data/types";
+import { adaptMarketDataSnapshotForBrain } from "@/lib/trading-brain/market-data-adapter";
+import { assessWithTradingBrain, createBrainAssessmentInputFromMarketData } from "@/lib/trading-brain/assessment";
 
 export const maxDuration = 20;
 
@@ -79,6 +81,31 @@ export async function GET(request: Request) {
       validation: snapshot.validation,
     });
 
+    // The actual provider snapshot now crosses the explicit Brain boundary.
+    // This produces an auditable readiness assessment only; it cannot create
+    // a directional signal or expose candle prices when release gates are shut.
+    const brainSnapshot = {
+      ...snapshot,
+      source: {
+        ...snapshot.source,
+        entitlementStatus,
+        licenceStatus,
+      },
+    };
+    const brainMarketData = adaptMarketDataSnapshotForBrain(brainSnapshot);
+    const brainAssessment = assessWithTradingBrain(
+      createBrainAssessmentInputFromMarketData({
+        analysisId: snapshot.snapshotVersion,
+        marketData: brainMarketData,
+      }),
+    );
+    const latestObservationAt = snapshot.candles.reduce<string | null>(
+      (latest, candle) => !latest || Date.parse(candle.timestamp) > Date.parse(latest)
+        ? candle.timestamp
+        : latest,
+      null,
+    );
+
     return NextResponse.json({
       status: pricesAvailable ? "READY" : snapshot.validation.status,
       pricesAvailable,
@@ -86,10 +113,20 @@ export async function GET(request: Request) {
       timeframe: snapshot.timeframe,
       provider: snapshot.provider,
       retrievedAt: snapshot.retrievedAt,
+      observationCount: snapshot.validation.candleCount,
+      eligibleObservationCount: snapshot.validation.eligibleCandleCount,
+      latestObservationAt,
       source: {
         ...snapshot.source,
         entitlementStatus,
         licenceStatus,
+      },
+      brain: {
+        marketDataGate: brainMarketData.gate,
+        status: brainAssessment.status,
+        decision: brainAssessment.decision,
+        uncertainties: brainAssessment.uncertainties,
+        sourceReferences: brainMarketData.sourceReferences,
       },
       validation: snapshot.validation,
       candles: pricesAvailable ? snapshot.candles : [],
