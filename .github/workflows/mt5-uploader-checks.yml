@@ -1,0 +1,27 @@
+name: MT5 uploader checks
+
+on:
+  push:
+    branches:
+      - build/market-data-brain-ready-v1
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  uploader:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile uploader
+        run: python -m py_compile connectors/mt5/tradingvault_mt5_uploader.py
+      - name: Run uploader tests
+        run: python -m unittest discover -s tests -p "test_mt5_uploader.py" -v
