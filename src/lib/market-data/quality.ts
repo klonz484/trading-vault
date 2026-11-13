@@ -71,6 +71,7 @@ export function validateCandles(
   const firstInstrument = candles[0]?.instrument;
   const firstProvider = candles[0]?.provider;
   const intervalSeconds = expectedTimeframe ? TIMEFRAME_SECONDS[expectedTimeframe] : null;
+  const intervalMilliseconds = intervalSeconds === null ? null : intervalSeconds * 1000;
   let previousTimestamp: number | null = null;
   let sourceOrder: "ASC" | "DESC" | null = null;
 
@@ -133,13 +134,43 @@ export function validateCandles(
     );
   }
 
-  const newest = candles.reduce<number | null>((latest, candle) => {
-    const value = Date.parse(candle.timestamp);
-    if (!Number.isFinite(value)) return latest;
-    return latest === null ? value : Math.max(latest, value);
+  const structurallyValidCandles = candles.filter(
+    (candle) => isCandleStructurallyValid(candle) && !futureTimestamps.includes(candle.timestamp),
+  );
+  const provisionalCandleCount = structurallyValidCandles.filter(
+    (candle) => candle.provisional,
+  ).length;
+  const prematurelyConfirmedCount = structurallyValidCandles.filter((candle) => {
+    if (candle.provisional || intervalMilliseconds === null) return false;
+    return Date.parse(candle.timestamp) + intervalMilliseconds > now.getTime();
+  }).length;
+  const confirmedClosedCandles = structurallyValidCandles.filter((candle) => {
+    if (candle.provisional || intervalMilliseconds === null) return false;
+    return Date.parse(candle.timestamp) + intervalMilliseconds <= now.getTime();
+  });
+
+  if (provisionalCandleCount > 0) {
+    warnings.push(
+      `${provisionalCandleCount} forming candle(s) retained as provisional observations and excluded from confirmed eligibility.`,
+    );
+  }
+  if (prematurelyConfirmedCount > 0) {
+    warnings.push(
+      `${prematurelyConfirmedCount} candle(s) marked confirmed before their expected close boundary were excluded from eligibility.`,
+    );
+  }
+
+  // Twelve Data timestamps identify when a bar opened. Freshness is therefore
+  // measured from the close boundary of the newest confirmed bar, not its open.
+  // This prevents a complete M15 candle from appearing 15 minutes older than it is.
+  const newestConfirmedClose = confirmedClosedCandles.reduce<number | null>((latest, candle) => {
+    const closeTime = Date.parse(candle.timestamp) + (intervalMilliseconds ?? 0);
+    if (!Number.isFinite(closeTime)) return latest;
+    return latest === null ? closeTime : Math.max(latest, closeTime);
   }, null);
-  const freshnessSeconds =
-    newest === null ? null : Math.floor((now.getTime() - newest) / 1000);
+  const freshnessSeconds = newestConfirmedClose === null
+    ? null
+    : Math.max(0, Math.floor((now.getTime() - newestConfirmedClose) / 1000));
   const freshnessThresholdSeconds = options.maxAgeSeconds ?? null;
 
   if (
@@ -156,41 +187,20 @@ export function validateCandles(
   }
   if (
     freshnessSeconds !== null &&
-    freshnessSeconds >= 0 &&
     freshnessThresholdSeconds !== null &&
     Number.isFinite(freshnessThresholdSeconds) &&
     freshnessSeconds > freshnessThresholdSeconds
   ) {
-    warnings.push("Latest observation exceeds the configured freshness threshold.");
-  }
-
-  const structurallyValidCandles = candles.filter(
-    (candle) => isCandleStructurallyValid(candle) && !futureTimestamps.includes(candle.timestamp),
-  );
-  const provisionalCandleCount = structurallyValidCandles.filter(
-    (candle) => candle.provisional,
-  ).length;
-  const confirmedEligibleCandleCount = structurallyValidCandles.filter(
-    (candle) => !candle.provisional,
-  ).length;
-
-  if (provisionalCandleCount > 0) {
-    warnings.push(
-      `${provisionalCandleCount} forming candle(s) retained as provisional observations and excluded from confirmed eligibility.`,
-    );
+    warnings.push("Latest confirmed candle close exceeds the configured freshness threshold.");
   }
 
   let status: DataReadiness = "READY";
-  if (errors.length || confirmedEligibleCandleCount === 0) status = "INCOMPLETE";
+  if (errors.length || confirmedClosedCandles.length === 0) status = "INCOMPLETE";
   else if (freshnessThresholdSeconds === null) status = "DEGRADED";
-  else if (
-    freshnessSeconds !== null &&
-    freshnessSeconds >= 0 &&
-    freshnessSeconds > freshnessThresholdSeconds
-  ) status = "STALE";
+  else if (freshnessSeconds !== null && freshnessSeconds > freshnessThresholdSeconds) status = "STALE";
 
   const eligibleCandleCount = status === "READY" || status === "DEGRADED"
-    ? confirmedEligibleCandleCount
+    ? confirmedClosedCandles.length
     : 0;
 
   return {
