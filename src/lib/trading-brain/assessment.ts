@@ -2,17 +2,51 @@ import type {
   EvidenceReadiness,
   IndependentAssessment,
 } from "./contract";
+import type {
+  BrainMarketDataGate,
+  BrainMarketDataInput,
+} from "./market-data-adapter";
 
 export interface BrainAssessmentInput {
   analysisId: string;
   instrument: string;
   timeframe: string;
+  marketDataGate: BrainMarketDataGate;
   evidenceReadiness: EvidenceReadiness;
   sourceReferences: string[];
   limitations: string[];
   closedCandleEvidenceAvailable: boolean;
   higherTimeframeEvidenceAvailable: boolean;
   validatedMarketStructureAvailable: boolean;
+}
+
+/**
+ * Creates a typed Brain input from the adapter output. Higher-timeframe and
+ * market-structure availability must be supplied by their own validators;
+ * they are never inferred from a single timeframe snapshot.
+ */
+export function createBrainAssessmentInputFromMarketData(input: {
+  analysisId: string;
+  marketData: BrainMarketDataInput;
+  higherTimeframeEvidenceAvailable?: boolean;
+  validatedMarketStructureAvailable?: boolean;
+}): BrainAssessmentInput {
+  return {
+    analysisId: input.analysisId,
+    instrument: input.marketData.instrument,
+    timeframe: input.marketData.timeframe,
+    marketDataGate: input.marketData.gate,
+    evidenceReadiness: input.marketData.readiness,
+    sourceReferences: [...input.marketData.sourceReferences],
+    limitations: [...input.marketData.limitations],
+    closedCandleEvidenceAvailable: input.marketData.candles.some(
+      (candle) => candle.provisional === false,
+    ),
+    higherTimeframeEvidenceAvailable:
+      input.higherTimeframeEvidenceAvailable ?? false,
+    validatedMarketStructureAvailable:
+      input.validatedMarketStructureAvailable ?? false,
+  };
 }
 
 /**
@@ -27,6 +61,11 @@ export function assessWithTradingBrain(
 ): IndependentAssessment {
   const missing: string[] = [];
 
+  if (input.marketDataGate !== "LIVE_ELIGIBLE") {
+    missing.push(
+      "Market-data gate is " + input.marketDataGate + "; live Brain assessment is blocked.",
+    );
+  }
   if (!input.closedCandleEvidenceAvailable) {
     missing.push("Confirmed closed-candle evidence is not available.");
   }
@@ -37,7 +76,7 @@ export function assessWithTradingBrain(
     missing.push("Validated market-structure evidence is not available.");
   }
   if (input.evidenceReadiness !== "READY") {
-    missing.push(`Market-data readiness is ${input.evidenceReadiness}, not READY.`);
+    missing.push("Market-data readiness is " + input.evidenceReadiness + ", not READY.");
   }
 
   missing.push(
