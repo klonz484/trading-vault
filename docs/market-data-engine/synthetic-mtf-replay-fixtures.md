@@ -19,7 +19,9 @@ The fixtures do not contain provider entitlement or licence evidence and must ne
 
 ## Multi-timeframe evidence selection
 
-The Brain integration includes `selectClosedMultiTimeframeEvidence`, which selects the latest non-provisional candle at or before one shared `asOf` instant for each supported timeframe. It rejects duplicate streams, unordered/duplicate timestamps, invalid OHLC and malformed candle states. It reports `INCOMPLETE` when any supported timeframe lacks confirmed evidence at the boundary. This helper aligns evidence only; it does not create a directional conclusion.
+The Brain integration includes `selectClosedMultiTimeframeEvidence`, which selects the latest non-provisional candle for each supported timeframe only when both its observation timestamp and explicit `availableAt` timestamp are at or before one shared `asOf` instant. `availableAt` is the first instant the completed observation is safe to know; it must be supplied from a verified close-time rule, not guessed from a bar-open timestamp. The helper rejects duplicate streams, unordered/duplicate timestamps, invalid OHLC, malformed candle states and invalid availability metadata. It reports `INCOMPLETE` when any supported timeframe lacks confirmed evidence at the boundary. This helper aligns evidence only; it does not create a directional conclusion.
+
+The current Twelve Data adapter estimates provisional status using the requested interval boundary, and its own limitations say provider candle-close semantics still require independent verification. Therefore its snapshots are not yet approved inputs to this availability-aware selector. The current fixture tests exercise the contract with explicit synthetic `availableAt` values only.
 
 ## Replay semantics
 
