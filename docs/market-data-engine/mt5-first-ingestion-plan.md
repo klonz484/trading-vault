@@ -150,3 +150,5 @@ References reviewed:
 - MetaQuotes local and server time explanation: https://www.mql5.com/en/book/common/timing/timing_local_server
 
 This is a fail-closed data-integrity gate, not a reason to change the user's MT5 terminal or queue/cursor state.
+
+**RCG-specific public-source check:** An older RCG Markets product disclosure document describes trading hours in GMT+2, but it does not establish the current MT5 server's timestamp basis or historical daylight-saving schedule. It is therefore insufficient to configure historical conversion. We must obtain confirmation for the exact RCG MT5 server/account and verify it against a live paired-clock sample. Reference: https://assets-global.website-files.com/618ecb9763e89eb52ae5c8e7/64cb741308514246eb48872e_RCG%20OEP.pdf
