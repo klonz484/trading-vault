@@ -32,7 +32,7 @@
 - The existing versioned `POST /api/market-data/mt5/ingest/v1` route has been hardened. It remains separate from the browser-facing Twelve Data `GET` route.
 - The route authenticates a per-terminal bearer credential by SHA-256 hash lookup using a server-only Supabase secret. The separate owner-only credentials route can issue/revoke scoped credentials when deliberately invoked, but none has been issued as part of this work. The ingest route never uses a browser session, publishable key, provider key, or frontend secret.
 - Compare secrets safely, impose strict body-size and observation-count limits, validate content type, and rate-limit by collector identity.
-- Reject stale/future batch timestamps outside an explicitly configured clock-skew window.
+- Require the HTTP request timestamp to be within five minutes and reject future batch/observation timestamps; allow older batch capture timestamps so offline queue files can be safely retried.
 - Return a durable acknowledgement only after the batch and idempotency record have committed successfully.
 
 ### Stage 2 — Durable storage and idempotency
@@ -75,10 +75,10 @@
 
 ## Immediate engineering blockers
 
-1. Confirm the current RCG collector PR #16 head and complete its required MetaEditor and broker-backed tests before relying on its cursor behaviour.
-2. Implement and review the durable Supabase schema and collector authentication boundary.
-3. Implement the dedicated ingestion API and automated tests for authentication, invalid payloads, duplicate batch retries, clock skew, partial writes and acknowledgement correctness.
-4. Build the separate uploader and test it against Preview using a synthetic batch before any live broker queue is transmitted.
+1. Complete the required MetaEditor compilation and supervised broker-backed tests for collector PR #16 before relying on its cursor behaviour.
+2. Review the prepared migration and apply it only to an isolated non-production Supabase database. The connected project currently has no development branch; do not apply it to the existing project.
+3. Configure the server-only Supabase secret in Preview and deliberately issue a scoped collector credential only when the isolated schema is ready. No credential has been issued.
+4. Build the separate local uploader and test bounded retries, exact acknowledgement matching, and queue retention against Preview using synthetic data.
 5. Only then perform a supervised end-to-end demo test with the local MT5 collector.
 
 ## Implementation progress — 2026-11-13
@@ -98,12 +98,12 @@
 - The connected Supabase project was inspected read-only. The two existing MT5 tables are present, RLS is enabled, no public/authenticated policies exist, and only `service_role` has table privileges. Existing batch rows are stored in JSONB with broker/batch uniqueness.
 - No Supabase schema changes were executed. No secret key or collector token was created or issued.
 - The endpoint cannot accept data until the migration is applied and a server-side `SUPABASE_SECRET_KEY` (or legacy `SUPABASE_SERVICE_ROLE_KEY`) is configured. Neither action is part of this commit.
-- GitHub Actions quality gates passed on commit `0c40fdd46ca484f7c6f81a19579fb02456d5fd5d`: ESLint, all 242 automated tests, and the production build. Vercel Preview also reached READY for that commit. The later consolidation into the versioned route is awaiting a fresh CI run. No end-to-end ingestion has been attempted.
+- GitHub Actions quality gates passed on consolidated commit `8d3c2ce5a83f57d6dcb6b61f89b9c21315390293`: ESLint, the complete automated test suite, and the production build. The separate Trading Vault checks workflow also passed. Vercel Preview reached READY for this exact commit. No endpoint-to-Supabase ingestion test or end-to-end MT5 transmission has been attempted.
 - The separate local uploader, supervised demo transmission, and Brain normalizer integration remain outstanding.
 
 ### Immediate next steps
 
-1. Re-run repository lint, tests and production build against the consolidated versioned-route commit; fix any failures.
-2. Review and apply the migration only to an explicitly selected non-production Supabase development database. The connected project currently has no Supabase development branch, so do not apply it to the existing project.
-3. After an isolated database is available, add an owner-controlled credential-issuance procedure and server environment variable without exposing either value.
-4. Build the local uploader with queue-retention-on-timeout and acknowledgement-ID matching; keep it disabled until synthetic Preview testing is complete.
+1. Complete the required MetaEditor and supervised demo checks for collector PR #16.
+2. Arrange an isolated non-production Supabase database, then review and apply the prepared migration there. The connected project has no development branch, and no schema changes have been made.
+3. Configure the server-only Supabase secret in Preview and use the existing owner-only credential route only when the user explicitly chooses to issue a token.
+4. Build the local uploader with bounded retries, queue-retention-on-timeout and matching durable acknowledgements; keep it disabled until synthetic Preview testing is complete.
