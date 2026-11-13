@@ -72,12 +72,18 @@ export function adaptMarketDataSnapshotForBrain(
     };
   }
 
-  const liveReady =
+  const validationClean =
     snapshot.validation.status === "READY" &&
+    snapshot.validation.errors.length === 0 &&
+    snapshot.validation.invalidCandles === 0 &&
+    snapshot.validation.eligibleCandleCount > 0 &&
+    snapshot.validation.eligibleCandleCount === candles.length;
+  const liveEligible =
+    validationClean &&
     snapshot.source.entitlementStatus === "VERIFIED" &&
     snapshot.source.licenceStatus === "VERIFIED";
 
-  if (!liveReady) {
+  if (!liveEligible) {
     limitations.push(
       "Snapshot is available for controlled replay only; live Brain assessment is blocked until readiness, entitlement, and licence checks are VERIFIED.",
     );
@@ -95,7 +101,7 @@ export function adaptMarketDataSnapshotForBrain(
     entitlementStatus: snapshot.source.entitlementStatus,
     licenceStatus: snapshot.source.licenceStatus,
     readiness: snapshot.validation.status,
-    gate: liveReady ? "LIVE_ELIGIBLE" : "REPLAY_ONLY",
+    gate: liveEligible ? "LIVE_ELIGIBLE" : "REPLAY_ONLY",
     candles,
     sourceReferences: [
       `market-data:${snapshot.snapshotVersion}`,
