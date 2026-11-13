@@ -139,7 +139,7 @@ export async function POST(request: Request) {
   const { data: existing, error: existingError } = await supabase
     .from("mt5_ingest_batches")
     .select("collector_credential_id, terminal_instance_id, payload_hash, received_at")
-    .eq("broker_id", batch.brokerId)
+    .eq("collector_credential_id", credential.id)
     .eq("batch_id", batch.batchId)
     .maybeSingle();
 
