@@ -2,7 +2,7 @@ import type { MarketDataSnapshot } from "../market-data/types";
 import type { ReplayCandle } from "./replay";
 
 export type BrainMarketDataGate =
-  | "LIVE_READY"
+  | "LIVE_ELIGIBLE"
   | "REPLAY_ONLY"
   | "BLOCKED";
 
@@ -95,7 +95,7 @@ export function adaptMarketDataSnapshotForBrain(
     entitlementStatus: snapshot.source.entitlementStatus,
     licenceStatus: snapshot.source.licenceStatus,
     readiness: snapshot.validation.status,
-    gate: liveReady ? "LIVE_READY" : "REPLAY_ONLY",
+    gate: liveReady ? "LIVE_ELIGIBLE" : "REPLAY_ONLY",
     candles,
     sourceReferences: [
       `market-data:${snapshot.snapshotVersion}`,
