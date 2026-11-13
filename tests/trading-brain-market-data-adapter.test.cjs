@@ -113,3 +113,21 @@ test("empty or invalidly versioned snapshot is blocked", () => {
   assert.equal(result.gate, "BLOCKED");
   assert.deepEqual(result.candles, []);
 });
+
+test("READY label with validation errors or mismatched counts cannot be live eligible", () => {
+  const dirty = snapshot({
+    validation: {
+      ...snapshot().validation,
+      errors: ["test integrity issue"],
+    },
+  });
+  assert.equal(adaptMarketDataSnapshotForBrain(dirty).gate, "REPLAY_ONLY");
+
+  const mismatched = snapshot({
+    validation: {
+      ...snapshot().validation,
+      eligibleCandleCount: 2,
+    },
+  });
+  assert.equal(adaptMarketDataSnapshotForBrain(mismatched).gate, "REPLAY_ONLY");
+});
