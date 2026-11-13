@@ -106,12 +106,38 @@ test("non-READY snapshot is replay-only and never promoted", () => {
 });
 
 test("empty or invalidly versioned snapshot is blocked", () => {
-  const result = adaptMarketDataSnapshotForBrain(snapshot({
-    snapshotVersion: "",
-    candles: [],
-  }));
-  assert.equal(result.gate, "BLOCKED");
-  assert.deepEqual(result.candles, []);
+  const empty = adaptMarketDataSnapshotForBrain(snapshot({ candles: [] }));
+  assert.equal(empty.gate, "BLOCKED");
+  assert.deepEqual(empty.candles, []);
+
+  const badVersion = adaptMarketDataSnapshotForBrain(snapshot({ snapshotVersion: " " }));
+  assert.equal(badVersion.gate, "BLOCKED");
+
+  const badSchema = adaptMarketDataSnapshotForBrain(snapshot({ schemaVersion: "2.0.0" }));
+  assert.equal(badSchema.gate, "BLOCKED");
+});
+
+test("READY label cannot override stale freshness evidence", () => {
+  const staleEvidence = snapshot({
+    validation: {
+      ...snapshot().validation,
+      freshnessSeconds: 121,
+      freshnessThresholdSeconds: 120,
+    },
+  });
+  assert.equal(adaptMarketDataSnapshotForBrain(staleEvidence).gate, "REPLAY_ONLY");
+});
+
+test("mismatched candle identity or invalid OHLC is blocked", () => {
+  const mismatched = snapshot({
+    candles: [{ ...snapshot().candles[0], instrument: "GBPUSD" }],
+  });
+  assert.equal(adaptMarketDataSnapshotForBrain(mismatched).gate, "BLOCKED");
+
+  const invalidOhlc = snapshot({
+    candles: [{ ...snapshot().candles[0], high: 1.05 }],
+  });
+  assert.equal(adaptMarketDataSnapshotForBrain(invalidOhlc).gate, "BLOCKED");
 });
 
 test("READY label with validation errors or mismatched counts cannot be live eligible", () => {
