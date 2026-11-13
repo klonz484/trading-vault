@@ -26,13 +26,17 @@ create table if not exists public.mt5_ingest_batches (
   candle_count integer not null check (candle_count >= 0),
   tick_count integer not null check (tick_count >= 0),
   candles jsonb not null,
-  ticks jsonb not null,
-  constraint mt5_ingest_batches_broker_batch_unique unique (broker_id, batch_id)
+  ticks jsonb not null
 );
 
 alter table public.mt5_ingest_batches
   add column if not exists collector_credential_id uuid
   references public.mt5_connector_credentials(id) on delete restrict;
+
+-- Scope idempotency to a collector so separate terminals/users may safely
+-- generate the same local batch identifier without sharing ingestion identity.
+alter table public.mt5_ingest_batches
+  drop constraint if exists mt5_ingest_batches_broker_batch_unique;
 
 create index if not exists mt5_ingest_batches_collector_received_idx
   on public.mt5_ingest_batches (collector_credential_id, received_at desc);
@@ -83,12 +87,12 @@ begin
     floor(extract(epoch from clock_timestamp()) / p_window_seconds) * p_window_seconds
   );
 
-  insert into public.mt5_ingest_rate_limits (credential_id, window_start, request_count)
+  insert into public.mt5_ingest_rate_limits as limits (credential_id, window_start, request_count)
   values (p_credential_id, v_window_start, 1)
   on conflict (credential_id, window_start)
   do update
-    set request_count = public.mt5_ingest_rate_limits.request_count + 1
-    where public.mt5_ingest_rate_limits.request_count < p_max_requests
+    set request_count = limits.request_count + 1
+    where limits.request_count < p_max_requests
   returning true into v_allowed;
 
   delete from public.mt5_ingest_rate_limits
