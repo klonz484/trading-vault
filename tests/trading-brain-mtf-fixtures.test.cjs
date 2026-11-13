@@ -79,7 +79,7 @@ test("EURUSD and XAUUSD replay stays inside each timeframe's as-of boundary", ()
       assert.equal(seen.length, 2);
       assert.ok(Date.parse(seen[0].asOf) <= asOfMs);
       assert.ok(seen[0].history.every((candle) => Date.parse(candle.timestamp) <= asOfMs));
-      assert.equal(seen[0].history.some((candle) => candle.provisional), false);
+      assert.equal(seen.every((context) => context.history.every((candle) => !candle.provisional)), true);
     }
   }
 });
@@ -125,6 +125,7 @@ test("multi-timeframe selector aligns latest closed evidence at a common as-of b
       assert.equal(selected.provisional, false);
       assert.equal(selected.timestamp, fixture.instruments[instrument][timeframe].candles[1].timestamp);
       assert.ok(Date.parse(selected.timestamp) <= asOfMs);
+      assert.ok(Date.parse(selected.availableAt) <= asOfMs);
     }
   }
 });
@@ -149,4 +150,46 @@ test("multi-timeframe selector reports missing evidence and rejects duplicate st
   });
   assert.equal(duplicate.status, "REJECTED");
   assert.match(duplicate.findings.join(" "), /duplicate stream/i);
+});
+
+test("multi-timeframe selector excludes candles not yet available at asOf", () => {
+  const asOfMs = Date.parse(fixture.asOf);
+  const streams = expectedTimeframes.map((timeframe) => ({
+    timeframe,
+    candles: fixture.instruments.EURUSD[timeframe].candles.map((candle, index) =>
+      index === 1
+        ? { ...candle, provisional: false, availableAt: new Date(asOfMs + 1).toISOString() }
+        : candle,
+    ),
+  }));
+  const result = selectClosedMultiTimeframeEvidence({
+    instrument: "EURUSD",
+    asOf: fixture.asOf,
+    streams,
+  });
+
+  assert.equal(result.status, "COMPLETE");
+  for (const timeframe of expectedTimeframes) {
+    assert.equal(
+      result.evidence[timeframe].timestamp,
+      fixture.instruments.EURUSD[timeframe].candles[0].timestamp,
+    );
+    assert.ok(Date.parse(result.evidence[timeframe].availableAt) <= asOfMs);
+  }
+});
+
+test("multi-timeframe selector rejects invalid candle availability metadata", () => {
+  const streams = expectedTimeframes.map((timeframe) => ({
+    timeframe,
+    candles: fixture.instruments.EURUSD[timeframe].candles.map((candle, index) =>
+      index === 0 ? { ...candle, availableAt: "not-a-timestamp" } : candle,
+    ),
+  }));
+  const result = selectClosedMultiTimeframeEvidence({
+    instrument: "EURUSD",
+    asOf: fixture.asOf,
+    streams,
+  });
+  assert.equal(result.status, "REJECTED");
+  assert.match(result.findings.join(" "), /availability metadata/i);
 });
