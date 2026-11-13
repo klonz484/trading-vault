@@ -48,8 +48,8 @@ function validCandleForSnapshot(
   return (
     Number.isFinite(timestampMs) &&
     new Date(timestampMs).toISOString() === candle.timestamp &&
-    timestampMs <= retrievedAtMs &&
     Number.isFinite(candleRetrievedAtMs) &&
+    timestampMs <= candleRetrievedAtMs &&
     candleRetrievedAtMs <= retrievedAtMs &&
     validPrices &&
     validVolume &&
@@ -94,7 +94,9 @@ export function adaptMarketDataSnapshotForBrain(
     ? [...snapshot.limitations]
     : [];
   const retrievedAtMs = Date.parse(snapshot.retrievedAt);
-  const validRetrievedAt = Number.isFinite(retrievedAtMs);
+  const validRetrievedAt =
+    Number.isFinite(retrievedAtMs) &&
+    new Date(retrievedAtMs).toISOString() === snapshot.retrievedAt;
   const validSnapshotVersion = nonEmptyString(snapshot.snapshotVersion);
   const validSchema =
     snapshot.schemaVersion === "1.0.0" &&
@@ -174,6 +176,11 @@ export function adaptMarketDataSnapshotForBrain(
     Number.isFinite(validation.freshnessThresholdSeconds) &&
     validation.freshnessThresholdSeconds > 0 &&
     validation.freshnessSeconds <= validation.freshnessThresholdSeconds;
+  const chronologicalAndUnique = candles.every(
+    (candle, index) =>
+      index === 0 ||
+      Date.parse(candle.timestamp) > Date.parse(candles[index - 1].timestamp),
+  );
   const validationClean =
     validation.status === "READY" &&
     validation.errors.length === 0 &&
@@ -183,7 +190,8 @@ export function adaptMarketDataSnapshotForBrain(
     validation.duplicateTimestamps.length === 0 &&
     validation.outOfOrderTimestamps.length === 0 &&
     validation.futureTimestamps.length === 0 &&
-    freshnessIsVerified;
+    freshnessIsVerified &&
+    chronologicalAndUnique;
   const liveEligible =
     validationClean &&
     source.entitlementStatus === "VERIFIED" &&
@@ -191,7 +199,7 @@ export function adaptMarketDataSnapshotForBrain(
 
   if (!liveEligible) {
     limitations.push(
-      "Snapshot is available for controlled replay only; live Brain assessment is blocked until data readiness, freshness, entitlement, and licence checks are VERIFIED.",
+      "Snapshot is available for controlled replay only; live Brain assessment is blocked until data readiness, freshness, entitlement, licence, and chronological-integrity checks pass.",
     );
   }
 
