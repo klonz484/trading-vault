@@ -1,6 +1,16 @@
-/* global require */
+/* global require, module */
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const ts = require("typescript");
+
+require.extensions[".ts"] = (module, filename) => {
+  const output = ts.transpileModule(fs.readFileSync(filename, "utf8"), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    fileName: filename,
+  }).outputText;
+  module._compile(output, filename);
+};
 
 process.env.TWELVE_DATA_API_KEY = "test-provider-key";
 
