@@ -78,9 +78,10 @@ export function selectClosedMultiTimeframeEvidence(input: {
   }
 
   const asOfMs = Date.parse(input.asOf);
+  const streams = input.streams as readonly MultiTimeframeCandleStream[];
   const seen = new Set<MarketDataTimeframe>();
 
-  for (const stream of input.streams) {
+  for (const stream of streams) {
     if (!MARKET_DATA_TIMEFRAMES.includes(stream.timeframe)) {
       findings.push("An unsupported timeframe was supplied.");
       continue;
@@ -138,7 +139,7 @@ export function selectClosedMultiTimeframeEvidence(input: {
     };
   }
 
-  for (const stream of input.streams) {
+  for (const stream of streams) {
     const eligible = stream.candles.filter(
       (candle) => !candle.provisional &&
         Date.parse(candle.timestamp) <= asOfMs &&
