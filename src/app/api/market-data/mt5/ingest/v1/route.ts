@@ -149,6 +149,9 @@ export async function POST(request: Request) {
   }
 
   const futureLimitMs = Date.now() + MAX_CLOCK_SKEW_SECONDS * 1000;
+  if (Date.parse(batch.sentAt) > futureLimitMs) {
+    return response({ error: "The batch sentAt timestamp is more than five minutes in the future." }, 422);
+  }
   const hasFutureCandle = batch.candles.some((candle) => Date.parse(candle.sourceTime) > futureLimitMs);
   const hasFutureTick = batch.ticks.some((tick) => tick.sourceTimeMs > futureLimitMs);
   if (hasFutureCandle || hasFutureTick) {
