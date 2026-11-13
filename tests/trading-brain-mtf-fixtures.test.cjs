@@ -8,6 +8,7 @@ const fixture = JSON.parse(fs.readFileSync(
   "utf8",
 ));
 const { replayClosedCandles } = require("../src/lib/trading-brain/replay.ts");
+const { selectClosedMultiTimeframeEvidence } = require("../src/lib/trading-brain/multi-timeframe-replay.ts");
 
 const expectedTimeframes = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1"];
 const expectedInstruments = ["EURUSD", "XAUUSD"];
@@ -39,17 +40,19 @@ test("EURUSD and XAUUSD replay stays inside each timeframe's as-of boundary", ()
   for (const instrument of expectedInstruments) {
     for (const timeframe of expectedTimeframes) {
       const candles = fixture.instruments[instrument][timeframe].candles;
-      assert.equal(candles.length, 3, `${instrument} ${timeframe} fixture size`);
+      assert.equal(candles.length, 4, `${instrument} ${timeframe} fixture size`);
 
       const timestamps = candles.map((candle) => Date.parse(candle.timestamp));
       assert.ok(timestamps.every(Number.isFinite));
-      assert.ok(timestamps[0] < timestamps[1] && timestamps[1] < timestamps[2]);
+      assert.ok(timestamps[0] < timestamps[1] && timestamps[1] < timestamps[2] && timestamps[2] < timestamps[3]);
       assert.equal(candles[0].provisional, false);
-      assert.equal(candles[1].provisional, true);
-      assert.equal(candles[2].provisional, false);
+      assert.equal(candles[1].provisional, false);
+      assert.equal(candles[2].provisional, true);
+      assert.equal(candles[3].provisional, false);
       assert.ok(timestamps[0] <= asOfMs);
       assert.ok(timestamps[1] <= asOfMs);
-      assert.ok(timestamps[2] > asOfMs);
+      assert.ok(timestamps[2] <= asOfMs);
+      assert.ok(timestamps[3] > asOfMs);
 
       const seen = [];
       const result = replayClosedCandles({
@@ -62,10 +65,10 @@ test("EURUSD and XAUUSD replay stays inside each timeframe's as-of boundary", ()
       });
 
       assert.equal(result.status, "COMPLETE", `${instrument} ${timeframe}`);
-      assert.equal(result.includedCandleCount, 1);
+      assert.equal(result.includedCandleCount, 2);
       assert.equal(result.excludedProvisionalCount, 1);
-      assert.equal(result.records.length, 1);
-      assert.equal(seen.length, 1);
+      assert.equal(result.records.length, 2);
+      assert.equal(seen.length, 2);
       assert.ok(Date.parse(seen[0].asOf) <= asOfMs);
       assert.ok(seen[0].history.every((candle) => Date.parse(candle.timestamp) <= asOfMs));
       assert.equal(seen[0].history.some((candle) => candle.provisional), false);
@@ -89,4 +92,53 @@ test("fixture replay is deterministic and does not create live market-data eligi
   assert.equal(Object.hasOwn(fixture, "provider"), false);
   assert.equal(Object.hasOwn(fixture, "entitlementStatus"), false);
   assert.equal(Object.hasOwn(fixture, "licenceStatus"), false);
+});
+
+test("multi-timeframe selector aligns latest closed evidence at a common as-of boundary", () => {
+  const asOfMs = Date.parse(fixture.asOf);
+  for (const instrument of expectedInstruments) {
+    const streams = expectedTimeframes.map((timeframe) => ({
+      timeframe,
+      candles: fixture.instruments[instrument][timeframe].candles,
+    }));
+    const result = selectClosedMultiTimeframeEvidence({
+      instrument,
+      asOf: fixture.asOf,
+      streams,
+    });
+
+    assert.equal(result.status, "COMPLETE", instrument);
+    assert.deepEqual(result.missingTimeframes, []);
+    assert.deepEqual(Object.keys(result.evidence).sort(), [...expectedTimeframes].sort());
+    assert.equal(result.excludedProvisionalCount, expectedTimeframes.length);
+    for (const timeframe of expectedTimeframes) {
+      const selected = result.evidence[timeframe];
+      assert.ok(selected);
+      assert.equal(selected.provisional, false);
+      assert.equal(selected.timestamp, fixture.instruments[instrument][timeframe].candles[1].timestamp);
+      assert.ok(Date.parse(selected.timestamp) <= asOfMs);
+    }
+  }
+});
+
+test("multi-timeframe selector reports missing evidence and rejects duplicate streams", () => {
+  const streams = expectedTimeframes.map((timeframe) => ({
+    timeframe,
+    candles: fixture.instruments.EURUSD[timeframe].candles,
+  }));
+  const incomplete = selectClosedMultiTimeframeEvidence({
+    instrument: "EURUSD",
+    asOf: fixture.asOf,
+    streams: streams.slice(1),
+  });
+  assert.equal(incomplete.status, "INCOMPLETE");
+  assert.deepEqual(incomplete.missingTimeframes, ["M1"]);
+
+  const duplicate = selectClosedMultiTimeframeEvidence({
+    instrument: "EURUSD",
+    asOf: fixture.asOf,
+    streams: [...streams, streams[0]],
+  });
+  assert.equal(duplicate.status, "REJECTED");
+  assert.match(duplicate.findings.join(" "), /duplicate stream/i);
 });
