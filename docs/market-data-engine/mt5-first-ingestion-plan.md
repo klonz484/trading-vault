@@ -1,6 +1,6 @@
 # MT5-first Market Data ingestion plan
 
-**Status:** Approved development direction; implementation staged and fail-closed.  
+**Status:** Approved development direction; initial server-side ingestion implementation committed to the development branch. Database migration is prepared but not applied; endpoint remains disabled until the server secret and migration are configured.  
 **Primary source:** MT5 terminal connected to the user's broker.  
 **Secondary source:** Twelve Data, retained for independent comparison and diagnostics.  
 **Execution:** Manual MT5 only. This integration must never place, modify or close orders.
@@ -9,7 +9,7 @@
 
 - The MT5 RCG collector writes read-only candle and tick batches to a local JSON queue. It has no network transport.
 - `src/lib/market-data/mt5-ingest.ts` contains a pure schema and quality validator for versioned MT5 batches.
-- The market-data API currently requests Twelve Data on demand and is owner-authenticated. It is not an MT5 ingestion endpoint.
+- The existing `GET /api/market-data` remains the owner-authenticated Twelve Data request. A separate `POST /api/market-data/mt5/ingest` endpoint has now been added on the development branch; it requires a server-only Supabase secret and a collector credential that has not been issued.
 - The current Brain adapter is an evidence-readiness boundary, not a directional trading signal.
 - The RCG collector cursor-hardening work is in draft PR #16 and still requires MetaEditor compilation plus supervised broker-backed validation.
 
@@ -29,15 +29,16 @@
 ### Stage 1 — Contract and server boundary
 
 - Keep the existing `MT5IngestBatch` contract versioned; reject unknown schema versions.
-- Add a dedicated `POST /api/market-data/mt5/ingest` route. Do not overload the browser-facing Twelve Data `GET` route.
-- Authenticate a collector identity using a server-held per-terminal credential (or a reviewed signed-request design). Never use the user's browser session cookie, Supabase publishable key, provider API key, or a secret embedded in the public frontend.
+- A dedicated `POST /api/market-data/mt5/ingest` route has been added. It does not overload the browser-facing Twelve Data `GET` route.
+- The route authenticates a per-terminal bearer credential by SHA-256 hash lookup using a server-only Supabase secret. It never uses a browser session, publishable key, provider key, or frontend secret. Credential issuance remains disabled.
 - Compare secrets safely, impose strict body-size and observation-count limits, validate content type, and rate-limit by collector identity.
 - Reject stale/future batch timestamps outside an explicitly configured clock-skew window.
 - Return a durable acknowledgement only after the batch and idempotency record have committed successfully.
 
 ### Stage 2 — Durable storage and idempotency
 
-- Design Supabase tables/migrations for collector registry, ingestion batches, candle observations, tick observations and processing/acknowledgement state.
+- The connected Supabase project already contains private `mt5_connector_credentials` and `mt5_ingest_batches` tables. Inspection confirmed RLS enabled, no `anon`/`authenticated` policies, service-role-only grants, a stored SHA-256 token hash, and a durable JSONB batch record.
+- A repository migration now adds the collector-credential foreign key, per-collector batch uniqueness, and an atomic service-role-only rate-limit function. It has **not** been applied to the connected database.
 - Use a unique constraint on collector identity plus batch ID so retrying the same batch is safe.
 - Preserve source broker, broker symbol, canonical instrument, terminal instance, timeframe, source timestamp, received timestamp, batch ID and schema version.
 - Do not deduplicate ticks only by timestamp or by price values. Preserve distinct same-millisecond observations and MT5 flags; use a stable observation identity or sequence strategy.
@@ -79,3 +80,30 @@
 3. Implement the dedicated ingestion API and automated tests for authentication, invalid payloads, duplicate batch retries, clock skew, partial writes and acknowledgement correctness.
 4. Build the separate uploader and test it against Preview using a synthetic batch before any live broker queue is transmitted.
 5. Only then perform a supervised end-to-end demo test with the local MT5 collector.
+
+## Implementation progress — 2026-11-13
+
+### Added to `build/market-data-brain-ready-v1`
+
+- `POST /api/market-data/mt5/ingest` now has a separate server-side route.
+- The route enforces JSON content type, a 4 MB body limit, bearer credential authentication, credential expiry/revocation, per-credential rate limiting, batch schema validation, broker/terminal binding, five-minute sent-time skew, and future-observation checks.
+- Collector tokens are looked up by SHA-256 hash; the raw token is never stored.
+- Batch payloads are canonically serialized and hashed. The endpoint acknowledges a first delivery only after Supabase confirms the durable insert. Exact retries from the same credential receive an idempotent acknowledgement; changed payloads or identity collisions receive HTTP 409.
+- The existing MT5 validator has been adjusted to preserve multiple tick observations sharing a millisecond timestamp. The collector contract has no sequence identifier, so the API must not reject or collapse same-millisecond ticks based only on timestamp/price/flags.
+- Unit tests have been added for token hashing, canonical payload hashing, replay decisions, clock skew and same-millisecond tick preservation.
+- A migration file adds the collector identity link, per-credential batch uniqueness and an atomic rate-limit function. It is intentionally not applied to the connected Supabase project yet.
+
+### Verification boundary
+
+- The connected Supabase project was inspected read-only. The two existing MT5 tables are present, RLS is enabled, no public/authenticated policies exist, and only `service_role` has table privileges. Existing batch rows are stored in JSONB with broker/batch uniqueness.
+- No Supabase schema changes were executed. No secret key or collector token was created or issued.
+- The endpoint cannot accept data until the migration is applied and a server-side `SUPABASE_SECRET_KEY` (or legacy `SUPABASE_SERVICE_ROLE_KEY`) is configured. Neither action is part of this commit.
+- GitHub Actions must run on this new commit before the implementation can be called tested. No end-to-end ingestion has been attempted.
+- The separate local uploader, supervised demo transmission, and Brain normalizer integration remain outstanding.
+
+### Immediate next steps
+
+1. Run repository lint, tests and production build against this development commit; fix any failures.
+2. Review and apply the migration only to an explicitly selected non-production Supabase development database. The connected project currently has no Supabase development branch, so do not apply it to the existing project.
+3. After an isolated database is available, add an owner-controlled credential-issuance procedure and server environment variable without exposing either value.
+4. Build the local uploader with queue-retention-on-timeout and acknowledgement-ID matching; keep it disabled until synthetic Preview testing is complete.
