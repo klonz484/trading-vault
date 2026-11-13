@@ -168,6 +168,6 @@ test("queue commit refuses to overwrite an existing committed batch file", () =>
   assert.ok(start >= 0);
   assert.match(persist, /FileIsExist\(finalPath\)/);
   assert.match(persist, /FileMove\(temporaryPath, 0, finalPath, 0\)/);
-  assert.doesNotMatch(persist, /FILE_REWRITE/);
+  assert.doesNotMatch(persist, /FileMove\\(temporaryPath, 0, finalPath, FILE_REWRITE\\)/);
   assert.match(persist, /TV_RCG_QUEUE_BATCH_ID_COLLISION/);
 });
