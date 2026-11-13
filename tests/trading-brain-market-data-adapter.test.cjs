@@ -71,7 +71,7 @@ function snapshot(overrides = {}) {
 
 test("verified READY snapshot is adapted with source provenance", () => {
   const result = adaptMarketDataSnapshotForBrain(snapshot());
-  assert.equal(result.gate, "LIVE_READY");
+  assert.equal(result.gate, "LIVE_ELIGIBLE");
   assert.equal(result.instrument, "EURUSD");
   assert.equal(result.timeframe, "M15");
   assert.equal(result.provider, "twelve_data");
