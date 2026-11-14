@@ -64,11 +64,11 @@ The performance advisor currently reports unused indexes on the early-stage deve
 ## Not yet implemented
 
 - Sign-in UI and account flows are not yet built. Public sign-up remains disabled pending Auth security configuration and explicit launch readiness.
-- Browser/server Supabase clients, a Next.js session-refresh proxy, verified JWT user scoping, and typed server-side insert/list helpers now exist in code. They are scaffolding only until Development runtime variables are supplied and an authenticated session is available.
+- Browser/server Supabase clients, a Next.js session-refresh proxy, verified JWT user scoping, typed private Trader insert/list/update/delete helpers, and user-scoped chart signed-upload/read/delete helpers now exist in code. They are scaffolding only until Development runtime variables are supplied and an authenticated session is available.
 - The `.env.example` file contains placeholders only; no project keys or service-role secrets are committed.
 - Existing journal/scanner screens still use browser localStorage; they have not yet been switched to the private repository.
 - Automated two-user RLS denial tests using real test identities.
-- Chart upload/download UI and signed URL workflow.
+- Chart upload/download UI; server-side signed URL helpers are implemented but not yet connected to a screen.
 - Shared Core release and owner-approval tables/workflow.
 - Edge Functions or live market-data ingestion into Trading Brain persistence.
 
