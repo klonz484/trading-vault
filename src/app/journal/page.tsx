@@ -57,6 +57,8 @@ function mapCloudRows(rows: unknown): JournalTrade[] {
 
 export default function JournalPage() {
   const [trades, setTrades] = useState<JournalTrade[]>([]);
+  const [localArchive, setLocalArchive] = useState<JournalTrade[]>([]);
+  const [showLocalArchive, setShowLocalArchive] = useState(false);
   const [ready, setReady] = useState(false);
   const [storageMode, setStorageMode] = useState<StorageMode>("loading");
   const [storageMessage, setStorageMessage] = useState("Checking your private journal...");
@@ -83,6 +85,7 @@ export default function JournalPage() {
         if (!active) return;
 
         if (response.ok && isRecord(body)) {
+          setLocalArchive(readLocalList<JournalTrade>(JOURNAL_STORAGE_KEY));
           setTrades(mapCloudRows(body.entries));
           setStorageMode("cloud");
           setStorageMessage("Private cloud journal · synced to your account");
@@ -133,6 +136,17 @@ export default function JournalPage() {
       netR: sum.toFixed(2),
     };
   }, [trades]);
+
+  function exportLocalArchive() {
+    if (!localArchive.length) return;
+    const blob = new Blob([JSON.stringify(localArchive, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `trading-vault-local-journal-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function addTrade(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -268,6 +282,29 @@ export default function JournalPage() {
             <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
           </div>)}
         </div>
+
+        {storageMode === "cloud" && localArchive.length > 0 && <section className="panel mb-6 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="section-title">Local archive on this device</h2>
+              <p className="mt-1 text-xs text-slate-500">{localArchive.length} older browser record{localArchive.length === 1 ? "" : "s"} · not uploaded to your cloud journal</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn-secondary" onClick={() => setShowLocalArchive((visible) => !visible)}>{showLocalArchive ? "Hide archive" : "View archive"}</button>
+              <button type="button" className="btn-secondary" onClick={exportLocalArchive}>Export JSON</button>
+            </div>
+          </div>
+          {showLocalArchive && <div className="mt-4 max-h-80 space-y-2 overflow-y-auto border-t border-white/[0.07] pt-4">
+            {localArchive.map((trade) => <div key={trade.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/[0.025] px-3 py-2">
+              <div>
+                <span className="text-xs font-semibold text-white">{trade.symbol} · {trade.side}</span>
+                <span className="ml-2 text-[10px] text-slate-500">{trade.date} · {trade.outcome}</span>
+                {trade.notes && <p className="mt-1 text-[10px] text-slate-500">{trade.notes}</p>}
+              </div>
+              <span className="text-[10px] text-slate-400">Local only</span>
+            </div>)}
+          </div>}
+        </section>}
 
         <div className="grid items-start gap-5 xl:grid-cols-[.85fr_1.5fr]">
           <form onSubmit={addTrade} className="panel space-y-4 p-5">
