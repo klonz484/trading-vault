@@ -20,7 +20,7 @@ A journal trade should progressively support:
 2. **Trade plan:** entry, stop, target, planned risk, planned reward-to-risk, and the reason the setup qualified.
 3. **Execution:** actual entry/exit, actual stop/target changes, position sizing, fees or spread when known, and manual MT5 execution notes.
 4. **Outcome:** open, take-profit hit, stop-loss hit, manual close, partial take-profit, breakeven, expired, or not taken; realized R and monetary result when supplied by the trader.
-5. **Learning feedback:** append-only outcome events, timestamps, actual exit price when known, realized R, and an immutable snapshot of the original plan. Partial take-profit feedback does not close the remaining position.
+5. **Learning feedback:** outcome feedback events, timestamps, actual exit price when known, realized R, and an initial plan snapshot preserved by normal Journal edits. Partial take-profit feedback does not close the remaining position.
 6. **Evidence:** before/after chart screenshots, timeframe, capture time, and optional notes. Images must use the private `trader-charts` bucket and owner-scoped paths.
 7. **Review:** what went well, what went wrong, rule adherence, emotional state, mistakes, and one concrete lesson.
 
@@ -67,4 +67,4 @@ The private learning workflow may identify repeated patterns and propose experim
 
 The first implementation uses four event kinds: `take_profit_hit`, `stop_loss_hit`, `partial_take_profit`, and `manual_close`. Each event has a unique ID and timestamp; realized R is signed (positive for profit, negative for loss, zero for breakeven). Target hits use target-to-stop distance to calculate planned R, stop hits record -1R, and manual closes ask the trader for realized R. A partial target event leaves the trade open.
 
-The first feedback event snapshots the original plan. Duplicate event IDs, invalid timestamps, invalid prices, and outcome/R sign mismatches are rejected. Historical feedback remains private. The current implementation records a review-queue marker only; it does not claim that an asynchronous learning worker has processed the event or that any strategy has improved.
+The Journal captures the original plan when a trade is first created; normal edits preserve that snapshot. Duplicate event IDs, invalid timestamps, invalid prices, and outcome/R sign mismatches are rejected by the feedback helper. Historical feedback remains private. The current implementation records a review-queue marker only; it does not claim that an asynchronous learning worker has processed the event or that any strategy has improved.

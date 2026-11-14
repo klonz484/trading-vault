@@ -23,7 +23,7 @@ export function plannedRewardR(trade: Pick<JournalFeedbackTrade, "side" | "entry
   if (!Number.isFinite(reward) || reward <= 0) throw new Error("The target must be beyond the entry in the trade direction.");
   return Number((reward / risk).toFixed(8));
 }
-/** Append-only feedback helper. It snapshots the initial plan once and never rewrites it. */
+/** Appends a feedback event and preserves the initial plan snapshot. */
 export function recordJournalFeedback<T extends JournalFeedbackTrade>(trade: T, input: JournalFeedbackInput): T {
   if (!input.eventId || !Number.isFinite(Date.parse(input.recordedAt))) throw new Error("Feedback requires a unique event ID and valid timestamp.");
   if ((trade.feedbackEvents ?? []).some((event) => event.eventId === input.eventId)) throw new Error("This feedback event has already been recorded.");

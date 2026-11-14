@@ -164,6 +164,7 @@ export default function JournalPage() {
       return;
     }
 
+    const existingTrade = editingId ? trades.find((trade) => trade.id === editingId) : undefined;
     const item: JournalTrade = {
       id: crypto.randomUUID(),
       date,
@@ -175,12 +176,11 @@ export default function JournalPage() {
       outcome,
       rMultiple: values[3],
       notes: notes.trim(),
-      ...(editingId && trades.find((trade) => trade.id === editingId)?.realizedR !== undefined
-        ? { realizedR: trades.find((trade) => trade.id === editingId)?.realizedR } : {}),
-      ...(editingId && trades.find((trade) => trade.id === editingId)?.originalPlan
-        ? { originalPlan: trades.find((trade) => trade.id === editingId)?.originalPlan } : {}),
-      ...(editingId && trades.find((trade) => trade.id === editingId)?.feedbackEvents
-        ? { feedbackEvents: trades.find((trade) => trade.id === editingId)?.feedbackEvents } : {}),
+      originalPlan: existingTrade?.originalPlan ?? {
+        date, symbol: symbol.toUpperCase().trim(), side, entry: values[0], stop: values[1], target: values[2],
+      },
+      ...(existingTrade?.realizedR !== undefined ? { realizedR: existingTrade.realizedR } : {}),
+      ...(existingTrade?.feedbackEvents ? { feedbackEvents: existingTrade.feedbackEvents } : {}),
     };
 
     if (storageMode === "cloud") {
@@ -432,7 +432,7 @@ export default function JournalPage() {
                     {trade.feedbackEvents.map((event) => <span key={event.eventId} className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] text-slate-400">
                       {event.kind.replaceAll("_", " ")}{typeof event.realizedR === "number" ? ` · ${event.realizedR > 0 ? "+" : ""}${event.realizedR.toFixed(2)}R` : ""}
                     </span>)}
-                    <span className="text-[10px] text-slate-500">Private Brain review queue · no automatic strategy change</span>
+                    <span className="text-[10px] text-slate-500">{storageMode === "cloud" ? "Saved to your private journal for Brain review · no automatic strategy change" : "Saved on this device only · sign in required for private Brain review"}</span>
                   </div>}
                   {trade.outcome === "OPEN" && <div className="mt-4 flex flex-wrap gap-2">
                     <button type="button" disabled={busy} onClick={() => void recordOutcomeFeedback(trade, "take_profit_hit")} className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-300 disabled:opacity-50">Take-profit hit</button>
