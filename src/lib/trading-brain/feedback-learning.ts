@@ -77,7 +77,7 @@ export interface PrivateLearningPattern {
   losses: number;
   breakeven: number;
   winRate: number | null;
-  averageRealizedR: number | null;
+  averageRealizedR: number;
   reviewState: "insufficient_sample" | "early_pattern" | "review_candidate";
 }
 
