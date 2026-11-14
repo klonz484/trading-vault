@@ -63,8 +63,9 @@ The performance advisor currently reports unused indexes on the early-stage deve
 
 ## Not yet implemented
 
-- Authentication UI and account sign-in/sign-up flows.
-- Development environment variables are not yet configured in the deployment or local runtime.
+- Sign-in UI and account flows are not yet built. Public sign-up remains disabled pending Auth security configuration and explicit launch readiness.
+- Browser/server Supabase clients, a Next.js session-refresh proxy, verified JWT user scoping, and typed server-side insert/list helpers now exist in code. They are scaffolding only until Development runtime variables are supplied and an authenticated session is available.
+- The `.env.example` file contains placeholders only; no project keys or service-role secrets are committed.
 - Existing journal/scanner screens still use browser localStorage; they have not yet been switched to the private repository.
 - Automated two-user RLS denial tests using real test identities.
 - Chart upload/download UI and signed URL workflow.
