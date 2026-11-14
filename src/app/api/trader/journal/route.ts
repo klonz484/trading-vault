@@ -3,6 +3,7 @@ import {
   deletePrivateJournalEntry,
   listPrivateJournalEntries,
   savePrivateJournalEntry,
+  updatePrivateJournalEntry,
 } from "@/lib/trading-brain/private-repository";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -169,6 +170,71 @@ export async function DELETE(request: Request) {
     }
     if (!result.data) return jsonError("Journal entry not found.", 404);
     return NextResponse.json({ deleted: true }, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  } catch {
+    return jsonError("The private journal is not configured or is temporarily unavailable.", 503);
+  }
+}
+
+export async function PATCH(request: Request) {
+  if (!isSameOrigin(request)) return jsonError("Cross-origin request rejected.", 403);
+
+  let body: unknown;
+  try {
+    const rawBody = await request.text();
+    if (Buffer.byteLength(rawBody, "utf8") > MAX_BODY_BYTES) {
+      return jsonError("Journal entry is too large.", 413);
+    }
+    body = JSON.parse(rawBody) as unknown;
+  } catch {
+    return jsonError("Send a valid JSON journal update.", 400);
+  }
+
+  if (!isRecord(body) ||
+      typeof body.id !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.id)) {
+    return jsonError("Provide a valid journal entry ID.", 400);
+  }
+
+  const instrument = body.instrument;
+  const timeframe = body.timeframe;
+  const occurredAt = body.occurredAt;
+  const payload = body.payload;
+
+  if (typeof instrument !== "string" || !INSTRUMENT_PATTERN.test(instrument)) {
+    return jsonError("Provide a valid instrument symbol.", 400);
+  }
+  if (timeframe !== undefined && timeframe !== null &&
+      (typeof timeframe !== "string" || timeframe.length > 12)) {
+    return jsonError("Timeframe must be 12 characters or fewer.", 400);
+  }
+  if (typeof occurredAt !== "string" || !Number.isFinite(Date.parse(occurredAt))) {
+    return jsonError("Provide a valid occurrence timestamp.", 400);
+  }
+  if (!isRecord(payload) || !isJsonValue(payload) ||
+      Buffer.byteLength(JSON.stringify(payload), "utf8") > 24 * 1024) {
+    return jsonError("Journal payload must be a JSON object no larger than 24 KB.", 400);
+  }
+
+  try {
+    const result = await updatePrivateJournalEntry(body.id, {
+      instrument,
+      timeframe: typeof timeframe === "string" ? timeframe : null,
+      entryType: "trade",
+      occurredAt: new Date(occurredAt).toISOString(),
+      payload: payload as Json,
+    });
+
+    if (result.error) {
+      const status = result.error.message === "Authentication required" ? 401 : 503;
+      return jsonError(
+        status === 401 ? "Sign in to update a private journal entry." : "The journal entry could not be updated.",
+        status,
+      );
+    }
+    if (!result.data) return jsonError("Journal entry not found.", 404);
+    return NextResponse.json({ entry: result.data }, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch {
