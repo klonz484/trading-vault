@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:brain": "node --test tests/trading-brain/*.test.cjs"
   },
   "dependencies": {
     "next": "16.4.4",
