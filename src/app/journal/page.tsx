@@ -4,13 +4,6 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import { JOURNAL_STORAGE_KEY, JournalTrade, readLocalList, writeLocalList } from "@/lib/workspace";
 
-type JournalRow = {
-  id: string;
-  instrument: string;
-  occurred_at: string;
-  payload: unknown;
-};
-
 type StorageMode = "loading" | "cloud" | "local";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -223,6 +216,8 @@ export default function JournalPage() {
   }
 
   async function removeTrade(id: string) {
+    const confirmed = window.confirm("Delete this journal entry? This cannot be undone.");
+    if (!confirmed) return;
     setError("");
     if (storageMode === "cloud") {
       setBusy(true);
@@ -295,7 +290,7 @@ export default function JournalPage() {
             <label className="field-label">Trade reasoning and lessons<textarea className="field-control min-h-24 resize-y" value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1200} placeholder="Why did you take this trade? Which confirmations were present? What did you learn?" /></label>
             {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
             <button className="btn-primary w-full" type="submit" disabled={!ready || busy || storageMode === "loading"}>{busy ? "Saving..." : editingId ? "Update journal entry" : "Save journal entry"}</button>
-            {editingId && <button className="btn-secondary w-full" type="button" disabled={busy} onClick={() => { setEditingId(null); setError(""); setEntry(""); setStop(""); setTarget(""); setNotes(""); setOutcome("OPEN"); }}>Cancel editing</button>}
+            {editingId && <button className="btn-secondary w-full" type="button" disabled={busy} onClick={() => { setEditingId(null); setError(""); setEntry(""); setStop(""); setTarget(""); setNotes(""); setOutcome("OPEN"); setDate(new Date().toISOString().slice(0, 10)); setSymbol("EURUSD"); setSide("BUY"); setRMultiple("2"); }}>Cancel editing</button>}
             <p className="text-[10px] leading-4 text-slate-500">
               {storageMode === "cloud"
                 ? "Entries are saved to your authenticated private account."
