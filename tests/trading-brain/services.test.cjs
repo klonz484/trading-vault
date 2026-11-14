@@ -234,3 +234,42 @@ test("private learning analysis excludes malformed or unverified feedback events
   ]);
   assert.deepEqual(patterns, []);
 });
+
+
+test("private learning rejects a trade when any feedback event is malformed", () => {
+  const base = { date: "2026-11-14", symbol: "EURUSD", side: "BUY", entry: 1.1, stop: 1.095, target: 1.11, outcome: "WIN", rMultiple: 1, realizedR: 1, notes: "" };
+  const patterns = analyzePrivateLearningPatterns([
+    { ...base, id: "mixed-validity", feedbackEvents: [
+      { eventId: "good", kind: "manual_close", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: 1 },
+      { eventId: "", kind: "manual_close", recordedAt: "invalid-date", realizedR: 0 },
+    ] },
+  ]);
+  assert.deepEqual(patterns, []);
+});
+
+test("private learning rejects duplicate feedback IDs and mismatched realized R totals", () => {
+  const base = { date: "2026-11-14", symbol: "EURUSD", side: "BUY", entry: 1.1, stop: 1.095, target: 1.11, outcome: "WIN", rMultiple: 1, realizedR: 1, notes: "" };
+  const patterns = analyzePrivateLearningPatterns([
+    { ...base, id: "duplicate-ids", feedbackEvents: [
+      { eventId: "same", kind: "partial_take_profit", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: 0.5 },
+      { eventId: "same", kind: "manual_close", recordedAt: "2026-11-14T12:30:00.000Z", realizedR: 0.5 },
+    ] },
+    { ...base, id: "mismatched-total", feedbackEvents: [
+      { eventId: "one", kind: "manual_close", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: 0.5 },
+    ] },
+  ]);
+  assert.deepEqual(patterns, []);
+});
+
+test("private learning rejects outcomes that contradict the signed realized R", () => {
+  const base = { date: "2026-11-14", symbol: "EURUSD", side: "BUY", entry: 1.1, stop: 1.095, target: 1.11, rMultiple: 1, realizedR: 1, notes: "" };
+  const patterns = analyzePrivateLearningPatterns([
+    { ...base, id: "false-loss", outcome: "LOSS", feedbackEvents: [
+      { eventId: "event-loss", kind: "manual_close", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: 1 },
+    ] },
+    { ...base, id: "false-win", outcome: "WIN", realizedR: -1, feedbackEvents: [
+      { eventId: "event-win", kind: "manual_close", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: -1 },
+    ] },
+  ]);
+  assert.deepEqual(patterns, []);
+});
