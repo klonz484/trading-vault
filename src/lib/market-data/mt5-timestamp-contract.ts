@@ -184,8 +184,11 @@ export function resolveMT5Timestamp(
     profile.status !== "APPROVED" ||
     !context.serverId ||
     profile.serverId !== context.serverId ||
-    !profile.version.trim() ||
-    !profile.evidenceRef.trim() ||
+    typeof profile.version !== "string" ||
+    profile.version.trim().length === 0 ||
+    typeof profile.evidenceRef !== "string" ||
+    profile.evidenceRef.trim().length === 0 ||
+    typeof profile.approvedAtUtc !== "string" ||
     !Number.isFinite(Date.parse(profile.approvedAtUtc)) ||
     !Array.isArray(profile.intervals) ||
     profile.intervals.length === 0
@@ -198,9 +201,12 @@ export function resolveMT5Timestamp(
 
   const candidates: Array<{ utc: string; offset: number }> = [];
   for (const interval of profile.intervals) {
+    if (!interval || typeof interval !== "object") continue;
     const from = Date.parse(interval.effectiveFromUtc);
     const to = Date.parse(interval.effectiveToUtc);
     if (
+      typeof interval.effectiveFromUtc !== "string" ||
+      typeof interval.effectiveToUtc !== "string" ||
       !Number.isFinite(from) || !Number.isFinite(to) || from >= to ||
       !Number.isInteger(interval.utcOffsetSeconds) ||
       Math.abs(interval.utcOffsetSeconds) > 86400
