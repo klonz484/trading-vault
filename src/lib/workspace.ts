@@ -55,7 +55,7 @@ export function structureScanAnalysis(analysis: string): {
   for (const rawLine of analysis.split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line) continue;
-    const normalizedHeading = line.replace(/^#+\\s*/, "").replace(/^\\*\\*/, "").replace(/\\*\\*$/, "").replace(/^\\d+\\.\\s*/, "").trim();
+    const normalizedHeading = line.replace(/^#+\s*/, "").replace(/^\*\*/, "").replace(/\*\*$/, "").replace(/^\d+\.\s*/, "").trim();
     const heading = SCAN_HEADINGS.find((item) => item.pattern.test(normalizedHeading));
     if (heading) {
       active = heading.key;
