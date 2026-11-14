@@ -115,3 +115,6 @@ The development branch now includes:
 - The APIs use the public publishable key plus the user's session and database/storage RLS. No service-role key is required or exposed.
 
 These endpoints are code-only scaffolding until Development runtime environment variables and authenticated user sessions are configured. The existing Journal screen still uses local browser storage and is not yet connected to these APIs. The chart upload UI and actual browser upload completion flow are also not yet connected. No user data has been migrated or deleted.
+
+
+A password sign-in screen now exists at `/sign-in`. It deliberately contains no public sign-up flow. Account creation remains an owner-provisioned operation until leaked-password protection, rate limits, email verification, and registration policy are reviewed. This screen requires the Development Supabase public URL and publishable key at runtime; it has not yet been exercised with a real authenticated browser session.
