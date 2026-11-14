@@ -64,12 +64,12 @@ The performance advisor currently reports unused indexes on the early-stage deve
 
 ## Not yet implemented
 
-- Sign-in UI and account flows are not yet built. Public sign-up remains disabled pending Auth security configuration and explicit launch readiness.
+- A password sign-in screen exists at `/sign-in`; it has no public sign-up flow. Account creation remains owner-provisioned until Auth security configuration and explicit launch readiness.
 - Browser/server Supabase clients, a Next.js session-refresh proxy, verified JWT user scoping, typed private Trader insert/list/update/delete helpers, and user-scoped chart signed-upload/read/delete helpers now exist in code. They are scaffolding only until Development runtime variables are supplied and an authenticated session is available.
 - The `.env.example` file contains placeholders only; no project keys or service-role secrets are committed.
-- Existing journal/scanner screens still use browser localStorage; they have not yet been switched to the private repository.
+- The Journal screen now attempts authenticated cloud loading and uses the private journal API for create/delete when a valid session is available. When unauthenticated or when the cloud is unavailable, it falls back to browser localStorage. Existing local records are preserved and are not automatically imported into the cloud. The Scanner still uses browser localStorage.
 - Automated two-user RLS denial tests using real test identities.
-- Chart upload/download UI; server-side signed URL helpers are implemented but not yet connected to a screen.
+- Chart upload/download UI and the actual browser upload completion flow; server-side signed URL helpers and API endpoints exist but are not yet connected to a screen.
 - Shared Core release and owner-approval tables/workflow.
 - Edge Functions or live market-data ingestion into Trading Brain persistence.
 
@@ -78,10 +78,10 @@ The MT5 ingestion tables remain separate from private trader records. The Shared
 ## Next implementation sequence
 
 1. Configure Development-only Supabase public URL and publishable key in the runtime; no service-role key is required for user-scoped access.
-2. Complete sign-in UI and keep public sign-up disabled until Auth password protection and abuse controls are reviewed.
-3. Connect existing journal screens to the typed user-scoped repository and remove localStorage as the authoritative store only after a verified migration path.
-4. Add isolated test identities and prove cross-user SELECT/INSERT/UPDATE/DELETE denial, including ownership reassignment and Storage object path attacks.
-5. Build chart upload and signed-read flows against the private bucket.
+2. Configure Development-only Supabase public URL and publishable key, then exercise sign-in and journal create/list/delete with a dedicated test identity.
+3. Add isolated test identities and prove cross-user SELECT/INSERT/UPDATE/DELETE denial, including ownership reassignment and Storage object path attacks.
+4. Define and test an explicit local-journal export/import flow before offering any migration of existing browser records.
+5. Build chart upload and signed-read UI against the private bucket.
 6. Keep Shared Core writes behind a controlled server-side release path and explicit owner approval.
 
 ## Safety boundary
@@ -106,7 +106,7 @@ This was a repository-only filename reconciliation; it did not apply, re-run, or
 Evidence direction is the source engine's observed market direction. The `supporting` / `contrary` role describes its relationship to a hypothesis and must never reverse the source event's direction. The scorer now preserves the raw direction; any future hypothesis-relative score must receive an explicit target direction. The aggregate balance is not a probability, win rate, or trade recommendation.
 
 
-## Private Trader API layer — added, not yet UI-connected
+## Private Trader API and Journal integration — implemented, runtime verification pending
 
 The development branch now includes:
 
@@ -114,7 +114,7 @@ The development branch now includes:
 - `/api/trader/charts`: authenticated signed-upload target creation, signed-read URL creation, and deletion. Uploads are limited to JPEG/PNG/WebP up to 15 MiB. Chart paths must match the current user's UUID and a generated UUID filename. Mutating requests reject a mismatched Origin header when one is supplied.
 - The APIs use the public publishable key plus the user's session and database/storage RLS. No service-role key is required or exposed.
 
-These endpoints are code-only scaffolding until Development runtime environment variables and authenticated user sessions are configured. The existing Journal screen still uses local browser storage and is not yet connected to these APIs. The chart upload UI and actual browser upload completion flow are also not yet connected. No user data has been migrated or deleted.
+These endpoints and the Journal cloud integration require Development runtime environment variables and an authenticated user session before they can be exercised end to end. The Journal UI now uses the private API when signed in and falls back to local storage otherwise. The two stores remain separate: no local record is automatically copied, overwritten, or deleted. The chart upload UI and actual browser upload completion flow are not yet connected. No user data has been migrated or deleted.
 
 
 A password sign-in screen now exists at `/sign-in`. It deliberately contains no public sign-up flow. Account creation remains an owner-provisioned operation until leaked-password protection, rate limits, email verification, and registration policy are reviewed. This screen requires the Development Supabase public URL and publishable key at runtime; it has not yet been exercised with a real authenticated browser session.
