@@ -63,6 +63,7 @@ export default function JournalPage() {
   const [storageMode, setStorageMode] = useState<StorageMode>("loading");
   const [storageMessage, setStorageMessage] = useState("Checking your private journal...");
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [date, setDate] = useState("");
   const [symbol, setSymbol] = useState("EURUSD");
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
@@ -163,9 +164,10 @@ export default function JournalPage() {
       setBusy(true);
       try {
         const response = await fetch("/api/trader/journal", {
-          method: "POST",
+          method: editingId ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            ...(editingId ? { id: editingId } : {}),
             instrument: item.symbol,
             occurredAt: new Date(date + "T12:00:00").toISOString(),
             entryType: "trade",
@@ -182,7 +184,9 @@ export default function JournalPage() {
           setError("The server saved the entry but did not return its record ID. Refresh the journal before deleting it.");
           return;
         }
-        setTrades((current) => [{ ...item, id: savedRow.id as string }, ...current]);
+        setTrades((current) => editingId
+          ? current.map((trade) => trade.id === editingId ? { ...item, id: editingId } : trade)
+          : [{ ...item, id: savedRow.id as string }, ...current]);
       } catch {
         setError("The cloud save failed. Your entry was not added; please try again.");
         return;
@@ -190,14 +194,32 @@ export default function JournalPage() {
         setBusy(false);
       }
     } else {
-      setTrades((current) => [item, ...current]);
+      setTrades((current) => editingId
+        ? current.map((trade) => trade.id === editingId ? { ...item, id: editingId } : trade)
+        : [item, ...current]);
     }
 
+    setEditingId(null);
     setEntry("");
     setStop("");
     setTarget("");
     setNotes("");
     setOutcome("OPEN");
+  }
+
+  function startEditing(trade: JournalTrade) {
+    setEditingId(trade.id);
+    setDate(trade.date);
+    setSymbol(trade.symbol);
+    setSide(trade.side);
+    setEntry(String(trade.entry));
+    setStop(String(trade.stop));
+    setTarget(String(trade.target));
+    setOutcome(trade.outcome);
+    setRMultiple(String(trade.rMultiple));
+    setNotes(trade.notes);
+    setError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function removeTrade(id: string) {
@@ -251,8 +273,8 @@ export default function JournalPage() {
         <div className="grid items-start gap-5 xl:grid-cols-[.85fr_1.5fr]">
           <form onSubmit={addTrade} className="panel space-y-4 p-5">
             <div>
-              <h2 className="section-title">Log a trade</h2>
-              <p className="mt-1 text-xs text-slate-500">Capture the plan and the outcome.</p>
+              <h2 className="section-title">{editingId ? "Edit trade" : "Log a trade"}</h2>
+              <p className="mt-1 text-xs text-slate-500">{editingId ? "Update the plan or record the final outcome." : "Capture the plan and the outcome."}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <label className="field-label">Date<input className="field-control" type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></label>
@@ -272,7 +294,8 @@ export default function JournalPage() {
             </div>
             <label className="field-label">Trade reasoning and lessons<textarea className="field-control min-h-24 resize-y" value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1200} placeholder="Why did you take this trade? Which confirmations were present? What did you learn?" /></label>
             {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
-            <button className="btn-primary w-full" type="submit" disabled={!ready || busy || storageMode === "loading"}>{busy ? "Saving..." : "Save journal entry"}</button>
+            <button className="btn-primary w-full" type="submit" disabled={!ready || busy || storageMode === "loading"}>{busy ? "Saving..." : editingId ? "Update journal entry" : "Save journal entry"}</button>
+            {editingId && <button className="btn-secondary w-full" type="button" disabled={busy} onClick={() => { setEditingId(null); setError(""); setEntry(""); setStop(""); setTarget(""); setNotes(""); setOutcome("OPEN"); }}>Cancel editing</button>}
             <p className="text-[10px] leading-4 text-slate-500">
               {storageMode === "cloud"
                 ? "Entries are saved to your authenticated private account."
@@ -303,6 +326,7 @@ export default function JournalPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-semibold text-white">{trade.outcome === "LOSS" ? "−" : trade.outcome === "WIN" ? "+" : ""}{trade.outcome === "OPEN" ? "Open" : trade.outcome === "BREAKEVEN" ? "0R" : trade.rMultiple + "R"}</span>
+                      <button type="button" disabled={busy} onClick={() => startEditing(trade)} className="rounded-lg px-2 py-1 text-xs text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50">Edit</button>
                       <button type="button" disabled={busy} onClick={() => void removeTrade(trade.id)} className="rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-white/5 hover:text-rose-300 disabled:opacity-50" aria-label={"Delete " + trade.symbol + " journal entry"}>Delete</button>
                     </div>
                   </div>
