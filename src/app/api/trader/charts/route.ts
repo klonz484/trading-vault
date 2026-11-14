@@ -16,8 +16,26 @@ function errorResponse(message: string, status: number) {
 }
 
 function validPath(value: unknown): value is string {
+  const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
   return typeof value === "string" &&
-    /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/i.test(value);
+    new RegExp(\`^\${uuid}/\${uuid}\\.(jpg|png|webp)$\`, "i").test(value);
+}
+
+async function parseLimitedJson(request: Request, maxBytes: number) {
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (contentLength > maxBytes) {
+    return { ok: false as const, status: 413, message: "Chart metadata is too large." };
+  }
+
+  try {
+    const raw = await request.text();
+    if (Buffer.byteLength(raw, "utf8") > maxBytes) {
+      return { ok: false as const, status: 413, message: "Chart metadata is too large." };
+    }
+    return { ok: true as const, value: JSON.parse(raw) as unknown };
+  } catch {
+    return { ok: false as const, status: 400, message: "Send valid JSON chart metadata." };
+  }
 }
 
 function isSameOrigin(request: Request): boolean {
