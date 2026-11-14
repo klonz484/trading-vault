@@ -377,7 +377,7 @@ export default function JournalPage() {
             {learningPatterns.map((pattern) => <div key={pattern.symbol + pattern.side} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.07] bg-white/[0.02] p-3">
               <div>
                 <p className="text-sm font-semibold text-white">{pattern.symbol} · {pattern.side}</p>
-                <p className="mt-1 text-[10px] text-slate-400">{pattern.timeframe} · {pattern.session.replaceAll("_", " ")} · {pattern.setupType} · {pattern.strategy}</p>
+                <p className="mt-1 text-[10px] text-slate-400">{pattern.timeframe} · {pattern.session.replace(/_/g, " ")} · {pattern.setupType} · {pattern.strategy}</p>
                 <p className="mt-1 text-[10px] text-slate-500">{pattern.sampleCount} feedback-linked closed trades · {pattern.wins} wins · {pattern.losses} losses · {pattern.breakeven} breakeven</p>
               </div>
               <div className="text-right">

@@ -9,6 +9,7 @@ export interface JournalPlanSnapshot {
 export interface JournalFeedbackTrade {
   id: string; date: string; symbol: string; side: "BUY" | "SELL";
   entry: number; stop: number; target: number;
+  timeframe?: string; session?: string; setupType?: string; strategy?: string;
   outcome: "OPEN" | "WIN" | "LOSS" | "BREAKEVEN"; rMultiple: number; notes: string;
   realizedR?: number; originalPlan?: JournalPlanSnapshot; feedbackEvents?: JournalFeedbackEvent[];
 }
