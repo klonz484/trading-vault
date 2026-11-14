@@ -74,5 +74,21 @@ begin
   if has_function_privilege('authenticated', 'private.set_updated_at()', 'EXECUTE') then
     raise exception 'Timestamp trigger helper must not be directly executable by authenticated';
   end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.trader_experiments'::regclass
+      and conname = 'trader_experiments_private_state_check'
+  ) then
+    raise exception 'Private experiment state boundary is missing';
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.trader_experiments'::regclass
+      and conname = 'trader_experiments_owner_approval_required_check'
+  ) then
+    raise exception 'Owner approval requirement is not enforced';
+  end if;
 end;
 $$;
