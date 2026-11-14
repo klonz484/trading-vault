@@ -64,7 +64,7 @@ create table if not exists public.trader_scenarios (
   foreign key (owner_id, evidence_bundle_row_id)
     references public.trader_evidence_bundles(owner_id, id) on delete restrict,
   foreign key (owner_id, reasoning_report_row_id)
-    references public.trader_reasoning_reports(owner_id, id) on delete set null
+    references public.trader_reasoning_reports(owner_id, id) on delete restrict
 );
 
 create table if not exists public.trader_experiments (
