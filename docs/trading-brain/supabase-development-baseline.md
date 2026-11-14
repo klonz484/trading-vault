@@ -29,7 +29,7 @@ The following tables now exist:
 | `trader_experiments` | Private experiment definitions and states |
 | `trader_journal_entries` | Private journal records |
 
-Every private table has RLS enabled and forced. Authenticated users have table privileges, but policies constrain all reads and writes to `auth.uid()`. The profile policy uses `user_id = auth.uid()`; the other five use `owner_id = auth.uid()`. Both `USING` and `WITH CHECK` are present, so a user cannot reassign a row to another owner. Anonymous table access is revoked.
+Every private table has RLS enabled and forced. Authenticated users have table privileges, but policies constrain all reads and writes to `auth.uid()`. Private experiments are restricted to research/recommendation states; database constraints force `requires_owner_approval_for_release = true` and prohibit private users from setting `approved_for_release`, `released`, or `rolled_back`. The profile policy uses `user_id = auth.uid()`; the other five use `owner_id = auth.uid()`. Both `USING` and `WITH CHECK` are present, so a user cannot reassign a row to another owner. Anonymous table access is revoked.
 
 Evidence/report/scenario relationships use composite foreign keys containing `owner_id` as well as the referenced row ID. This prevents a record owned by one trader from linking to another trader's evidence or report even if an internal UUID is known. Cascading deletion preserves account-data cleanup.
 
@@ -56,6 +56,7 @@ Do not store chart images in a public bucket or use predictable cross-user paths
 - Composite tenant-scoped foreign keys are present.
 - A follow-up index migration removed the advisor's unindexed-FK findings for these new relationships.
 - A private-schema timestamp trigger migration was applied.
+- A read-only SQL catalog assertion script passed against the development database, including the RLS, grants, Storage policies, helper-function privileges, and private experiment release-boundary constraints.
 
 The security advisor still reports four pre-existing RLS-enabled/no-policy informational findings on service-owned ingestion/rate-limit tables, plus leaked-password protection disabled. The latter should be enabled in development Auth settings before public registration is opened. No Auth settings were changed here.
 
