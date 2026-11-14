@@ -208,4 +208,4 @@ Acceptance criteria:
 
 ## 16. Repository status note
 
-This document is a specification, not evidence that the ELE or a release pipeline is implemented or running. Shared Core changes remain gated by controlled validation and explicit owner approval.
+A first private proposal-creation path now stores eligible Journal pattern proposals in `trader_experiments` with `state=proposed` and `requires_owner_approval_for_release=true`. This does not implement experiment execution, replay, recommendations, or a release pipeline. This document remains a specification for the full ELE. Shared Core changes remain gated by controlled validation and explicit owner approval.

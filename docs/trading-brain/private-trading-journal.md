@@ -50,7 +50,7 @@ The private learning workflow may identify repeated patterns and propose experim
 - **Preservation:** local browser entries are not automatically uploaded, overwritten, or deleted. The local and cloud stores are intentionally separate.
 - **Not yet verified end to end:** Development runtime variables, real sign-in session, and authenticated journal create/list/delete using a dedicated test identity.
 - **Implemented in code:** a private feedback helper validates and appends outcome events, preserves the original plan snapshot from trade creation, calculates planned reward R for target hits, records negative R for stop hits, supports partial take-profit without closing the remaining position, and requires an explicit signed R value for manual closes. The Journal exposes these actions on open trades, stores feedback in the same owner-scoped journal record, and renders descriptive private patterns by instrument/direction with sample-size labels.
-- **Not yet implemented or verified end to end:** a background Brain consumer, persistent experiment runs sourced from these events, automated skill-change recommendations, chart attachment UI, and authenticated runtime verification. Feedback is recorded for private review; it does not itself change strategy rules.
+- **Not yet implemented or verified end to end:** a background Brain consumer, experiment-run execution and replay, evidence-backed skill-change recommendations, chart attachment UI, and authenticated runtime verification. The proposal API is implemented, but its authenticated runtime has not yet been exercised with a dedicated test identity. Feedback is recorded for private review; it does not itself change strategy rules.
 
 ## Acceptance and safety checks
 
