@@ -88,7 +88,14 @@ export async function savePrivateEvidenceBundle(input: SaveEvidenceBundleInput) 
 
   return context.supabase
     .from("trader_evidence_bundles")
-    .insert({ ...input, owner_id: context.userId })
+    .insert({
+      bundle_id: input.bundleId,
+      bundle_version: input.bundleVersion,
+      workflow: input.workflow,
+      instrument: input.instrument,
+      payload: input.payload,
+      owner_id: context.userId,
+    })
     .select("*")
     .single();
 }
