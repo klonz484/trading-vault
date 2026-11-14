@@ -12,6 +12,7 @@ const {
   plannedRewardR,
   recordJournalFeedback,
   summarizeJournalFeedback,
+  analyzePrivateLearningPatterns,
 } = require("./fixtures.cjs");
 
 test("confirmed valid evidence receives four times provisional weight", () => {
@@ -153,4 +154,19 @@ test("feedback summary counts events by outcome category", () => {
     { id: "t6", date: "2026-11-14", symbol: "XAUUSD", side: "SELL", entry: 2600, stop: 2610, target: 2580, outcome: "OPEN", rMultiple: 2, notes: "", feedbackEvents: [{ eventId: "b", kind: "stop_loss_hit", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: -1 }] },
   ];
   assert.deepEqual(summarizeJournalFeedback(trades), { eventCount: 2, takeProfitHits: 1, stopLossHits: 1, partialTakeProfits: 0, manualCloses: 0, pendingReview: 2 });
+});
+
+
+test("private learning patterns exclude open and unreviewed trades and disclose sample strength", () => {
+  const base = { date: "2026-11-14", symbol: "EURUSD", side: "BUY", entry: 1.1, stop: 1.095, target: 1.11, rMultiple: 1, notes: "", feedbackEvents: [{ eventId: "f", kind: "manual_close", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: 1 }] };
+  const trades = Array.from({ length: 5 }, (_, index) => ({
+    ...base, id: "p" + index, outcome: index < 3 ? "WIN" : "LOSS", realizedR: index < 3 ? 1 : -1,
+  })).concat([{ ...base, id: "open", outcome: "OPEN", realizedR: 0.5 }]);
+  const patterns = analyzePrivateLearningPatterns(trades);
+  assert.equal(patterns.length, 1);
+  assert.equal(patterns[0].sampleCount, 5);
+  assert.equal(patterns[0].wins, 3);
+  assert.equal(patterns[0].losses, 2);
+  assert.equal(patterns[0].winRate, 60);
+  assert.equal(patterns[0].reviewState, "early_pattern");
 });

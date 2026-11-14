@@ -67,3 +67,55 @@ export function summarizeJournalFeedback(trades: readonly JournalFeedbackTrade[]
     pendingReview: events.length,
   };
 }
+
+
+export interface PrivateLearningPattern {
+  symbol: string;
+  side: "BUY" | "SELL";
+  sampleCount: number;
+  wins: number;
+  losses: number;
+  breakeven: number;
+  winRate: number | null;
+  averageRealizedR: number | null;
+  reviewState: "insufficient_sample" | "early_pattern" | "review_candidate";
+}
+
+/**
+ * Descriptive, private-only pattern summary. It never changes a strategy.
+ * Only closed trades with explicit feedback and realized R are included.
+ */
+export function analyzePrivateLearningPatterns(
+  trades: readonly JournalFeedbackTrade[],
+  reviewSampleSize = 10,
+): PrivateLearningPattern[] {
+  const groups = new Map<string, JournalFeedbackTrade[]>();
+  for (const trade of trades) {
+    if (trade.outcome === "OPEN" || !trade.feedbackEvents?.length ||
+        typeof trade.realizedR !== "number" || !Number.isFinite(trade.realizedR)) continue;
+    const key = `${trade.symbol.toUpperCase()}:${trade.side}`;
+    groups.set(key, [...(groups.get(key) ?? []), trade]);
+  }
+
+  return [...groups.values()].map((items) => {
+    const wins = items.filter((trade) => trade.outcome === "WIN").length;
+    const losses = items.filter((trade) => trade.outcome === "LOSS").length;
+    const breakeven = items.filter((trade) => trade.outcome === "BREAKEVEN").length;
+    const decisive = wins + losses;
+    const sampleCount = items.length;
+    const averageRealizedR = items.reduce((sum, trade) => sum + (trade.realizedR ?? 0), 0) / sampleCount;
+    return {
+      symbol: items[0].symbol.toUpperCase(),
+      side: items[0].side,
+      sampleCount,
+      wins,
+      losses,
+      breakeven,
+      winRate: decisive ? Number((wins / decisive * 100).toFixed(1)) : null,
+      averageRealizedR: Number(averageRealizedR.toFixed(3)),
+      reviewState: sampleCount >= Math.max(10, reviewSampleSize)
+        ? "review_candidate" as const
+        : sampleCount >= 5 ? "early_pattern" as const : "insufficient_sample" as const,
+    };
+  }).sort((a, b) => a.symbol.localeCompare(b.symbol) || a.side.localeCompare(b.side));
+}

@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/Sidebar";
-import { plannedRewardR, recordJournalFeedback, summarizeJournalFeedback, type JournalFeedbackKind } from "@/lib/trading-brain/feedback-learning";
+import { analyzePrivateLearningPatterns, plannedRewardR, recordJournalFeedback, summarizeJournalFeedback, type JournalFeedbackKind } from "@/lib/trading-brain/feedback-learning";
 import { JOURNAL_STORAGE_KEY, JournalTrade, readLocalList, writeLocalList } from "@/lib/workspace";
 
 type StorageMode = "loading" | "cloud" | "local";
@@ -142,6 +142,7 @@ export default function JournalPage() {
     };
   }, [trades]);
   const feedbackStats = useMemo(() => summarizeJournalFeedback(trades), [trades]);
+  const learningPatterns = useMemo(() => analyzePrivateLearningPatterns(trades), [trades]);
 
   function exportLocalArchive() {
     if (!localArchive.length) return;
@@ -343,6 +344,29 @@ export default function JournalPage() {
             <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
           </div>)}
         </div>
+
+        {learningPatterns.length > 0 && <section className="panel mb-6 p-4 sm:p-5">
+          <div className="mb-4">
+            <h2 className="section-title">Private Brain learning review</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Descriptive patterns from closed trades with recorded feedback. {storageMode === "cloud" ? "Based on your private cloud journal." : "Device-only analysis; sign in to make feedback available to your private cloud Brain."}
+              {" "}These observations do not automatically change a strategy.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {learningPatterns.map((pattern) => <div key={pattern.symbol + pattern.side} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.07] bg-white/[0.02] p-3">
+              <div>
+                <p className="text-sm font-semibold text-white">{pattern.symbol} · {pattern.side}</p>
+                <p className="mt-1 text-[10px] text-slate-500">{pattern.sampleCount} feedback-linked closed trades · {pattern.wins} wins · {pattern.losses} losses · {pattern.breakeven} breakeven</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-semibold text-white">{pattern.averageRealizedR > 0 ? "+" : ""}{pattern.averageRealizedR}R average</p>
+                <p className="text-[10px] text-slate-400">{pattern.winRate === null ? "No decisive outcomes" : pattern.winRate + "% win rate"}</p>
+                <p className="mt-1 text-[10px] text-slate-500">{pattern.reviewState === "review_candidate" ? "Sample ready for controlled review" : pattern.reviewState === "early_pattern" ? "Early pattern · gather more data" : "Insufficient sample · keep collecting"}</p>
+              </div>
+            </div>)}
+          </div>
+        </section>}
 
         {storageMode === "cloud" && localArchive.length > 0 && <section className="panel mb-6 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
