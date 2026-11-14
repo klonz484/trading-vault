@@ -216,3 +216,25 @@ export async function deletePrivateJournalEntry(entryId: string) {
     .select("id")
     .maybeSingle();
 }
+
+export async function updatePrivateJournalEntry(
+  entryId: string,
+  input: SaveJournalEntryInput,
+) {
+  const context = await createUserScopedSupabase();
+  if (!context) return { data: null, error: new Error("Authentication required") };
+
+  return context.supabase
+    .from("trader_journal_entries")
+    .update({
+      instrument: input.instrument,
+      timeframe: input.timeframe ?? null,
+      entry_type: input.entryType ?? "trade",
+      occurred_at: input.occurredAt ?? new Date().toISOString(),
+      payload: input.payload,
+    })
+    .eq("id", entryId)
+    .eq("owner_id", context.userId)
+    .select("*")
+    .maybeSingle();
+}
