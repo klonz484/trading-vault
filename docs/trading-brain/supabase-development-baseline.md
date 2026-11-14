@@ -87,3 +87,20 @@ The MT5 ingestion tables remain separate from private trader records. The Shared
 ## Safety boundary
 
 This is the development project only. It does not authorize production changes, public registration, or a Shared Core release. Keep service-role credentials server-side and never expose them through a `NEXT_PUBLIC_` variable.
+
+
+## Repository migration ledger alignment
+
+The repository migration filenames now match the version/name pairs recorded by the Development database:
+
+- `20261114060304_private_trader_workspace`
+- `20261114060335_index_trader_foreign_keys`
+- `20261114060402_trader_updated_at_triggers`
+- `20261114060958_lock_private_experiment_release_boundary`
+- `20261114061151_guard_private_scenario_lifecycle`
+
+This was a repository-only filename reconciliation; it did not apply, re-run, or modify any database migration. Before any future schema deployment, compare the local migration ledger with the Development project's recorded migration list and review SQL drift. Do not run a blind migration push.
+
+## Trading Brain evidence scoring note
+
+Evidence direction is the source engine's observed market direction. The `supporting` / `contrary` role describes its relationship to a hypothesis and must never reverse the source event's direction. The scorer now preserves the raw direction; any future hypothesis-relative score must receive an explicit target direction. The aggregate balance is not a probability, win rate, or trade recommendation.
