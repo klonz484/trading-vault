@@ -10,7 +10,20 @@ const MAX_BODY_BYTES = 32 * 1024;
 const INSTRUMENT_PATTERN = /^[A-Z0-9._-]{2,20}$/;
 
 function jsonError(message: string, status: number) {
-  return NextResponse.json({ error: message }, { status });
+  return NextResponse.json({ error: message }, {
+    status,
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+
+function isSameOrigin(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  if (!origin) return true;
+  try {
+    return new URL(origin).origin === new URL(request.url).origin;
+  } catch {
+    return false;
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -46,13 +59,17 @@ export async function GET(request: Request) {
       );
     }
 
-    return NextResponse.json({ entries: result.data ?? [] });
+    return NextResponse.json({ entries: result.data ?? [] }, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch {
     return jsonError("The private journal is not configured or is temporarily unavailable.", 503);
   }
 }
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return jsonError("Cross-origin request rejected.", 403);
+
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > MAX_BODY_BYTES) {
     return jsonError("Journal entry is too large.", 413);
@@ -114,13 +131,21 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ entry: result.data }, { status: 201 });
+    return NextResponse.json({ entry: result.data }, {
+      status: 201,
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch {
     return jsonError("The private journal is not configured or is temporarily unavailable.", 503);
   }
 }
 
 export async function DELETE(request: Request) {
+  if (!isSameOrigin(request)) return jsonError("Cross-origin request rejected.", 403);
+
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (contentLength > 1024) return jsonError("Delete request is too large.", 413);
+
   let body: unknown;
   try {
     body = await request.json();
@@ -143,7 +168,9 @@ export async function DELETE(request: Request) {
       );
     }
     if (!result.data) return jsonError("Journal entry not found.", 404);
-    return NextResponse.json({ deleted: true });
+    return NextResponse.json({ deleted: true }, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch {
     return jsonError("The private journal is not configured or is temporarily unavailable.", 503);
   }
