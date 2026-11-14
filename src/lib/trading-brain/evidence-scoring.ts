@@ -45,12 +45,6 @@ function directionalWeight(record: EvidenceReference): number {
   return stateWeight * qualityWeight;
 }
 
-function opposite(direction: Direction): Direction {
-  if (direction === "bullish") return "bearish";
-  if (direction === "bearish") return "bullish";
-  return "neutral";
-}
-
 function getStrength(balance: number, total: number): EvidenceStrength {
   if (total === 0 || balance === 0) return "none";
   if (balance >= STRONG_THRESHOLD) return "strong";
@@ -108,11 +102,10 @@ export function scoreEvidenceBundle(bundle: EvidenceBundle): EvidenceScore {
       continue;
     }
 
-    const effectiveDirection =
-      item.role === "contrary" ? opposite(item.direction) : item.direction;
-
-    if (effectiveDirection === "bullish") result.bullishWeight += weight;
-    if (effectiveDirection === "bearish") result.bearishWeight += weight;
+    // Evidence direction describes the source event, not its relationship to a
+    // particular hypothesis. "Contrary" must never reverse that market fact.
+    if (item.direction === "bullish") result.bullishWeight += weight;
+    if (item.direction === "bearish") result.bearishWeight += weight;
     result.countedEvidenceIds.push(item.evidenceId);
   }
 
