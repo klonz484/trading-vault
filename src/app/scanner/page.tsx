@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Link from "next/link";
-import { readLocalList, SavedScan, SCAN_STORAGE_KEY, writeLocalList } from "@/lib/workspace";
+import { readLocalList, SavedScan, SCAN_STORAGE_KEY, structureScanAnalysis, writeLocalList } from "@/lib/workspace";
 
 type AnalysisResponse = { analysis?: string; model?: string; error?: string };
 
@@ -57,7 +57,7 @@ export default function ScannerPage() {
       if (!response.ok) throw new Error(data.error || "Analysis failed. Please try again.");
       setResult(data.analysis || "The model did not return an analysis.");
       setModelName(data.model || "Vision model");
-      const saved: SavedScan = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), symbol, timeframe, model: data.model || "Vision model", analysis: data.analysis || "" };
+      const analysis = data.analysis || "";\n      const structured = structureScanAnalysis(analysis);\n      const saved: SavedScan = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), symbol, timeframe, model: data.model || "Vision model", analysis, schemaVersion: 2, revision: 1, summary: structured.summary, sections: structured.sections };
       const previous = readLocalList<SavedScan>(SCAN_STORAGE_KEY);
       writeLocalList(SCAN_STORAGE_KEY, [saved, ...previous].slice(0, 50));
     } catch (caught) {
