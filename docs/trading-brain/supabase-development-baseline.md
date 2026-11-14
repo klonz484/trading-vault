@@ -81,7 +81,7 @@ The MT5 ingestion tables remain separate from private trader records. The Shared
 2. Configure Development-only Supabase public URL and publishable key, then exercise sign-in and journal create/list/delete with a dedicated test identity.
 3. Add isolated test identities and prove cross-user SELECT/INSERT/UPDATE/DELETE denial, including ownership reassignment and Storage object path attacks.
 4. Define and test an explicit local-journal export/import flow before offering any migration of existing browser records.
-5. Build chart upload and signed-read UI against the private bucket.
+5. Verify chart upload and signed-read UI against the private bucket using a dedicated Development test identity.
 6. Keep Shared Core writes behind a controlled server-side release path and explicit owner approval.
 
 ## Safety boundary
