@@ -163,6 +163,7 @@ test("private learning patterns exclude open and unreviewed trades and disclose 
   const base = { date: "2026-11-14", symbol: "EURUSD", side: "BUY", entry: 1.1, stop: 1.095, target: 1.11, rMultiple: 1, notes: "", feedbackEvents: [{ eventId: "f", kind: "manual_close", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: 1 }] };
   const trades = Array.from({ length: 5 }, (_, index) => ({
     ...base, id: "p" + index, outcome: index < 3 ? "WIN" : "LOSS", realizedR: index < 3 ? 1 : -1,
+    feedbackEvents: [{ eventId: "f-" + index, kind: "manual_close", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: index < 3 ? 1 : -1 }],
   })).concat([{ ...base, id: "open", outcome: "OPEN", realizedR: 0.5 }]);
   const patterns = analyzePrivateLearningPatterns(trades);
   assert.equal(patterns.length, 1);
