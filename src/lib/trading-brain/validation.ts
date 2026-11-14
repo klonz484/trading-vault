@@ -151,8 +151,8 @@ export function canTransitionScenario(
 }
 
 /**
- * A scenario must have explicit identity, scope, and conditions.
- * Private records require an owner ID; shared Core records must not impersonate one.
+ * A scenario must have explicit identity, scope, and well-formed conditions.
+ * Confirmed-only conditions cannot be driven by a forming candle.
  */
 export function validateScenario(scenario: TradingScenario): ValidationResult {
   const issues: ValidationIssue[] = [];
@@ -184,6 +184,27 @@ export function validateScenario(scenario: TradingScenario): ValidationResult {
     });
   }
 
+  if (!isValidDate(scenario.createdAt)) {
+    issues.push({
+      code: "SCENARIO_CREATED_AT_INVALID",
+      message: "Scenario createdAt must be a valid timestamp.",
+    });
+  }
+
+  if (scenario.expiresAt) {
+    if (!isValidDate(scenario.expiresAt)) {
+      issues.push({
+        code: "SCENARIO_EXPIRY_INVALID",
+        message: "Scenario expiresAt must be a valid timestamp when supplied.",
+      });
+    } else if (isValidDate(scenario.createdAt) && Date.parse(scenario.expiresAt) <= Date.parse(scenario.createdAt)) {
+      issues.push({
+        code: "SCENARIO_EXPIRY_NOT_AFTER_CREATION",
+        message: "Scenario expiresAt must be later than createdAt.",
+      });
+    }
+  }
+
   if (scenario.triggerConditions.length === 0) {
     issues.push({
       code: "SCENARIO_TRIGGER_REQUIRED",
@@ -191,11 +212,54 @@ export function validateScenario(scenario: TradingScenario): ValidationResult {
     });
   }
 
-  if (scenario.expiresAt && !isValidDate(scenario.expiresAt)) {
-    issues.push({
-      code: "SCENARIO_EXPIRY_INVALID",
-      message: "Scenario expiresAt must be a valid timestamp when supplied.",
-    });
+  const conditionIds = new Set<string>();
+  const conditionGroups = [
+    ["trigger", scenario.triggerConditions],
+    ["confirmation", scenario.confirmationConditions],
+    ["invalidation", scenario.invalidationConditions],
+  ] as const;
+
+  for (const [groupName, conditions] of conditionGroups) {
+    for (const condition of conditions) {
+      if (
+        !isNonEmpty(condition.conditionId) ||
+        !isNonEmpty(condition.description) ||
+        !isNonEmpty(condition.sourceEngine) ||
+        !isNonEmpty(condition.sourceEventType) ||
+        !isNonEmpty(condition.instrument) ||
+        !isNonEmpty(condition.timeframe)
+      ) {
+        issues.push({
+          code: "SCENARIO_CONDITION_REQUIRED_FIELD_MISSING",
+          message: `Every ${groupName} condition requires an ID, description, source, instrument, and timeframe.`,
+        });
+      }
+
+      if (conditionIds.has(condition.conditionId)) {
+        issues.push({
+          code: "SCENARIO_CONDITION_ID_DUPLICATE",
+          message: "Condition IDs must be unique across a scenario.",
+        });
+      }
+      conditionIds.add(condition.conditionId);
+
+      if (condition.comparator && (condition.threshold === undefined || !Number.isFinite(condition.threshold))) {
+        issues.push({
+          code: "SCENARIO_CONDITION_THRESHOLD_INVALID",
+          message: "A numeric finite threshold is required when a comparator is supplied.",
+        });
+      }
+
+      if (
+        condition.requiredState === "confirmed" &&
+        condition.candleRequirement === "forming_allowed"
+      ) {
+        issues.push({
+          code: "CONFIRMED_CONDITION_ALLOWS_FORMING_CANDLE",
+          message: "A confirmed condition cannot rely on a forming candle.",
+        });
+      }
+    }
   }
 
   return { valid: issues.length === 0, issues };
