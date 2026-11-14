@@ -13,6 +13,7 @@ const {
   recordJournalFeedback,
   summarizeJournalFeedback,
   analyzePrivateLearningPatterns,
+  createPrivateExperimentDraft,
 } = require("./fixtures.cjs");
 
 test("confirmed valid evidence receives four times provisional weight", () => {
@@ -182,4 +183,26 @@ test("private learning patterns separate different market contexts", () => {
   assert.equal(patterns.length, 2);
   assert.ok(patterns.some((item) => item.timeframe === "M15" && item.session === "LONDON"));
   assert.ok(patterns.some((item) => item.timeframe === "H1" && item.session === "NEW_YORK"));
+});
+
+
+test("private experiment draft is a proposal only and requires a sufficient sample", () => {
+  const pattern = {
+    symbol: "EURUSD", side: "BUY", timeframe: "M15", session: "LONDON",
+    setupType: "MSS retest", strategy: "Trend continuation",
+    firstTradeDate: "2026-01-01", lastTradeDate: "2026-11-14",
+    sampleCount: 12, wins: 7, losses: 4, breakeven: 1,
+    winRate: 63.6, averageRealizedR: 0.42, reviewState: "review_candidate",
+  };
+  const draft = createPrivateExperimentDraft(pattern);
+  assert.equal(draft.scope, "private_trader");
+  assert.equal(draft.lifecycle.state, "proposed");
+  assert.equal(draft.lifecycle.approvedForResearch, false);
+  assert.equal(draft.lifecycle.automaticStrategyChanges, false);
+  assert.equal(draft.lifecycle.sharedCoreContribution, false);
+  assert.equal(draft.baseline.strategyVersion, "not_recorded");
+  assert.equal(draft.candidate.version, null);
+  assert.equal(draft.sampleDefinition.currentSampleSize, 12);
+  assert.equal(draft.sampleDefinition.targetSampleSize, 20);
+  assert.throws(() => createPrivateExperimentDraft({ ...pattern, sampleCount: 9, reviewState: "early_pattern" }), /at least ten/);
 });
