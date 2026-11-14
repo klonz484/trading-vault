@@ -17,7 +17,7 @@ export async function createUserScopedSupabase(): Promise<UserScopedSupabase | n
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
 
-  if (error) return null;
+  if (error || !data) return null;
 
   const userId = data.claims?.sub;
   if (typeof userId !== "string" || userId.length === 0) return null;
