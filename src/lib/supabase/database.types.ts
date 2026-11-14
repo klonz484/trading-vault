@@ -128,6 +128,7 @@ export type Database = {
           payload: Json;
           created_at: string;
           updated_at: string;
+          expires_at: string | null;
         };
         Insert: {
           id?: string;
@@ -143,6 +144,7 @@ export type Database = {
           payload: Json;
           created_at?: string;
           updated_at?: string;
+          expires_at?: string | null;
         };
         Update: {
           scenario_version?: string;
@@ -151,6 +153,7 @@ export type Database = {
           reasoning_report_row_id?: string | null;
           payload?: Json;
           updated_at?: string;
+          expires_at?: string | null;
         };
         Relationships: [];
       };
