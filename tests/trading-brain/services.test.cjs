@@ -27,13 +27,13 @@ test("confirmed valid evidence receives four times provisional weight", () => {
   assert.equal(score.balance, 100);
 });
 
-test("contrary evidence is counted in the opposite direction", () => {
+test("contrary role never reverses the source event direction", () => {
   const score = scoreEvidenceBundle(bundle([
     evidence({ direction: "bullish", role: "contrary" }),
   ]));
-  assert.equal(score.bearishWeight, 1);
-  assert.equal(score.bullishWeight, 0);
-  assert.equal(score.dominantDirection, "bearish");
+  assert.equal(score.bullishWeight, 1);
+  assert.equal(score.bearishWeight, 0);
+  assert.equal(score.dominantDirection, "bullish");
 });
 
 test("duplicate evidence IDs fail closed with no directional score", () => {
