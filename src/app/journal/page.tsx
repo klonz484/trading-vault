@@ -87,6 +87,7 @@ export default function JournalPage() {
   const [strategy, setStrategy] = useState("");
   const [error, setError] = useState("");
   const [savedExperimentKeys, setSavedExperimentKeys] = useState<string[]>([]);
+  const [privateExperimentRows, setPrivateExperimentRows] = useState<Record<string, unknown>[]>([]);
   const [savingExperimentKey, setSavingExperimentKey] = useState<string | null>(null);
   const [experimentError, setExperimentError] = useState("");
 
@@ -104,17 +105,19 @@ export default function JournalPage() {
           setTrades(mapCloudRows(body.entries));
           setStorageMode("cloud");
           setStorageMessage("Private cloud journal · synced to your account");
-          try {
-            const experimentResponse = await fetch("/api/trader/experiments?limit=100", { cache: "no-store" });
-            const experimentBody: unknown = await experimentResponse.json();
-            if (active && experimentResponse.ok && isRecord(experimentBody) && Array.isArray(experimentBody.experiments)) {
-              const keys = experimentBody.experiments
-                .filter(isRecord)
-                .map((row) => isRecord(row.payload) && typeof row.payload.sourcePatternKey === "string" ? row.payload.sourcePatternKey : null)
-                .filter((key): key is string => key !== null);
-              setSavedExperimentKeys(keys);
-            }
-          } catch { /* Journal access remains available if experiment listing is temporarily unavailable. */ }
+          void fetch("/api/trader/experiments?limit=100", { cache: "no-store" })
+            .then(async (experimentResponse) => {
+              const experimentBody: unknown = await experimentResponse.json();
+              if (active && experimentResponse.ok && isRecord(experimentBody) && Array.isArray(experimentBody.experiments)) {
+                const rows = experimentBody.experiments.filter(isRecord);
+                setPrivateExperimentRows(rows);
+                const keys = rows
+                  .map((row) => isRecord(row.payload) && typeof row.payload.sourcePatternKey === "string" ? row.payload.sourcePatternKey : null)
+                  .filter((key): key is string => key !== null);
+                setSavedExperimentKeys(keys);
+              }
+            })
+            .catch(() => { /* Journal access remains available if experiment listing is temporarily unavailable. */ });
         } else {
           setTrades(readLocalList<JournalTrade>(JOURNAL_STORAGE_KEY));
           setStorageMode("local");
@@ -186,6 +189,9 @@ export default function JournalPage() {
         return;
       }
       setSavedExperimentKeys((current) => [...current, draft.sourcePatternKey]);
+      if (isRecord(body) && isRecord(body.experiment)) {
+        setPrivateExperimentRows((current) => [body.experiment as Record<string, unknown>, ...current]);
+      }
     } catch {
       setExperimentError("The private experiment draft could not be saved. Please try again.");
     } finally { setSavingExperimentKey(null); }
@@ -404,6 +410,31 @@ export default function JournalPage() {
           </div>)}
         </div>
 
+        {privateExperimentRows.length > 0 && <section className="panel mb-6 p-4 sm:p-5">
+          <div className="mb-4">
+            <h2 className="section-title">Private research proposals</h2>
+            <p className="mt-1 text-xs text-slate-500">Saved proposals remain private and are not running experiments or changing strategy rules.</p>
+          </div>
+          <div className="space-y-3">
+            {privateExperimentRows.map((row) => {
+              const payload = isRecord(row.payload) ? row.payload : {};
+              const source = isRecord(payload.sourcePattern) ? payload.sourcePattern : {};
+              const title = typeof payload.hypothesis === "string" ? payload.hypothesis : "Private learning review";
+              const sampleCount = typeof source.sampleCount === "number" ? source.sampleCount : 0;
+              const context = [source.symbol, source.side, source.timeframe, source.session, source.setupType, source.strategy]
+                .filter((value): value is string => typeof value === "string" && value.length > 0).join(" · ");
+              return <article key={typeof row.id === "string" ? row.id : String(row.experiment_id)} className="rounded-lg border border-white/[0.07] bg-white/[0.02] p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-white">{context || "Journal pattern"}</p>
+                  <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-[10px] text-sky-200">Proposed · not running</span>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-slate-300">{title}</p>
+                <p className="mt-2 text-[10px] text-slate-500">{sampleCount} feedback-linked trades · {typeof row.created_at === "string" ? new Date(row.created_at).toLocaleDateString() : "Saved privately"}</p>
+              </article>;
+            })}
+          </div>
+        </section>}
+
         {learningPatterns.length > 0 && <section className="panel mb-6 p-4 sm:p-5">
           <div className="mb-4">
             <h2 className="section-title">Private Brain learning review</h2>
@@ -413,7 +444,7 @@ export default function JournalPage() {
             </p>
           </div>
           <div className="space-y-3">
-            {learningPatterns.map((pattern) => <div key={pattern.symbol + pattern.side} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.07] bg-white/[0.02] p-3">
+            {learningPatterns.map((pattern) => <div key={[pattern.symbol, pattern.side, pattern.timeframe, pattern.session, pattern.setupType.toLowerCase(), pattern.strategy.toLowerCase()].join(":")} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.07] bg-white/[0.02] p-3">
               <div>
                 <p className="text-sm font-semibold text-white">{pattern.symbol} · {pattern.side}</p>
                 <p className="mt-1 text-[10px] text-slate-400">{pattern.timeframe} · {pattern.session.replace(/_/g, " ")} · {pattern.setupType} · {pattern.strategy}</p>
