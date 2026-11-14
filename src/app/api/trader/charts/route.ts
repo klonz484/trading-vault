@@ -18,7 +18,7 @@ function errorResponse(message: string, status: number) {
 function validPath(value: unknown): value is string {
   const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
   return typeof value === "string" &&
-    new RegExp(\`^\${uuid}/\${uuid}\\.(jpg|png|webp)$\`, "i").test(value);
+    new RegExp("^" + uuid + "/" + uuid + "\\.(jpg|png|webp)$", "i").test(value);
 }
 
 async function parseLimitedJson(request: Request, maxBytes: number) {
