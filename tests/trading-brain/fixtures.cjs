@@ -1,3 +1,4 @@
+/* eslint @typescript-eslint/no-require-imports: off -- Node's TypeScript test loader uses CommonJS require hooks. */
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const ts = require("typescript");
