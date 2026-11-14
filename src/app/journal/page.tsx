@@ -670,8 +670,10 @@ export default function JournalPage() {
                   {trade.notes && <p className="mt-3 text-xs leading-5 text-slate-400">{trade.notes}</p>}
                   {trade.chartPath && <div className="mt-3">
                     {chartUrls[trade.id]
-                      ? <Image src={chartUrls[trade.id]} alt={trade.symbol + " private trade chart"} width={1200} height={675} unoptimized className="max-h-72 w-auto rounded-lg border border-white/10 object-contain" />
-                      <button type="button" disabled={loadingChartId !== null} onClick={() => void loadChartPreview(trade)} className="mt-2 rounded-lg border border-white/10 px-3 py-1.5 text-[10px] text-slate-400 hover:bg-white/5 disabled:opacity-50">Refresh private chart link</button>
+                      ? <div>
+                        <Image src={chartUrls[trade.id]} alt={trade.symbol + " private trade chart"} width={1200} height={675} unoptimized className="max-h-72 w-auto rounded-lg border border-white/10 object-contain" />
+                        <button type="button" disabled={loadingChartId !== null} onClick={() => void loadChartPreview(trade)} className="mt-2 rounded-lg border border-white/10 px-3 py-1.5 text-[10px] text-slate-400 hover:bg-white/5 disabled:opacity-50">Refresh private chart link</button>
+                      </div>
                       : <button type="button" disabled={loadingChartId !== null} onClick={() => void loadChartPreview(trade)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 disabled:opacity-50">
                         {loadingChartId === trade.id ? "Loading private chart..." : "View private chart"}
                       </button>}
