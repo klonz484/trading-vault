@@ -20,6 +20,7 @@ require.extensions[".ts"] = (module, filename) => {
 const { scoreEvidenceBundle } = require("../../src/lib/trading-brain/evidence-scoring.ts");
 const { transitionScenario } = require("../../src/lib/trading-brain/scenario-lifecycle.ts");
 const { validateScenario } = require("../../src/lib/trading-brain/validation.ts");
+const { adaptEngineEvent } = require("../../src/lib/trading-brain/engine-event-adapter.ts");
 
 function evidence(overrides = {}) {
   return {
@@ -84,4 +85,4 @@ function scenario(overrides = {}) {
   };
 }
 
-module.exports = { assert, evidence, bundle, scenario, scoreEvidenceBundle, transitionScenario, validateScenario };
+module.exports = { assert, evidence, bundle, scenario, scoreEvidenceBundle, transitionScenario, validateScenario, adaptEngineEvent };
