@@ -203,3 +203,16 @@ export async function createPrivateChartSignedUrl(path: string, expiresInSeconds
     .from(CHART_BUCKET)
     .createSignedUrl(path, Math.min(Math.max(Math.trunc(expiresInSeconds), 30), 900));
 }
+
+export async function deletePrivateJournalEntry(entryId: string) {
+  const context = await createUserScopedSupabase();
+  if (!context) return { data: null, error: new Error("Authentication required") };
+
+  return context.supabase
+    .from("trader_journal_entries")
+    .delete()
+    .eq("id", entryId)
+    .eq("owner_id", context.userId)
+    .select("id")
+    .maybeSingle();
+}
