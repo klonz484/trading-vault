@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { listPrivateExperiments, savePrivateExperiment } from "@/lib/trading-brain/private-repository";
+import { listPrivateExperiments, listPrivateJournalEntries, savePrivateExperiment } from "@/lib/trading-brain/private-repository";
+import { createPrivateExperimentDraftFromTrades, type JournalFeedbackTrade } from "@/lib/trading-brain/feedback-learning";
 import type { Json } from "@/lib/supabase/database.types";
 
 const MAX_BODY_BYTES = 24 * 1024;
@@ -52,18 +53,42 @@ export async function POST(request: Request) {
       Buffer.byteLength(JSON.stringify(body.payload), "utf8") > MAX_BODY_BYTES) {
     return jsonError("Provide a valid research proposal payload.", 400);
   }
-  const payload = body.payload;
-  if (payload.schemaVersion !== 1 || payload.scope !== "private_trader" ||
-      !isRecord(payload.lifecycle) || payload.lifecycle.state !== "proposed" ||
-      payload.lifecycle.approvedForResearch !== false || payload.lifecycle.automaticStrategyChanges !== false ||
-      payload.lifecycle.sharedCoreContribution !== false || !isRecord(payload.sourcePattern) ||
-      typeof payload.sourcePatternKey !== "string" || payload.sourcePattern.reviewState !== "review_candidate" ||
-      typeof payload.sourcePattern.sampleCount !== "number" || payload.sourcePattern.sampleCount < 10 ||
-      typeof payload.hypothesis !== "string" || payload.hypothesis.length > 1000) {
-    return jsonError("Only eligible private research proposals can be saved in proposed state.", 400);
+  const requestedPatternKey = body.payload.sourcePatternKey;
+  if (typeof requestedPatternKey !== "string" || requestedPatternKey.length > 300) {
+    return jsonError("Provide a valid private learning pattern key.", 400);
   }
   try {
-    const result = await savePrivateExperiment({ experimentId: randomUUID(), version: "1.0", payload: payload as Json });
+    const journal = await listPrivateJournalEntries(100);
+    if (journal.error) {
+      const status = journal.error.message === "Authentication required" ? 401 : 503;
+      return jsonError(status === 401 ? "Sign in to prepare a private research proposal." : "The private journal could not be reviewed.", status);
+    }
+    const trades = (journal.data ?? []).flatMap((row) => {
+      if (!isRecord(row.payload)) return [];
+      const candidate = isRecord(row.payload.trade) ? row.payload.trade : row.payload;
+      if (typeof candidate.id !== "string" || typeof candidate.date !== "string" ||
+          typeof candidate.symbol !== "string" || (candidate.side !== "BUY" && candidate.side !== "SELL") ||
+          !["OPEN", "WIN", "LOSS", "BREAKEVEN"].includes(String(candidate.outcome)) ||
+          ![candidate.entry, candidate.stop, candidate.target, candidate.rMultiple].every((value) => typeof value === "number" && Number.isFinite(value)) ||
+          typeof candidate.notes !== "string") return [];
+      return [candidate as unknown as JournalFeedbackTrade];
+    });
+    let verifiedDraft;
+    try {
+      verifiedDraft = createPrivateExperimentDraftFromTrades(trades, requestedPatternKey);
+    } catch (cause) {
+      return jsonError(cause instanceof Error ? cause.message : "The learning pattern is not eligible for a proposal.", 400);
+    }
+    const existing = await listPrivateExperiments(100);
+    if (existing.error) {
+      const status = existing.error.message === "Authentication required" ? 401 : 503;
+      return jsonError(status === 401 ? "Sign in to review private proposals." : "Private research proposals are temporarily unavailable.", status);
+    }
+    const duplicate = (existing.data ?? []).some((row) =>
+      isRecord(row.payload) && row.payload.sourcePatternKey === requestedPatternKey,
+    );
+    if (duplicate) return jsonError("A private research proposal already exists for this learning pattern.", 409);
+    const result = await savePrivateExperiment({ experimentId: randomUUID(), version: "1.0", payload: verifiedDraft as unknown as Json });
     if (result.error) {
       const status = result.error.message === "Authentication required" ? 401 : 503;
       return jsonError(status === 401 ? "Sign in to save a private research proposal." : "The private research proposal could not be saved.", status);

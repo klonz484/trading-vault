@@ -14,6 +14,7 @@ const {
   summarizeJournalFeedback,
   analyzePrivateLearningPatterns,
   createPrivateExperimentDraft,
+  createPrivateExperimentDraftFromTrades,
 } = require("./fixtures.cjs");
 
 test("confirmed valid evidence receives four times provisional weight", () => {
@@ -205,4 +206,21 @@ test("private experiment draft is a proposal only and requires a sufficient samp
   assert.equal(draft.sampleDefinition.currentSampleSize, 12);
   assert.equal(draft.sampleDefinition.targetSampleSize, 20);
   assert.throws(() => createPrivateExperimentDraft({ ...pattern, sampleCount: 9, reviewState: "early_pattern" }), /at least ten/);
+});
+
+test("private experiment drafts are rebuilt from eligible journal records", () => {
+  const trades = Array.from({ length: 10 }, (_, index) => ({
+    id: "verified-" + index, date: `2026-11-${String(index + 1).padStart(2, "0")}`,
+    symbol: "EURUSD", side: "BUY", entry: 1.1, stop: 1.095, target: 1.11,
+    timeframe: "M15", session: "LONDON", setupType: "MSS retest", strategy: "Trend continuation",
+    outcome: index < 6 ? "WIN" : "LOSS", rMultiple: 1, realizedR: index < 6 ? 1 : -1, notes: "",
+    feedbackEvents: [{ eventId: "event-" + index, kind: "manual_close", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: index < 6 ? 1 : -1 }],
+  }));
+  const key = "EURUSD:BUY:M15:LONDON:mss retest:trend continuation";
+  const draft = createPrivateExperimentDraftFromTrades(trades, key);
+  assert.equal(draft.sourcePattern.sampleCount, 10);
+  assert.equal(draft.sourcePattern.wins, 6);
+  assert.equal(draft.lifecycle.approvedForResearch, false);
+  assert.throws(() => createPrivateExperimentDraftFromTrades(trades.slice(0, 9), key), /not present/);
+  assert.throws(() => createPrivateExperimentDraftFromTrades(trades, "EURUSD:SELL:M15:LONDON:mss retest:trend continuation"), /not present/);
 });

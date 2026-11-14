@@ -154,15 +154,19 @@ export interface PrivateExperimentDraftPayload {
   limitations: string[];
 }
 
+export function privateLearningPatternKey(pattern: Pick<PrivateLearningPattern, "symbol" | "side" | "timeframe" | "session" | "setupType" | "strategy">): string {
+  return [
+    pattern.symbol.toUpperCase(), pattern.side, pattern.timeframe, pattern.session,
+    pattern.setupType.toLowerCase(), pattern.strategy.toLowerCase(),
+  ].join(":");
+}
+
 /** Creates a research proposal only; it does not define or apply a strategy change. */
 export function createPrivateExperimentDraft(pattern: PrivateLearningPattern): PrivateExperimentDraftPayload {
   if (pattern.reviewState !== "review_candidate" || pattern.sampleCount < 10) {
     throw new Error("A private experiment draft requires at least ten eligible closed trades.");
   }
-  const sourcePatternKey = [
-    pattern.symbol, pattern.side, pattern.timeframe, pattern.session,
-    pattern.setupType.toLowerCase(), pattern.strategy.toLowerCase(),
-  ].join(":");
+  const sourcePatternKey = privateLearningPatternKey(pattern);
   const context = [pattern.symbol, pattern.side, pattern.timeframe, pattern.session.replace(/_/g, " "), pattern.setupType, pattern.strategy]
     .filter((value) => value && value !== "Unspecified").join(" / ");
   return {
@@ -199,4 +203,15 @@ export function createPrivateExperimentDraft(pattern: PrivateLearningPattern): P
       "A separate experiment protocol and approval are required before research execution.",
     ],
   };
+}
+
+/** Rebuilds a proposal from authenticated journal records rather than trusting client-supplied metrics. */
+export function createPrivateExperimentDraftFromTrades(
+  trades: readonly JournalFeedbackTrade[],
+  requestedPatternKey: string,
+): PrivateExperimentDraftPayload {
+  const pattern = analyzePrivateLearningPatterns(trades)
+    .find((candidate) => privateLearningPatternKey(candidate) === requestedPatternKey);
+  if (!pattern) throw new Error("The requested learning pattern is not present in the authenticated journal.");
+  return createPrivateExperimentDraft(pattern);
 }
