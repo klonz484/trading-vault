@@ -17,6 +17,7 @@ const tools=[
  {href:"/history",label:"Scan History",icon:"◷"},
 ];
 const account=[
+ {href:"/sign-in",label:"Sign in",icon:"↪"},
  {href:"/profile",label:"My Profile",icon:"○"},
  {href:"/settings",label:"Settings",icon:"⚙"},
 ];
