@@ -7,7 +7,7 @@ const primary=[
  {href:"/",label:"Dashboard",icon:"⌂"},
  {href:"/scanner",label:"Chart Scanner",icon:"⌗"},
  {href:"/brain",label:"Trading Brain",icon:"◈"},
- {href:"/setups",label:"AI Setups",icon:"◇"},
+ {href:"/setups",label:"Upcoming Signals",icon:"◇"},
  {href:"/journal",label:"Trading Journal",icon:"▤"},
  {href:"/analytics",label:"Analytics",icon:"▥"},
 ];
@@ -75,7 +75,7 @@ export default function Sidebar(){
   </header>
 
   <nav aria-label="Mobile navigation" className="mobile-safe-bottom mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 px-2 pt-2 backdrop-blur-xl md:hidden">
-   {mobileItems.map(item=>{const active=item.href==="/"?pathname==="/":pathname===item.href||pathname.startsWith(item.href+"/");return <Link key={item.href} href={item.href} aria-current={active?"page":undefined} className={"mobile-nav-item "+(active?"mobile-nav-active":"")}><span className="text-xl leading-none">{item.icon}</span><span>{item.label}</span></Link>;})}
+   {mobileItems.map(item=>{const active=item.href==="/" ? pathname==="/" : pathname===item.href||pathname.startsWith(item.href+"/");return <Link key={item.href} href={item.href} aria-current={active?"page":undefined} className={"mobile-nav-item "+(active?"mobile-nav-active":"")}><span className="text-xl leading-none">{item.icon}</span><span>{item.label}</span></Link>;})}
    <button onClick={()=>setMoreOpen(!moreOpen)} className={"mobile-nav-item "+(moreOpen?"mobile-nav-active":"")} aria-expanded={moreOpen}><span className="text-xl leading-none">•••</span><span>More</span></button>
   </nav>
 
