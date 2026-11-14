@@ -19,6 +19,8 @@ export type JournalTrade = {
   feedbackEvents?: Array<{ eventId: string; kind: "take_profit_hit" | "stop_loss_hit" | "partial_take_profit" | "manual_close"; recordedAt: string; realizedR?: number; actualExitPrice?: number; note?: string }>;
 };
 
+export type ScanSectionKey = "visible" | "structure" | "levels" | "momentum" | "scenarios" | "plan" | "uncertainty";
+
 export type SavedScan = {
   id: string;
   createdAt: string;
@@ -26,7 +28,58 @@ export type SavedScan = {
   timeframe: string;
   model: string;
   analysis: string;
+  schemaVersion?: 2;
+  revision?: number;
+  summary?: string;
+  sections?: Partial<Record<ScanSectionKey, string>>;
 };
+
+const SCAN_HEADINGS: Array<{ key: ScanSectionKey; pattern: RegExp }> = [
+  { key: "visible", pattern: /what is visibly on the chart/i },
+  { key: "structure", pattern: /market structure and directional bias/i },
+  { key: "levels", pattern: /key support and resistance/i },
+  { key: "momentum", pattern: /momentum\s*\/\s*visible indicators and patterns/i },
+  { key: "scenarios", pattern: /possible scenarios/i },
+  { key: "plan", pattern: /trade plan framework/i },
+  { key: "uncertainty", pattern: /what is uncertain or cannot be read/i },
+];
+
+export function structureScanAnalysis(analysis: string): {
+  summary: string;
+  sections: Partial<Record<ScanSectionKey, string>>;
+} {
+  const sections: Partial<Record<ScanSectionKey, string>> = {};
+  let active: ScanSectionKey | null = null;
+  const unmatched: string[] = [];
+
+  for (const rawLine of analysis.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const heading = SCAN_HEADINGS.find((item) => item.pattern.test(line.replace(/^\d+\.\s*/, "").replace(/^#+\s*/, "").replace(/^\*\*/, "")));
+    if (heading) {
+      active = heading.key;
+      continue;
+    }
+    if (/^\d+\.\s+/.test(line) && !active) {
+      unmatched.push(line.replace(/^\d+\.\s*/, ""));
+      continue;
+    }
+    if (active) sections[active] = [sections[active], line].filter(Boolean).join("\n");
+    else unmatched.push(line);
+  }
+
+  const summarySource = [sections.visible, sections.structure, unmatched.join(" ")].filter(Boolean).join(" ");
+  const summary = summarySource
+    .replace(/\*\*/g, "")
+    .replace(/\s+/g, " ")
+    .split(/(?<=[.!?])\s+/)
+    .slice(0, 2)
+    .join(" ")
+    .slice(0, 420)
+    || "Analysis saved. Open the full report to review its evidence and conditions.";
+
+  return { summary, sections };
+}
 
 export const JOURNAL_STORAGE_KEY = "oemplus.trading-vault.journal.v1";
 export const SCAN_STORAGE_KEY = "oemplus.trading-vault.scans.v1";
