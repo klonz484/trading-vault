@@ -1,53 +1,85 @@
 # Supabase development baseline
 
-**Environment:** Supabase project named `TradingVault-Development`  
-**Purpose:** record the inspected development baseline before adding private Trader and Shared Core persistence.  
-**Inspection mode:** read-only; no database, Auth, Storage, or project settings were changed during this inspection.
+**Environment:** Supabase project `TradingVault-Development` (`eu-west-1`).  
+**Scope:** development only. The changes below were applied to this project after read-only inspection and SQL review. Production was not touched.
 
-## Existing database objects
+## Existing MT5 ingestion foundation
 
-The development project currently has these recorded migrations:
-
-- `add_private_mt5_ingestion`
-- `mt5_ingestion_transport`
-- `add_scanner_rate_limit_rpc`
-
-The inspected public tables are:
+The project retains its existing migrations and service-owned tables:
 
 - `mt5_connector_credentials`
 - `mt5_ingest_batches`
 - `mt5_ingest_rate_limits`
+- private `scanner_rate_limits`
 
-A private schema also contains `scanner_rate_limits`.
+RLS is enabled on the ingestion tables. Their lack of authenticated-user policies is intentional: they remain service-side ingestion resources. Do not add broad browser CRUD policies to these tables.
 
-RLS is enabled on all four inspected tables. No row policies were found. This is currently fail-closed for ordinary browser roles; the ingestion tables have grants for the database owner and `service_role`, not direct authenticated-user CRUD. Do not add broad user policies to these service-owned ingestion tables.
+The private scanner rate-limit implementation uses a private `SECURITY DEFINER` function, checks `auth.uid()`, rejects a null caller, uses an empty search path, and grants execution only to authenticated callers.
 
-The private scanner rate-limit implementation uses a private `SECURITY DEFINER` function that obtains the caller with `auth.uid()`, rejects a null user, uses an empty search path, and grants execution to authenticated callers. Keep privileged helpers in a non-exposed schema and preserve caller authorization checks.
+## Private Trader workspace — applied
 
-## Not yet present
+The following tables now exist:
 
-- No Trading Brain reasoning-report, scenario, or experiment persistence tables.
-- No dedicated private trader journal persistence tables.
-- No Storage buckets for private chart screenshots.
-- No Supabase Edge Functions were returned by the project listing.
-- No tenant-specific Shared Core release/approval tables.
+| Table | Purpose |
+| --- | --- |
+| `trader_profiles` | User-owned preferences and profile metadata |
+| `trader_evidence_bundles` | Versioned private evidence bundles |
+| `trader_reasoning_reports` | Private reasoning snapshots linked to evidence |
+| `trader_scenarios` | Private current-market and upcoming-session scenarios |
+| `trader_experiments` | Private experiment definitions and states |
+| `trader_journal_entries` | Private journal records |
 
-The existing MT5 ingestion tables are not a substitute for private trader chart history, reasoning reports, or journals.
+Every private table has RLS enabled and forced. Authenticated users have table privileges, but policies constrain all reads and writes to `auth.uid()`. The profile policy uses `user_id = auth.uid()`; the other five use `owner_id = auth.uid()`. Both `USING` and `WITH CHECK` are present, so a user cannot reassign a row to another owner. Anonymous table access is revoked.
 
-## Security advisor findings at inspection
+Evidence/report/scenario relationships use composite foreign keys containing `owner_id` as well as the referenced row ID. This prevents a record owned by one trader from linking to another trader's evidence or report even if an internal UUID is known. Cascading deletion preserves account-data cleanup.
 
-- Informational: RLS enabled without policies on the four service-owned tables above. This is consistent with a service-only access design unless direct client access is intentionally added.
-- Warning: Auth leaked-password protection is disabled. Review and enable it in the development Auth settings before enabling public registration. This inspection did not change Auth settings.
-- Performance advisor reported three currently unused indexes. Do not remove them solely on this early, low-traffic development baseline; re-evaluate after representative ingestion traffic.
+A private-schema trigger helper maintains `updated_at` for profiles, scenarios, experiments, and journal entries. It has no direct execute grant to browser roles.
+
+## Private chart storage — applied
+
+A non-public Storage bucket named `trader-charts` now exists:
+
+- Maximum object size: 15 MiB
+- Accepted MIME types: JPEG, PNG, WebP
+- Object path must begin with the authenticated user's UUID, e.g. `<user-uuid>/<chart-id>.webp`
+- Separate SELECT, INSERT, UPDATE, and DELETE policies enforce ownership using the first folder segment
+
+Do not store chart images in a public bucket or use predictable cross-user paths.
+
+## Verification performed
+
+- Supabase confirmed the new migration records.
+- All six Trader tables are present with both RLS enabled and RLS forced.
+- Authenticated has SELECT privileges; anon does not.
+- Six owner-only table policies exist, each with matching `USING` and `WITH CHECK`.
+- Four chart-object policies exist and the bucket is confirmed private with the expected size/MIME limits.
+- Composite tenant-scoped foreign keys are present.
+- A follow-up index migration removed the advisor's unindexed-FK findings for these new relationships.
+- A private-schema timestamp trigger migration was applied.
+
+The security advisor still reports four pre-existing RLS-enabled/no-policy informational findings on service-owned ingestion/rate-limit tables, plus leaked-password protection disabled. The latter should be enabled in development Auth settings before public registration is opened. No Auth settings were changed here.
+
+The performance advisor currently reports unused indexes on the early-stage development tables. This is expected before representative workload exists; do not remove indexes until query patterns and production-like load are measured.
+
+## Not yet implemented
+
+- Supabase Auth UI and application session integration.
+- Server-side repository/API layer connecting the app to these tables.
+- Automated two-user RLS denial tests using real test identities.
+- Chart upload/download UI and signed URL workflow.
+- Shared Core release and owner-approval tables/workflow.
+- Edge Functions or live market-data ingestion into Trading Brain persistence.
+
+The MT5 ingestion tables remain separate from private trader records. The Shared Core is not allowed to ingest private trader journal, scan, or experiment data by default.
 
 ## Next implementation sequence
 
-1. Add private trader persistence with explicit `owner_id`, RLS policies for `authenticated`, and matching `USING` plus `WITH CHECK` ownership rules.
-2. Add a private `trader-charts` Storage bucket with a user-ID-first object path and separate SELECT, INSERT, UPDATE, and DELETE policies.
-3. Keep Shared Core storage separate from private trader tables. Restrict Core writes to a controlled server-side path; release still requires owner approval.
-4. Add cross-user denial tests, including attempts to reassign ownership, access another user's rows, or access another user's chart objects.
-5. Run Supabase security and performance advisors after every schema migration.
+1. Add the Supabase server/browser client integration without exposing service-role secrets.
+2. Implement typed repositories for private profiles, evidence bundles, reports, scenarios, experiments, and journal entries.
+3. Add isolated test identities and prove cross-user SELECT/INSERT/UPDATE/DELETE denial, including ownership reassignment and Storage object path attacks.
+4. Build chart upload and signed-read flows against the private bucket.
+5. Keep Shared Core writes behind a controlled server-side release path and explicit owner approval.
 
 ## Safety boundary
 
-This document describes the development project only. It does not authorize production changes, public registration, or a Shared Core release. Keep service-role credentials server-side and never expose them through a `NEXT_PUBLIC_` variable.
+This is the development project only. It does not authorize production changes, public registration, or a Shared Core release. Keep service-role credentials server-side and never expose them through a `NEXT_PUBLIC_` variable.
