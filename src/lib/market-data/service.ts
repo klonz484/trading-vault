@@ -7,8 +7,8 @@ const twelveData = new TwelveDataProvider();
 
 /**
  * On-demand retrieval only. The provider response is retained in rawCandles.
- * The public candles collection fails closed: if series-level validation has
- * blocking errors, no observations are exposed as analytically eligible.
+ * The public candles collection contains confirmed, structurally valid candles
+ * only. Forming candles remain available in rawCandles for monitoring and replay.
  */
 export async function getTwelveDataSnapshot(
   instrumentId: InstrumentId,
@@ -35,7 +35,9 @@ export async function getTwelveDataSnapshot(
     validation.status === "UNAVAILABLE";
   const eligibleCandles = hasBlockingSeriesErrors
     ? []
-    : individuallyValid.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+    : individuallyValid
+        .filter((candle) => !candle.provisional)
+        .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
 
   return {
     schemaVersion: "1.0.0",
@@ -60,7 +62,7 @@ export async function getTwelveDataSnapshot(
     limitations: [
       "Provider entitlement and licensing are UNVERIFIED for this account and intended multi-user use.",
       "Freshness thresholds are not calibrated; data cannot be marked READY until approved thresholds are supplied.",
-      "Raw provider observations are retained separately; candles are empty when blocking series-level validation errors exist.",
+      "Raw provider observations, including provisional candles, are retained separately; only confirmed candles are exposed for analytical consumption.",
       "Provisional candle state is estimated from the requested UTC interval boundary; provider closure semantics must be independently verified before production use.",
       "Correction events can be represented and replayed in memory, but no observation or correction history is persisted; snapshot versioning is in-memory metadata only.",
       "This package does not run background polling or automatically switch providers.",

@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getInstrument, isMarketDataTimeframe, getTwelveDataSnapshot } from "@/lib/market-data";
 import { canDisplayMarketPrices } from "@/lib/market-data/readiness";
 import { MarketDataProviderError } from "@/lib/market-data/types";
+import { createMarketDataBrainHandoff } from "@/lib/market-data/brain-bridge";
+import { resolveFreshnessThresholdSeconds } from "@/lib/market-data/freshness-policy";
 
 export const maxDuration = 20;
 
@@ -55,10 +57,11 @@ export async function GET(request: Request) {
   }
   if (withinRateLimit !== true) return jsonError("The market-data request limit has been reached. Please wait one minute.", 429);
 
-  const configuredFreshness = Number(process.env.TRADING_VAULT_MARKET_DATA_MAX_AGE_SECONDS);
-  const maxAgeSeconds = Number.isInteger(configuredFreshness) && configuredFreshness > 0
-    ? configuredFreshness
-    : undefined;
+  const maxAgeSeconds = resolveFreshnessThresholdSeconds(
+    process.env.TRADING_VAULT_MARKET_DATA_FRESHNESS_POLICY_JSON,
+    instrumentId,
+    timeframe,
+  );
 
   try {
     const snapshot = await getTwelveDataSnapshot(instrumentId as Parameters<typeof getTwelveDataSnapshot>[0], timeframe, {
@@ -79,6 +82,23 @@ export async function GET(request: Request) {
       validation: snapshot.validation,
     });
 
+    // The actual provider snapshot now crosses the explicit Brain boundary.
+    // This produces a readiness assessment only, never a directional signal.
+    const brain = createMarketDataBrainHandoff({
+      ...snapshot,
+      source: {
+        ...snapshot.source,
+        entitlementStatus,
+        licenceStatus,
+      },
+    });
+    const latestObservationAt = snapshot.candles.reduce<string | null>(
+      (latest, candle) => !latest || Date.parse(candle.timestamp) > Date.parse(latest)
+        ? candle.timestamp
+        : latest,
+      null,
+    );
+
     return NextResponse.json({
       status: pricesAvailable ? "READY" : snapshot.validation.status,
       pricesAvailable,
@@ -86,11 +106,15 @@ export async function GET(request: Request) {
       timeframe: snapshot.timeframe,
       provider: snapshot.provider,
       retrievedAt: snapshot.retrievedAt,
+      observationCount: snapshot.validation.candleCount,
+      eligibleObservationCount: snapshot.validation.eligibleCandleCount,
+      latestObservationAt,
       source: {
         ...snapshot.source,
         entitlementStatus,
         licenceStatus,
       },
+      brain,
       validation: snapshot.validation,
       candles: pricesAvailable ? snapshot.candles : [],
       limitations: [

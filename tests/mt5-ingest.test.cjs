@@ -82,3 +82,20 @@ test("malformed batches and oversized batches fail closed", () => {
   assert.equal(result.status, "REJECTED");
   assert.ok(result.errors.some((error) => error.includes("count limit")));
 });
+
+test("preserves distinct same-millisecond ticks with matching quotes and different trade metadata", () => {
+  const first = { ...validBatch.ticks[0], last: 1.0801, volume: 2, volumeReal: 2.5 };
+  const second = { ...validBatch.ticks[0], last: 1.0802, volume: 3, volumeReal: 3.5 };
+  const result = validateMT5IngestBatch({ ...validBatch, ticks: [first, second] });
+  assert.equal(result.status, "ACCEPTABLE");
+  assert.equal(result.acceptedTickCount, 2);
+  assert.deepEqual(result.duplicateKeys, []);
+});
+
+test("preserves fully identical same-millisecond tick observations", () => {
+  const tick = { ...validBatch.ticks[0] };
+  const result = validateMT5IngestBatch({ ...validBatch, ticks: [tick, { ...tick }] });
+  assert.equal(result.status, "ACCEPTABLE");
+  assert.equal(result.acceptedTickCount, 2);
+  assert.deepEqual(result.duplicateKeys, []);
+});
