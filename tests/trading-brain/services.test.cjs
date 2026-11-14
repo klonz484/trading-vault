@@ -8,6 +8,7 @@ const {
   scoreEvidenceBundle,
   transitionScenario,
   validateScenario,
+  adaptEngineEvent,
 } = require("./fixtures.cjs");
 
 test("confirmed valid evidence receives four times provisional weight", () => {
@@ -98,4 +99,18 @@ test("expired scenarios cannot be confirmed", () => {
   });
   assert.equal(result.ok, false);
   assert.ok(result.issues.some((issue) => issue.code === "SCENARIO_EXPIRED"));
+});
+
+test("engine adapter preserves provisional state and rejects premature confirmation", () => {
+  const provisional = evidence({ state: "provisional", confirmedAt: undefined });
+  const adapted = adaptEngineEvent(provisional, "supporting");
+  assert.equal(adapted.valid, true);
+  assert.equal(adapted.evidence.state, "provisional");
+
+  const malformed = adaptEngineEvent(
+    evidence({ state: "provisional", confirmedAt: "2026-11-14T10:00:02.000Z" }),
+    "supporting",
+  );
+  assert.equal(malformed.valid, false);
+  assert.ok(malformed.issues.some((issue) => issue.code === "PROVISIONAL_HAS_CONFIRMATION_TIME"));
 });
