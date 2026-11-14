@@ -98,7 +98,14 @@ export function analyzePrivateLearningPatterns(
 ): PrivateLearningPattern[] {
   const groups = new Map<string, JournalFeedbackTrade[]>();
   for (const trade of trades) {
-    if (trade.outcome === "OPEN" || !trade.feedbackEvents?.length ||
+    const hasValidFeedback = Array.isArray(trade.feedbackEvents) && trade.feedbackEvents.some((event) =>
+      !!event &&
+      typeof event.eventId === "string" && event.eventId.length > 0 &&
+      ["take_profit_hit", "stop_loss_hit", "partial_take_profit", "manual_close"].includes(event.kind) &&
+      typeof event.recordedAt === "string" && Number.isFinite(Date.parse(event.recordedAt)) &&
+      typeof event.realizedR === "number" && Number.isFinite(event.realizedR),
+    );
+    if (trade.outcome === "OPEN" || !hasValidFeedback ||
         typeof trade.realizedR !== "number" || !Number.isFinite(trade.realizedR)) continue;
     const timeframe = trade.timeframe ?? "UNSPECIFIED";
     const session = trade.session ?? "UNKNOWN";
