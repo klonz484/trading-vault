@@ -44,13 +44,15 @@ export function recordJournalFeedback<T extends JournalFeedbackTrade>(trade: T, 
     originalPlan: trade.originalPlan ?? { date: trade.date, symbol: trade.symbol, side: trade.side, entry: trade.entry, stop: trade.stop, target: trade.target },
     feedbackEvents: [...(trade.feedbackEvents ?? []), event],
   };
-  if (input.kind === "take_profit_hit") {
-    next.outcome = "WIN"; next.realizedR = input.realizedR; next.rMultiple = Math.abs(input.realizedR as number);
-  } else if (input.kind === "stop_loss_hit") {
-    next.outcome = "LOSS"; next.realizedR = input.realizedR; next.rMultiple = Math.abs(input.realizedR as number);
-  } else if (input.kind === "manual_close") {
-    next.outcome = (input.realizedR as number) > 0 ? "WIN" : (input.realizedR as number) < 0 ? "LOSS" : "BREAKEVEN";
-    next.realizedR = input.realizedR; next.rMultiple = Math.abs(input.realizedR as number);
+  const priorRealizedR = (trade.feedbackEvents ?? []).reduce((total, prior) => total + (prior.realizedR ?? 0), 0);
+  const cumulativeRealizedR = priorRealizedR + (input.realizedR ?? 0);
+  if (input.kind === "partial_take_profit") {
+    // Keep the remaining position open; retain cumulative realized R for its eventual close.
+    next.realizedR = cumulativeRealizedR;
+  } else {
+    next.outcome = cumulativeRealizedR > 0 ? "WIN" : cumulativeRealizedR < 0 ? "LOSS" : "BREAKEVEN";
+    next.realizedR = cumulativeRealizedR;
+    next.rMultiple = Math.abs(cumulativeRealizedR);
   }
   return next;
 }

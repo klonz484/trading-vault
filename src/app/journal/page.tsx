@@ -175,6 +175,12 @@ export default function JournalPage() {
       outcome,
       rMultiple: values[3],
       notes: notes.trim(),
+      ...(editingId && trades.find((trade) => trade.id === editingId)?.realizedR !== undefined
+        ? { realizedR: trades.find((trade) => trade.id === editingId)?.realizedR } : {}),
+      ...(editingId && trades.find((trade) => trade.id === editingId)?.originalPlan
+        ? { originalPlan: trades.find((trade) => trade.id === editingId)?.originalPlan } : {}),
+      ...(editingId && trades.find((trade) => trade.id === editingId)?.feedbackEvents
+        ? { feedbackEvents: trades.find((trade) => trade.id === editingId)?.feedbackEvents } : {}),
     };
 
     if (storageMode === "cloud") {
@@ -227,14 +233,20 @@ export default function JournalPage() {
   async function recordOutcomeFeedback(trade: JournalTrade, kind: JournalFeedbackKind) {
     if (busy || trade.outcome !== "OPEN") return;
     let realizedR: number;
-    if (kind === "take_profit_hit" || kind === "partial_take_profit") {
+    const hasPartialExit = (trade.feedbackEvents ?? []).some((event) => event.kind === "partial_take_profit");
+    if (kind === "take_profit_hit" && !hasPartialExit) {
       try { realizedR = plannedRewardR(trade); } catch (cause) {
         setError(cause instanceof Error ? cause.message : "Check the trade levels before recording profit."); return;
       }
-    } else if (kind === "stop_loss_hit") {
+    } else if (kind === "stop_loss_hit" && !hasPartialExit) {
       realizedR = -1;
     } else {
-      const answer = window.prompt("Enter realized R (e.g. 1.2 for +1.2R or -0.5 for -0.5R):");
+      const prompt = kind === "partial_take_profit"
+        ? "Enter the realized R from the partial position you closed (positive number):"
+        : hasPartialExit
+          ? "Enter the realized R for the remaining position only (use a minus sign for a loss):"
+          : "Enter realized R (e.g. 1.2 for +1.2R or -0.5 for -0.5R):";
+      const answer = window.prompt(prompt);
       if (answer === null) return;
       realizedR = Number(answer);
       if (!Number.isFinite(realizedR)) { setError("Enter a valid realized R value. Use a minus sign for a loss."); return; }
