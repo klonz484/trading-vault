@@ -44,8 +44,8 @@ The private learning workflow may identify repeated patterns and propose experim
 
 ## Current implementation status
 
-- **Implemented in code:** authenticated list/create/update/delete API using the verified user session; server-derived owner identity; bounded JSON payloads; same-origin checks for mutations; no-store API responses. Updates and deletes are filtered by both record ID and verified owner ID.
-- **Implemented in UI:** Journal page attempts private cloud loading and uses the private API for create/update/delete when an authenticated Development session is available. Existing entries can be edited, including changing an open trade to its final outcome. It falls back to browser-local storage when signed out or when cloud access is unavailable; deletion requires confirmation.
+- **Implemented in code:** authenticated list/create/update/delete API using the verified user session; server-derived owner identity; bounded JSON payloads; strict same-origin checks for mutations; no-store API responses. Updates and deletes are filtered by both record ID and verified owner ID.
+- **Implemented in UI:** Journal page attempts private cloud loading and uses the private API for create/update/delete when an authenticated Development session is available. Existing entries can be edited, including changing an open trade to its final outcome. It falls back to browser-local storage when signed out or when cloud access is unavailable; deletion requires confirmation. If cloud mode is active, older local records remain visible in a separate device archive and can be exported as JSON without being uploaded.
 - **Preservation:** local browser entries are not automatically uploaded, overwritten, or deleted. The local and cloud stores are intentionally separate.
 - **Not yet verified end to end:** Development runtime variables, real sign-in session, and authenticated journal create/list/delete using a dedicated test identity.
 - **Not yet implemented:** richer execution and psychology fields, chart attachment UI, export/import of old local records, automated performance breakdowns, and private learning experiments sourced from journal records.
