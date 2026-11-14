@@ -22,7 +22,8 @@ create table if not exists public.trader_evidence_bundles (
   instrument text not null,
   payload jsonb not null check (jsonb_typeof(payload) = 'object'),
   created_at timestamptz not null default now(),
-  unique (owner_id, bundle_id, bundle_version)
+  unique (owner_id, bundle_id, bundle_version),
+  unique (owner_id, id)
 );
 
 create table if not exists public.trader_reasoning_reports (
@@ -30,13 +31,16 @@ create table if not exists public.trader_reasoning_reports (
   owner_id uuid not null references auth.users(id) on delete cascade,
   report_id text not null,
   report_version text not null,
-  evidence_bundle_row_id uuid references public.trader_evidence_bundles(id) on delete restrict,
+  evidence_bundle_row_id uuid,
   workflow text not null check (workflow in ('current_market', 'upcoming_session')),
   instrument text not null,
   evaluated_at timestamptz not null,
   payload jsonb not null check (jsonb_typeof(payload) = 'object'),
   created_at timestamptz not null default now(),
-  unique (owner_id, report_id, report_version)
+  unique (owner_id, report_id, report_version),
+  unique (owner_id, id),
+  foreign key (owner_id, evidence_bundle_row_id)
+    references public.trader_evidence_bundles(owner_id, id) on delete restrict
 );
 
 create table if not exists public.trader_scenarios (
@@ -51,12 +55,16 @@ create table if not exists public.trader_scenarios (
     'candidate', 'waiting_for_trigger', 'trigger_observed_provisional',
     'confirmed', 'invalidated', 'expired', 'cancelled', 'suspended', 'superseded'
   )),
-  evidence_bundle_row_id uuid references public.trader_evidence_bundles(id) on delete restrict,
-  reasoning_report_row_id uuid references public.trader_reasoning_reports(id) on delete set null,
+  evidence_bundle_row_id uuid,
+  reasoning_report_row_id uuid,
   payload jsonb not null check (jsonb_typeof(payload) = 'object'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (owner_id, scenario_id, scenario_version)
+  unique (owner_id, scenario_id, scenario_version),
+  foreign key (owner_id, evidence_bundle_row_id)
+    references public.trader_evidence_bundles(owner_id, id) on delete restrict,
+  foreign key (owner_id, reasoning_report_row_id)
+    references public.trader_reasoning_reports(owner_id, id) on delete set null
 );
 
 create table if not exists public.trader_experiments (
@@ -73,7 +81,8 @@ create table if not exists public.trader_experiments (
   payload jsonb not null check (jsonb_typeof(payload) = 'object'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (owner_id, experiment_id, version)
+  unique (owner_id, experiment_id, version),
+  unique (owner_id, id)
 );
 
 create table if not exists public.trader_journal_entries (
