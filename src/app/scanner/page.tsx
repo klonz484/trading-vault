@@ -28,6 +28,8 @@ export default function ScannerPage() {
     setSaveWarning(null);
     setResult(null);
     setModelName(null);
+    setFile(null);
+    setImagePreview(null);
     if (!(["image/png", "image/jpeg", "image/webp"].includes(selected.type))) {
       setError("Please choose a PNG, JPG, or WebP image.");
       return;
