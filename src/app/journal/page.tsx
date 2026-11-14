@@ -57,7 +57,10 @@ export default function JournalPage() {
   const [storageMessage, setStorageMessage] = useState("Checking your private journal...");
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(() => {
+    const now = new Date();
+    return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("-");
+  });
   const [symbol, setSymbol] = useState("EURUSD");
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
   const [entry, setEntry] = useState("");
@@ -70,9 +73,6 @@ export default function JournalPage() {
 
   useEffect(() => {
     let active = true;
-    const now = new Date();
-    setDate([now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("-"));
-
     async function loadJournal() {
       try {
         const response = await fetch("/api/trader/journal?limit=100", { cache: "no-store" });
