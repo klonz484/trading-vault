@@ -6,6 +6,11 @@ import { JOURNAL_STORAGE_KEY, JournalTrade, readLocalList, writeLocalList } from
 
 type StorageMode = "loading" | "cloud" | "local";
 
+function formatToday() {
+  const now = new Date();
+  return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("-");
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -57,10 +62,7 @@ export default function JournalPage() {
   const [storageMessage, setStorageMessage] = useState("Checking your private journal...");
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [date, setDate] = useState(() => {
-    const now = new Date();
-    return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("-");
-  });
+  const [date, setDate] = useState("");
   const [symbol, setSymbol] = useState("EURUSD");
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
   const [entry, setEntry] = useState("");
@@ -76,6 +78,7 @@ export default function JournalPage() {
     async function loadJournal() {
       try {
         const response = await fetch("/api/trader/journal?limit=100", { cache: "no-store" });
+        setDate((current) => current || formatToday());
         const body: unknown = await response.json();
         if (!active) return;
 
@@ -94,6 +97,7 @@ export default function JournalPage() {
         }
       } catch {
         if (!active) return;
+        setDate((current) => current || formatToday());
         setTrades(readLocalList<JournalTrade>(JOURNAL_STORAGE_KEY));
         setStorageMode("local");
         setStorageMessage("Local journal · cloud connection unavailable. Your browser records remain safe.");
