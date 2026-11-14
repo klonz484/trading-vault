@@ -7,6 +7,10 @@ on:
     branches: [build/trading-vault-foundation]
   workflow_dispatch:
 
+concurrency:
+  group: trading-vault-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     runs-on: ubuntu-latest
