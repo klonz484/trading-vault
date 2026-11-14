@@ -104,3 +104,14 @@ This was a repository-only filename reconciliation; it did not apply, re-run, or
 ## Trading Brain evidence scoring note
 
 Evidence direction is the source engine's observed market direction. The `supporting` / `contrary` role describes its relationship to a hypothesis and must never reverse the source event's direction. The scorer now preserves the raw direction; any future hypothesis-relative score must receive an explicit target direction. The aggregate balance is not a probability, win rate, or trade recommendation.
+
+
+## Private Trader API layer — added, not yet UI-connected
+
+The development branch now includes:
+
+- `/api/trader/journal`: authenticated list, create, and delete operations. The server derives owner identity from verified Supabase JWT claims; request bodies cannot assign ownership. Payloads and request sizes are bounded.
+- `/api/trader/charts`: authenticated signed-upload target creation, signed-read URL creation, and deletion. Uploads are limited to JPEG/PNG/WebP up to 15 MiB. Chart paths must match the current user's UUID and a generated UUID filename. Mutating requests reject a mismatched Origin header when one is supplied.
+- The APIs use the public publishable key plus the user's session and database/storage RLS. No service-role key is required or exposed.
+
+These endpoints are code-only scaffolding until Development runtime environment variables and authenticated user sessions are configured. The existing Journal screen still uses local browser storage and is not yet connected to these APIs. The chart upload UI and actual browser upload completion flow are also not yet connected. No user data has been migrated or deleted.
