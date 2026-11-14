@@ -56,4 +56,4 @@ The lifecycle helper is a guard, not a live event monitor. The future monitoring
 
 ## Next integration boundary
 
-The next layer should be an event adapter that supplies versioned, source-linked evidence from the market intelligence, structure, and liquidity engines. It must preserve provisional versus confirmed event state and must not promote a forming-candle observation. Persistent storage and tenant authorization remain separate workstreams.
+The source-engine adapter now converts an immutable engine event into the shared evidence contract while preserving its state exactly. It assigns the evidence role at the reasoning/confluence boundary and validates the result; it never promotes a provisional event. The next integration layer is to connect real, versioned outputs from the market intelligence, structure, and liquidity engines. Persistent storage and tenant authorization remain separate workstreams.
