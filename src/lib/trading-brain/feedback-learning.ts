@@ -21,7 +21,7 @@ export function plannedRewardR(trade: Pick<JournalFeedbackTrade, "side" | "entry
   if (!Number.isFinite(risk) || risk <= 0) throw new Error("A valid entry and stop are required to calculate planned R.");
   const reward = trade.side === "BUY" ? trade.target - trade.entry : trade.entry - trade.target;
   if (!Number.isFinite(reward) || reward <= 0) throw new Error("The target must be beyond the entry in the trade direction.");
-  return reward / risk;
+  return Number((reward / risk).toFixed(8));
 }
 /** Append-only feedback helper. It snapshots the initial plan once and never rewrites it. */
 export function recordJournalFeedback<T extends JournalFeedbackTrade>(trade: T, input: JournalFeedbackInput): T {
