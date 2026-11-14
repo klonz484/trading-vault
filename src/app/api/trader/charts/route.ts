@@ -5,7 +5,8 @@ import {
   deleteTraderChart,
 } from "@/lib/trading-brain/chart-storage";
 
-const MAX_REQUEST_BYTES = 15 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+const MAX_METADATA_BYTES = 2 * 1024;
 
 function errorResponse(message: string, status: number) {
   return NextResponse.json({ error: message }, {
@@ -32,12 +33,9 @@ function isSameOrigin(request: Request): boolean {
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return errorResponse("Cross-origin request rejected.", 403);
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return errorResponse("Send valid JSON chart metadata.", 400);
-  }
+  const parsed = await parseLimitedJson(request, MAX_METADATA_BYTES);
+  if (!parsed.ok) return errorResponse(parsed.message, parsed.status);
+  const body = parsed.value;
 
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     return errorResponse("Chart metadata must be an object.", 400);
@@ -47,7 +45,7 @@ export async function POST(request: Request) {
   if (typeof input.contentType !== "string" ||
       typeof input.sizeBytes !== "number" ||
       !Number.isInteger(input.sizeBytes) ||
-      input.sizeBytes <= 0 || input.sizeBytes > MAX_REQUEST_BYTES) {
+      input.sizeBytes <= 0 || input.sizeBytes > MAX_IMAGE_BYTES) {
     return errorResponse("Provide a valid chart image type and size up to 15 MiB.", 400);
   }
 
@@ -87,12 +85,9 @@ export async function GET(request: Request) {
 export async function DELETE(request: Request) {
   if (!isSameOrigin(request)) return errorResponse("Cross-origin request rejected.", 403);
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return errorResponse("Send valid JSON chart metadata.", 400);
-  }
+  const parsed = await parseLimitedJson(request, MAX_METADATA_BYTES);
+  if (!parsed.ok) return errorResponse(parsed.message, parsed.status);
+  const body = parsed.value;
 
   if (typeof body !== "object" || body === null || Array.isArray(body) ||
       !validPath((body as Record<string, unknown>).path)) {
