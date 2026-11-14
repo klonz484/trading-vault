@@ -224,3 +224,13 @@ test("private experiment drafts are rebuilt from eligible journal records", () =
   assert.throws(() => createPrivateExperimentDraftFromTrades(trades.slice(0, 9), key), /at least ten/);
   assert.throws(() => createPrivateExperimentDraftFromTrades(trades, "EURUSD:SELL:M15:LONDON:mss retest:trend continuation"), /not present/);
 });
+
+
+test("private learning analysis excludes malformed or unverified feedback events", () => {
+  const base = { date: "2026-11-14", symbol: "EURUSD", side: "BUY", entry: 1.1, stop: 1.095, target: 1.11, outcome: "WIN", rMultiple: 1, realizedR: 1, notes: "" };
+  const patterns = analyzePrivateLearningPatterns([
+    { ...base, id: "bad-string", feedbackEvents: "not-an-event-array" },
+    { ...base, id: "bad-event", feedbackEvents: [{ eventId: "", kind: "manual_close", recordedAt: "not-a-date", realizedR: 1 }] },
+  ]);
+  assert.deepEqual(patterns, []);
+});
