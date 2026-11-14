@@ -1,6 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import { createClient } from "@/lib/supabase/client";
 import Sidebar from "@/components/Sidebar";
 import { analyzePrivateLearningPatterns, createPrivateExperimentDraft, plannedRewardR, recordJournalFeedback, summarizeJournalFeedback, type JournalFeedbackKind, type PrivateLearningPattern } from "@/lib/trading-brain/feedback-learning";
 import { JOURNAL_STORAGE_KEY, JournalTrade, readLocalList, writeLocalList } from "@/lib/workspace";
@@ -46,6 +48,7 @@ function parseTrade(value: unknown): JournalTrade | null {
     ...(typeof trade.session === "string" && ["ASIA", "LONDON", "NEW_YORK", "LONDON_NEW_YORK_OVERLAP", "UNKNOWN"].includes(trade.session) ? { session: trade.session as JournalTrade["session"] } : {}),
     ...(typeof trade.setupType === "string" ? { setupType: trade.setupType } : {}),
     ...(typeof trade.strategy === "string" ? { strategy: trade.strategy } : {}),
+    ...(typeof trade.chartPath === "string" ? { chartPath: trade.chartPath } : {}),
     ...(typeof trade.realizedR === "number" && Number.isFinite(trade.realizedR) ? { realizedR: trade.realizedR } : {}),
     ...(isRecord(trade.originalPlan) ? { originalPlan: trade.originalPlan as JournalTrade["originalPlan"] } : {}),
     ...(Array.isArray(trade.feedbackEvents) ? { feedbackEvents: trade.feedbackEvents as JournalTrade["feedbackEvents"] } : {}),
@@ -90,6 +93,11 @@ export default function JournalPage() {
   const [privateExperimentRows, setPrivateExperimentRows] = useState<Record<string, unknown>[]>([]);
   const [savingExperimentKey, setSavingExperimentKey] = useState<string | null>(null);
   const [experimentError, setExperimentError] = useState("");
+  const [selectedChartFile, setSelectedChartFile] = useState<File | null>(null);
+  const [chartUrls, setChartUrls] = useState<Record<string, string>>({});
+  const [loadingChartId, setLoadingChartId] = useState<string | null>(null);
+  const [chartError, setChartError] = useState("");
+  const chartFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -208,6 +216,32 @@ export default function JournalPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function deleteChartObject(path: string): Promise<boolean> {
+    try {
+      const response = await fetch("/api/trader/charts", {
+        method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path }),
+      });
+      return response.ok;
+    } catch { return false; }
+  }
+
+  async function loadChartPreview(trade: JournalTrade) {
+    if (!trade.chartPath || loadingChartId) return;
+    setChartError("");
+    setLoadingChartId(trade.id);
+    try {
+      const response = await fetch("/api/trader/charts?path=" + encodeURIComponent(trade.chartPath), { cache: "no-store" });
+      const body: unknown = await response.json();
+      if (!response.ok || !isRecord(body) || typeof body.signedUrl !== "string") {
+        setChartError(isRecord(body) && typeof body.error === "string" ? body.error : "The private chart could not be loaded.");
+        return;
+      }
+      setChartUrls((current) => ({ ...current, [trade.id]: body.signedUrl as string }));
+    } catch {
+      setChartError("The private chart could not be loaded. Please try again.");
+    } finally { setLoadingChartId(null); }
+  }
+
   async function addTrade(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -218,6 +252,10 @@ export default function JournalPage() {
       return;
     }
 
+    if (selectedChartFile && (selectedChartFile.size <= 0 || selectedChartFile.size > 15 * 1024 * 1024)) {
+      setError("Chart screenshots must be smaller than 15 MiB.");
+      return;
+    }
     const existingTrade = editingId ? trades.find((trade) => trade.id === editingId) : undefined;
     const item: JournalTrade = {
       id: crypto.randomUUID(),
@@ -234,6 +272,7 @@ export default function JournalPage() {
       session,
       ...(setupType.trim() ? { setupType: setupType.trim().slice(0, 50) } : {}),
       ...(strategy.trim() ? { strategy: strategy.trim().slice(0, 50) } : {}),
+      ...(existingTrade?.chartPath ? { chartPath: existingTrade.chartPath } : {}),
       originalPlan: existingTrade?.originalPlan ?? {
         date, symbol: symbol.toUpperCase().trim(), side, entry: values[0], stop: values[1], target: values[2],
       },
@@ -243,7 +282,31 @@ export default function JournalPage() {
 
     if (storageMode === "cloud") {
       setBusy(true);
+      let uploadedChartPath: string | undefined;
       try {
+        if (selectedChartFile) {
+          const targetResponse = await fetch("/api/trader/charts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contentType: selectedChartFile.type, sizeBytes: selectedChartFile.size }),
+          });
+          const targetBody: unknown = await targetResponse.json();
+          if (!targetResponse.ok || !isRecord(targetBody) ||
+              typeof targetBody.path !== "string" || typeof targetBody.token !== "string") {
+            throw new Error(isRecord(targetBody) && typeof targetBody.error === "string"
+              ? targetBody.error : "A private chart upload could not be prepared.");
+          }
+          const { error: uploadError } = await createClient().storage
+            .from("trader-charts")
+            .uploadToSignedUrl(targetBody.path, targetBody.token, selectedChartFile, {
+              contentType: selectedChartFile.type,
+              upsert: false,
+            });
+          if (uploadError) throw new Error(uploadError.message);
+          uploadedChartPath = targetBody.path;
+          item.chartPath = uploadedChartPath;
+        }
+
         const response = await fetch("/api/trader/journal", {
           method: editingId ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -252,29 +315,42 @@ export default function JournalPage() {
             instrument: item.symbol,
             occurredAt: new Date(date + "T12:00:00").toISOString(),
             entryType: "trade",
-            payload: { schemaVersion: 1, trade: item },
+            payload: { schemaVersion: 2, trade: item },
           }),
         });
         const body: unknown = await response.json();
         if (!response.ok) {
+          if (uploadedChartPath) await deleteChartObject(uploadedChartPath);
           setError(isRecord(body) && typeof body.error === "string" ? body.error : "Could not save this private journal entry.");
           return;
         }
         const savedRow = isRecord(body) && isRecord(body.entry) ? body.entry : null;
         if (!savedRow || typeof savedRow.id !== "string") {
+          if (uploadedChartPath) await deleteChartObject(uploadedChartPath);
           setError("The server saved the entry but did not return its record ID. Refresh the journal before deleting it.");
           return;
+        }
+        if (existingTrade?.chartPath && uploadedChartPath && existingTrade.chartPath !== uploadedChartPath) {
+          await deleteChartObject(existingTrade.chartPath);
         }
         setTrades((current) => editingId
           ? current.map((trade) => trade.id === editingId ? { ...item, id: editingId } : trade)
           : [{ ...item, id: savedRow.id as string }, ...current]);
-      } catch {
-        setError("The cloud save failed. Your entry was not added; please try again.");
+        if (uploadedChartPath) {
+          setChartUrls((current) => { const next = { ...current }; delete next[item.id]; if (editingId) delete next[editingId]; return next; });
+        }
+      } catch (cause) {
+        if (uploadedChartPath) await deleteChartObject(uploadedChartPath);
+        setError(cause instanceof Error ? cause.message : "The cloud save failed. Your entry was not added; please try again.");
         return;
       } finally {
         setBusy(false);
       }
     } else {
+      if (selectedChartFile) {
+        setError("Sign in to attach a private chart screenshot. Local image files are not stored in browser storage.");
+        return;
+      }
       setTrades((current) => editingId
         ? current.map((trade) => trade.id === editingId ? { ...item, id: editingId } : trade)
         : [item, ...current]);
@@ -290,6 +366,8 @@ export default function JournalPage() {
     setTimeframe("M15");
     setSession("UNKNOWN");
     setOutcome("OPEN");
+    setSelectedChartFile(null);
+    if (chartFileInputRef.current) chartFileInputRef.current.value = "";
   }
 
   async function recordOutcomeFeedback(trade: JournalTrade, kind: JournalFeedbackKind) {
@@ -351,6 +429,8 @@ export default function JournalPage() {
     setOutcome(trade.outcome);
     setRMultiple(String(trade.rMultiple));
     setNotes(trade.notes);
+    setSelectedChartFile(null);
+    if (chartFileInputRef.current) chartFileInputRef.current.value = "";
     setTimeframe(trade.timeframe ?? "M15");
     setSession(trade.session ?? "UNKNOWN");
     setSetupType(trade.setupType ?? "");
@@ -382,6 +462,12 @@ export default function JournalPage() {
       } finally {
         setBusy(false);
       }
+    }
+    const tradeToDelete = trades.find((trade) => trade.id === id);
+    if (storageMode === "cloud" && tradeToDelete?.chartPath) {
+      const chartDeleted = await deleteChartObject(tradeToDelete.chartPath);
+      if (!chartDeleted) setChartError("The journal entry was deleted, but its private chart file could not be cleaned up.");
+      setChartUrls((current) => { const next = { ...current }; delete next[id]; return next; });
     }
     setTrades((current) => current.filter((trade) => trade.id !== id));
   }
@@ -467,6 +553,7 @@ export default function JournalPage() {
             </div>)}
           </div>
           {experimentError && <p role="alert" className="mt-3 text-xs text-rose-300">{experimentError}</p>}
+          {chartError && <p role="alert" className="mt-3 text-xs text-rose-300">{chartError}</p>
           {storageMode === "cloud" && <p className="mt-3 text-[10px] text-slate-500">Research drafts are private proposals only. They do not run experiments, alter active strategies or enter Shared Core.</p>}
         </section>}
 
@@ -523,6 +610,25 @@ export default function JournalPage() {
               <label className="field-label">Setup type (optional)<input className="field-control" value={setupType} onChange={(event) => setSetupType(event.target.value)} maxLength={50} placeholder="e.g. MSS retest" /></label>
               <label className="field-label">Strategy (optional)<input className="field-control" value={strategy} onChange={(event) => setStrategy(event.target.value)} maxLength={50} placeholder="e.g. London reversal" /></label>
             </div>
+            <label className="field-label">Private chart screenshot (optional)
+              <input ref={chartFileInputRef} className="field-control" type="file" accept="image/jpeg,image/png,image/webp"
+                disabled={storageMode !== "cloud" || busy}
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  if (file && !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+                    setError("Choose a JPEG, PNG or WebP chart screenshot."); setSelectedChartFile(null); return;
+                  }
+                  if (file && file.size > 15 * 1024 * 1024) {
+                    setError("Chart screenshots must be smaller than 15 MiB."); setSelectedChartFile(null); return;
+                  }
+                  setError(""); setSelectedChartFile(file);
+                }} />
+            </label>
+            <p className="text-[10px] text-slate-500">
+              {storageMode === "cloud"
+                ? selectedChartFile ? "Selected: " + selectedChartFile.name : editingId && trades.find((trade) => trade.id === editingId)?.chartPath ? "A private chart is already attached. Choose a new image to replace it." : "JPEG, PNG or WebP · maximum 15 MiB · stored privately in your account."
+                : "Sign in to attach a private chart screenshot. Images are never stored as large browser-local data URLs."}
+            </p>
             <label className="field-label">Trade reasoning and lessons<textarea className="field-control min-h-24 resize-y" value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1200} placeholder="Why did you take this trade? Which confirmations were present? What did you learn?" /></label>
             {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
             <button className="btn-primary w-full" type="submit" disabled={!ready || busy || storageMode === "loading"}>{busy ? "Saving..." : editingId ? "Update journal entry" : "Save journal entry"}</button>
@@ -562,6 +668,13 @@ export default function JournalPage() {
                     </div>
                   </div>
                   {trade.notes && <p className="mt-3 text-xs leading-5 text-slate-400">{trade.notes}</p>}
+                  {trade.chartPath && <div className="mt-3">
+                    {chartUrls[trade.id]
+                      ? <Image src={chartUrls[trade.id]} alt={trade.symbol + " private trade chart"} width={1200} height={675} unoptimized className="max-h-72 w-auto rounded-lg border border-white/10 object-contain" />
+                      : <button type="button" disabled={loadingChartId !== null} onClick={() => void loadChartPreview(trade)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 disabled:opacity-50">
+                        {loadingChartId === trade.id ? "Loading private chart..." : "View private chart"}
+                      </button>}
+                  </div>}
                   {trade.feedbackEvents && trade.feedbackEvents.length > 0 && <div className="mt-3 flex flex-wrap gap-2">
                     {trade.feedbackEvents.map((event) => <span key={event.eventId} className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] text-slate-400">
                       {event.kind.replaceAll("_", " ")}{typeof event.realizedR === "number" ? ` · ${event.realizedR > 0 ? "+" : ""}${event.realizedR.toFixed(2)}R` : ""}
