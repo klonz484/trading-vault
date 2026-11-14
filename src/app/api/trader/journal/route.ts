@@ -59,7 +59,11 @@ export async function POST(request: Request) {
 
   let body: unknown;
   try {
-    body = await request.json();
+    const rawBody = await request.text();
+    if (Buffer.byteLength(rawBody, "utf8") > MAX_BODY_BYTES) {
+      return jsonError("Journal entry is too large.", 413);
+    }
+    body = JSON.parse(rawBody) as unknown;
   } catch {
     return jsonError("Send a valid JSON journal entry.", 400);
   }
