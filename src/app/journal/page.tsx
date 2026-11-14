@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import Sidebar from "@/components/Sidebar";
-import { analyzePrivateLearningPatterns, createPrivateExperimentDraft, plannedRewardR, recordJournalFeedback, summarizeJournalFeedback, type JournalFeedbackKind, type PrivateLearningPattern } from "@/lib/trading-brain/feedback-learning";
+import { analyzePrivateLearningPatterns, privateLearningPatternKey, plannedRewardR, recordJournalFeedback, summarizeJournalFeedback, type JournalFeedbackKind, type PrivateLearningPattern } from "@/lib/trading-brain/feedback-learning";
 import { JOURNAL_STORAGE_KEY, JournalTrade, readLocalList, writeLocalList } from "@/lib/workspace";
 
 type StorageMode = "loading" | "cloud" | "local";
@@ -179,24 +179,21 @@ export default function JournalPage() {
 
   async function saveExperimentDraft(pattern: PrivateLearningPattern) {
     if (storageMode !== "cloud" || savingExperimentKey) return;
-    let draft;
-    try { draft = createPrivateExperimentDraft(pattern); } catch (cause) {
-      setExperimentError(cause instanceof Error ? cause.message : "This pattern is not ready for a research proposal."); return;
-    }
-    if (savedExperimentKeys.includes(draft.sourcePatternKey)) return;
+    const sourcePatternKey = privateLearningPatternKey(pattern);
+    if (savedExperimentKeys.includes(sourcePatternKey)) return;
     setExperimentError("");
-    setSavingExperimentKey(draft.sourcePatternKey);
+    setSavingExperimentKey(sourcePatternKey);
     try {
       const response = await fetch("/api/trader/experiments", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payload: draft }),
+        body: JSON.stringify({ payload: { sourcePatternKey } }),
       });
       const body: unknown = await response.json();
       if (!response.ok) {
         setExperimentError(isRecord(body) && typeof body.error === "string" ? body.error : "The private experiment draft could not be saved.");
         return;
       }
-      setSavedExperimentKeys((current) => [...current, draft.sourcePatternKey]);
+      setSavedExperimentKeys((current) => [...current, sourcePatternKey]);
       if (isRecord(body) && isRecord(body.experiment)) {
         setPrivateExperimentRows((current) => [body.experiment as Record<string, unknown>, ...current]);
       }
@@ -541,7 +538,7 @@ export default function JournalPage() {
                 <p className="text-[10px] text-slate-400">{pattern.winRate === null ? "No decisive outcomes" : pattern.winRate + "% win rate"}</p>
                 <p className="mt-1 text-[10px] text-slate-500">{pattern.reviewState === "review_candidate" ? "Sample ready for controlled review" : pattern.reviewState === "early_pattern" ? "Early pattern · gather more data" : "Insufficient sample · keep collecting"}</p>
                 {pattern.reviewState === "review_candidate" && storageMode === "cloud" && (() => {
-                  const key = [pattern.symbol, pattern.side, pattern.timeframe, pattern.session, pattern.setupType.toLowerCase(), pattern.strategy.toLowerCase()].join(":");
+                  const key = privateLearningPatternKey(pattern);
                   const saved = savedExperimentKeys.includes(key);
                   return <button type="button" disabled={savingExperimentKey !== null || saved}
                     onClick={() => void saveExperimentDraft(pattern)}
