@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  deletePrivateJournalEntry,
   listPrivateJournalEntries,
   savePrivateJournalEntry,
 } from "@/lib/trading-brain/private-repository";
@@ -114,6 +115,35 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ entry: result.data }, { status: 201 });
+  } catch {
+    return jsonError("The private journal is not configured or is temporarily unavailable.", 503);
+  }
+}
+
+export async function DELETE(request: Request) {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonError("Send a valid JSON delete request.", 400);
+  }
+
+  if (!isRecord(body) || typeof body.id !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.id)) {
+    return jsonError("Provide a valid journal entry ID.", 400);
+  }
+
+  try {
+    const result = await deletePrivateJournalEntry(body.id);
+    if (result.error) {
+      const status = result.error.message === "Authentication required" ? 401 : 503;
+      return jsonError(
+        status === 401 ? "Sign in to delete a private journal entry." : "The journal entry could not be deleted.",
+        status,
+      );
+    }
+    if (!result.data) return jsonError("Journal entry not found.", 404);
+    return NextResponse.json({ deleted: true });
   } catch {
     return jsonError("The private journal is not configured or is temporarily unavailable.", 503);
   }
