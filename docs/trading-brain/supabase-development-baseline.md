@@ -69,7 +69,7 @@ The performance advisor currently reports unused indexes on the early-stage deve
 - The `.env.example` file contains placeholders only; no project keys or service-role secrets are committed.
 - The Journal screen now attempts authenticated cloud loading and uses the private journal API for create/delete when a valid session is available. When unauthenticated or when the cloud is unavailable, it falls back to browser localStorage. Existing local records are preserved and are not automatically imported into the cloud. The Scanner still uses browser localStorage.
 - Automated two-user RLS denial tests using real test identities.
-- Chart upload/download UI and the actual browser upload completion flow; server-side signed URL helpers and API endpoints exist but are not yet connected to a screen.
+- Chart upload UI now uses a short-lived user-scoped signed upload token from `/api/trader/charts`, uploads through the browser Supabase client to the private bucket, saves only the private object path in the Journal payload, and loads short-lived signed previews on demand. Replacing a chart cleans up the previous object after the journal save; deleting a trade attempts private object cleanup. End-to-end authenticated runtime verification is still pending.
 - Shared Core release and owner-approval tables/workflow.
 - Edge Functions or live market-data ingestion into Trading Brain persistence.
 
@@ -114,7 +114,7 @@ The development branch now includes:
 - `/api/trader/charts`: authenticated signed-upload target creation, signed-read URL creation, and deletion. Uploads are limited to JPEG/PNG/WebP up to 15 MiB. Chart paths must match the current user's UUID and a generated UUID filename. Mutating requests reject a mismatched Origin header when one is supplied.
 - The APIs use the public publishable key plus the user's session and database/storage RLS. No service-role key is required or exposed.
 
-These endpoints and the Journal cloud integration require Development runtime environment variables and an authenticated user session before they can be exercised end to end. The Journal UI now uses the private API when signed in and falls back to local storage otherwise. The two stores remain separate: no local record is automatically copied, overwritten, or deleted. The chart upload UI and actual browser upload completion flow are not yet connected. No user data has been migrated or deleted.
+These endpoints and the Journal cloud integration require Development runtime environment variables and an authenticated user session before they can be exercised end to end. The Journal UI now uses the private API when signed in and falls back to local storage otherwise. Private chart attachments are available only in authenticated cloud mode; local mode does not store image data URLs. The two stores remain separate: no local record is automatically copied, overwritten, or deleted. The chart upload UI and actual browser upload completion flow are not yet connected. No user data has been migrated or deleted.
 
 
 A password sign-in screen now exists at `/sign-in`. It deliberately contains no public sign-up flow. Account creation remains an owner-provisioned operation until leaked-password protection, rate limits, email verification, and registration policy are reviewed. This screen requires the Development Supabase public URL and publishable key at runtime; it has not yet been exercised with a real authenticated browser session.

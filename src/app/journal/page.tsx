@@ -553,8 +553,7 @@ export default function JournalPage() {
             </div>)}
           </div>
           {experimentError && <p role="alert" className="mt-3 text-xs text-rose-300">{experimentError}</p>}
-          {chartError && <p role="alert" className="mt-3 text-xs text-rose-300">{chartError}</p>
-          {storageMode === "cloud" && <p className="mt-3 text-[10px] text-slate-500">Research drafts are private proposals only. They do not run experiments, alter active strategies or enter Shared Core.</p>}
+                    {storageMode === "cloud" && <p className="mt-3 text-[10px] text-slate-500">Research drafts are private proposals only. They do not run experiments, alter active strategies or enter Shared Core.</p>}
         </section>}
 
         {storageMode === "cloud" && localArchive.length > 0 && <section className="panel mb-6 p-4 sm:p-5">
@@ -631,8 +630,9 @@ export default function JournalPage() {
             </p>
             <label className="field-label">Trade reasoning and lessons<textarea className="field-control min-h-24 resize-y" value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1200} placeholder="Why did you take this trade? Which confirmations were present? What did you learn?" /></label>
             {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
+            {chartError && <p role="alert" className="text-xs text-rose-300">{chartError}</p>}
             <button className="btn-primary w-full" type="submit" disabled={!ready || busy || storageMode === "loading"}>{busy ? "Saving..." : editingId ? "Update journal entry" : "Save journal entry"}</button>
-            {editingId && <button className="btn-secondary w-full" type="button" disabled={busy} onClick={() => { setEditingId(null); setError(""); setEntry(""); setStop(""); setTarget(""); setNotes(""); setSetupType(""); setStrategy(""); setTimeframe("M15"); setSession("UNKNOWN"); setOutcome("OPEN"); setDate(new Date().toISOString().slice(0, 10)); setSymbol("EURUSD"); setSide("BUY"); setRMultiple("2"); }}>Cancel editing</button>}
+            {editingId && <button className="btn-secondary w-full" type="button" disabled={busy} onClick={() => { setEditingId(null); setError(""); setEntry(""); setStop(""); setTarget(""); setNotes(""); setSetupType(""); setStrategy(""); setSelectedChartFile(null); if (chartFileInputRef.current) chartFileInputRef.current.value = ""; setTimeframe("M15"); setSession("UNKNOWN"); setOutcome("OPEN"); setDate(new Date().toISOString().slice(0, 10)); setSymbol("EURUSD"); setSide("BUY"); setRMultiple("2"); }}>Cancel editing</button>}
             <p className="text-[10px] leading-4 text-slate-500">
               {storageMode === "cloud"
                 ? "Entries are saved to your authenticated private account."
@@ -671,6 +671,7 @@ export default function JournalPage() {
                   {trade.chartPath && <div className="mt-3">
                     {chartUrls[trade.id]
                       ? <Image src={chartUrls[trade.id]} alt={trade.symbol + " private trade chart"} width={1200} height={675} unoptimized className="max-h-72 w-auto rounded-lg border border-white/10 object-contain" />
+                      <button type="button" disabled={loadingChartId !== null} onClick={() => void loadChartPreview(trade)} className="mt-2 rounded-lg border border-white/10 px-3 py-1.5 text-[10px] text-slate-400 hover:bg-white/5 disabled:opacity-50">Refresh private chart link</button>
                       : <button type="button" disabled={loadingChartId !== null} onClick={() => void loadChartPreview(trade)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 disabled:opacity-50">
                         {loadingChartId === trade.id ? "Loading private chart..." : "View private chart"}
                       </button>}
