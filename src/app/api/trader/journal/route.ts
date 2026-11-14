@@ -19,7 +19,7 @@ function jsonError(message: string, status: number) {
 
 function isSameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
-  if (!origin) return true;
+  if (!origin) return false;
   try {
     return new URL(origin).origin === new URL(request.url).origin;
   } catch {
@@ -149,7 +149,11 @@ export async function DELETE(request: Request) {
 
   let body: unknown;
   try {
-    body = await request.json();
+    const rawBody = await request.text();
+    if (Buffer.byteLength(rawBody, "utf8") > 1024) {
+      return jsonError("Delete request is too large.", 413);
+    }
+    body = JSON.parse(rawBody) as unknown;
   } catch {
     return jsonError("Send a valid JSON delete request.", 400);
   }
@@ -179,6 +183,9 @@ export async function DELETE(request: Request) {
 
 export async function PATCH(request: Request) {
   if (!isSameOrigin(request)) return jsonError("Cross-origin request rejected.", 403);
+
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (contentLength > MAX_BODY_BYTES) return jsonError("Journal entry is too large.", 413);
 
   let body: unknown;
   try {
