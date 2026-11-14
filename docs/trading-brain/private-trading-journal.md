@@ -44,15 +44,15 @@ The private learning workflow may identify repeated patterns and propose experim
 
 ## Current implementation status
 
-- **Implemented in code:** authenticated list/create/delete API using the verified user session; server-derived owner identity; bounded JSON payloads; same-origin checks for mutations; no-store API responses.
-- **Implemented in UI:** Journal page attempts private cloud loading and uses the private API for create/delete when an authenticated Development session is available. It falls back to browser-local storage when signed out or when cloud access is unavailable.
+- **Implemented in code:** authenticated list/create/update/delete API using the verified user session; server-derived owner identity; bounded JSON payloads; same-origin checks for mutations; no-store API responses. Updates and deletes are filtered by both record ID and verified owner ID.
+- **Implemented in UI:** Journal page attempts private cloud loading and uses the private API for create/update/delete when an authenticated Development session is available. Existing entries can be edited, including changing an open trade to its final outcome. It falls back to browser-local storage when signed out or when cloud access is unavailable; deletion requires confirmation.
 - **Preservation:** local browser entries are not automatically uploaded, overwritten, or deleted. The local and cloud stores are intentionally separate.
 - **Not yet verified end to end:** Development runtime variables, real sign-in session, and authenticated journal create/list/delete using a dedicated test identity.
-- **Not yet implemented:** edit/update workflow, richer execution and psychology fields, chart attachment UI, export/import of old local records, automated performance breakdowns, and private learning experiments sourced from journal records.
+- **Not yet implemented:** richer execution and psychology fields, chart attachment UI, export/import of old local records, automated performance breakdowns, and private learning experiments sourced from journal records.
 
 ## Acceptance and safety checks
 
-1. An unauthenticated visitor cannot read, create, or delete cloud journal entries.
+1. An unauthenticated visitor cannot read, create, update, or delete cloud journal entries.
 2. Trader A cannot read, modify, or delete Trader B's records, even when a record UUID is known.
 3. A client cannot assign or change `owner_id`; the server derives identity from verified JWT claims and RLS independently enforces ownership.
 4. Failed cloud saves/deletes do not silently change the visible journal state.
