@@ -17,6 +17,7 @@ export default function ScannerPage() {
   const [result, setResult] = useState<string | null>(null);
   const [modelName, setModelName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saveWarning, setSaveWarning] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -24,6 +25,7 @@ export default function ScannerPage() {
   const selectFile = (selected: File | undefined) => {
     if (!selected) return;
     setError(null);
+    setSaveWarning(null);
     setResult(null);
     setModelName(null);
     if (!(["image/png", "image/jpeg", "image/webp"].includes(selected.type))) {
@@ -44,6 +46,7 @@ export default function ScannerPage() {
     if (!file) return;
     setAnalyzing(true);
     setError(null);
+    setSaveWarning(null);
     setResult(null);
     try {
       const body = new FormData();
@@ -60,8 +63,12 @@ export default function ScannerPage() {
       const analysis = data.analysis || "";
       const structured = structureScanAnalysis(analysis);
       const saved: SavedScan = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), symbol, timeframe, model: data.model || "Vision model", analysis, schemaVersion: 2, revision: 1, summary: structured.summary, sections: structured.sections };
-      const previous = readLocalList<SavedScan>(SCAN_STORAGE_KEY);
-      writeLocalList(SCAN_STORAGE_KEY, [saved, ...previous].slice(0, 50));
+      try {
+        const previous = readLocalList<SavedScan>(SCAN_STORAGE_KEY);
+        writeLocalList(SCAN_STORAGE_KEY, [saved, ...previous].slice(0, 50));
+      } catch {
+        setSaveWarning("Analysis completed, but this browser could not save it to scan history. You can still review the result now.");
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong. Please try again.");
     } finally {
@@ -134,6 +141,7 @@ export default function ScannerPage() {
             {!result && !analyzing && !error && <div className="min-h-[330px] flex flex-col items-center justify-center text-center text-[var(--muted)] text-sm"><div className="text-3xl text-slate-200/40 mb-3">⌁</div><p>Your chart read will appear here.</p><p className="text-xs mt-2 max-w-xs">The model will separate visible evidence from interpretation and flag anything it cannot read. Successful reads are saved to local scan history.</p></div>}
             {analyzing && <div className="min-h-[330px] flex flex-col items-center justify-center gap-3"><div className="w-8 h-8 border-2 border-slate-200 border-t-transparent rounded-full animate-spin"/><p className="text-sm text-[var(--muted)]">Inspecting market structure, levels and chart context…</p></div>}
             {error && <div role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200"><p className="font-medium mb-1">Analysis unavailable</p>{error}</div>}
+            {saveWarning && <div role="status" className="mt-3 rounded-lg border border-amber-400/25 bg-amber-400/10 p-3 text-xs leading-5 text-amber-100">{saveWarning}</div>}
             {result && <div className="whitespace-pre-wrap text-sm text-[var(--foreground)] leading-7">{result}</div>}
           </section>
         </div>
