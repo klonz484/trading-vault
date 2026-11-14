@@ -221,6 +221,6 @@ test("private experiment drafts are rebuilt from eligible journal records", () =
   assert.equal(draft.sourcePattern.sampleCount, 10);
   assert.equal(draft.sourcePattern.wins, 6);
   assert.equal(draft.lifecycle.approvedForResearch, false);
-  assert.throws(() => createPrivateExperimentDraftFromTrades(trades.slice(0, 9), key), /not present/);
+  assert.throws(() => createPrivateExperimentDraftFromTrades(trades.slice(0, 9), key), /at least ten/);
   assert.throws(() => createPrivateExperimentDraftFromTrades(trades, "EURUSD:SELL:M15:LONDON:mss retest:trend continuation"), /not present/);
 });
