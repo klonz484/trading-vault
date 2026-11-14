@@ -131,7 +131,7 @@ export default function JournalPage() {
       closed: closed.length,
       wins,
       losses,
-      winRate: closed.length ? Math.round(wins / closed.length * 100) : 0,
+      winRate: wins + losses ? Math.round(wins / (wins + losses) * 100) : 0,
       netR: sum.toFixed(2),
     };
   }, [trades]);
