@@ -50,7 +50,10 @@ function mapCloudRows(rows: unknown): JournalTrade[] {
   if (!Array.isArray(rows)) return [];
   return rows
     .filter(isRecord)
-    .map((row) => parseTrade(row.payload))
+    .map((row) => {
+      const trade = parseTrade(row.payload);
+      return trade && typeof row.id === "string" ? { ...trade, id: row.id } : null;
+    })
     .filter((trade): trade is JournalTrade => trade !== null);
 }
 
@@ -174,7 +177,12 @@ export default function JournalPage() {
           setError(isRecord(body) && typeof body.error === "string" ? body.error : "Could not save this private journal entry.");
           return;
         }
-        setTrades((current) => [item, ...current]);
+        const savedRow = isRecord(body) && isRecord(body.entry) ? body.entry : null;
+        if (!savedRow || typeof savedRow.id !== "string") {
+          setError("The server saved the entry but did not return its record ID. Refresh the journal before deleting it.");
+          return;
+        }
+        setTrades((current) => [{ ...item, id: savedRow.id as string }, ...current]);
       } catch {
         setError("The cloud save failed. Your entry was not added; please try again.");
         return;
