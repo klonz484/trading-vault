@@ -98,15 +98,29 @@ export function analyzePrivateLearningPatterns(
 ): PrivateLearningPattern[] {
   const groups = new Map<string, JournalFeedbackTrade[]>();
   for (const trade of trades) {
-    const hasValidFeedback = Array.isArray(trade.feedbackEvents) && trade.feedbackEvents.some((event) =>
-      !!event &&
-      typeof event.eventId === "string" && event.eventId.length > 0 &&
-      ["take_profit_hit", "stop_loss_hit", "partial_take_profit", "manual_close"].includes(event.kind) &&
-      typeof event.recordedAt === "string" && Number.isFinite(Date.parse(event.recordedAt)) &&
-      typeof event.realizedR === "number" && Number.isFinite(event.realizedR),
-    );
-    if (trade.outcome === "OPEN" || !hasValidFeedback ||
-        typeof trade.realizedR !== "number" || !Number.isFinite(trade.realizedR)) continue;
+    const events = trade.feedbackEvents;
+    const eventIds = new Set<string>();
+    let eventTotal = 0;
+    const hasValidFeedback = Array.isArray(events) && events.length > 0 && events.every((event) => {
+      if (!event || typeof event.eventId !== "string" || event.eventId.length === 0 ||
+          eventIds.has(event.eventId) ||
+          !["take_profit_hit", "stop_loss_hit", "partial_take_profit", "manual_close"].includes(event.kind) ||
+          typeof event.recordedAt !== "string" || !Number.isFinite(Date.parse(event.recordedAt)) ||
+          typeof event.realizedR !== "number" || !Number.isFinite(event.realizedR)) return false;
+      if ((event.kind === "take_profit_hit" || event.kind === "partial_take_profit") && event.realizedR <= 0) return false;
+      if (event.kind === "stop_loss_hit" && event.realizedR >= 0) return false;
+      eventIds.add(event.eventId);
+      eventTotal += event.realizedR;
+      return true;
+    });
+    const hasValidRealizedTotal = typeof trade.realizedR === "number" &&
+      Number.isFinite(trade.realizedR) &&
+      Math.abs(eventTotal - trade.realizedR) <= 0.000001;
+    const outcomeMatchesRealized = trade.outcome === "WIN" ? trade.realizedR! > 0
+      : trade.outcome === "LOSS" ? trade.realizedR! < 0
+      : trade.outcome === "BREAKEVEN" ? trade.realizedR === 0
+      : false;
+    if (trade.outcome === "OPEN" || !hasValidFeedback || !hasValidRealizedTotal || !outcomeMatchesRealized) continue;
     const timeframe = trade.timeframe ?? "UNSPECIFIED";
     const session = trade.session ?? "UNKNOWN";
     const setupType = trade.setupType?.trim().toLowerCase() || "unspecified";
