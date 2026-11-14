@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/Sidebar";
-import { analyzePrivateLearningPatterns, plannedRewardR, recordJournalFeedback, summarizeJournalFeedback, type JournalFeedbackKind } from "@/lib/trading-brain/feedback-learning";
+import { analyzePrivateLearningPatterns, createPrivateExperimentDraft, plannedRewardR, recordJournalFeedback, summarizeJournalFeedback, type JournalFeedbackKind, type PrivateLearningPattern } from "@/lib/trading-brain/feedback-learning";
 import { JOURNAL_STORAGE_KEY, JournalTrade, readLocalList, writeLocalList } from "@/lib/workspace";
 
 type StorageMode = "loading" | "cloud" | "local";
@@ -86,6 +86,9 @@ export default function JournalPage() {
   const [setupType, setSetupType] = useState("");
   const [strategy, setStrategy] = useState("");
   const [error, setError] = useState("");
+  const [savedExperimentKeys, setSavedExperimentKeys] = useState<string[]>([]);
+  const [savingExperimentKey, setSavingExperimentKey] = useState<string | null>(null);
+  const [experimentError, setExperimentError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -101,6 +104,17 @@ export default function JournalPage() {
           setTrades(mapCloudRows(body.entries));
           setStorageMode("cloud");
           setStorageMessage("Private cloud journal · synced to your account");
+          try {
+            const experimentResponse = await fetch("/api/trader/experiments?limit=100", { cache: "no-store" });
+            const experimentBody: unknown = await experimentResponse.json();
+            if (active && experimentResponse.ok && isRecord(experimentBody) && Array.isArray(experimentBody.experiments)) {
+              const keys = experimentBody.experiments
+                .filter(isRecord)
+                .map((row) => isRecord(row.payload) && typeof row.payload.sourcePatternKey === "string" ? row.payload.sourcePatternKey : null)
+                .filter((key): key is string => key !== null);
+              setSavedExperimentKeys(keys);
+            }
+          } catch { /* Journal access remains available if experiment listing is temporarily unavailable. */ }
         } else {
           setTrades(readLocalList<JournalTrade>(JOURNAL_STORAGE_KEY));
           setStorageMode("local");
@@ -151,6 +165,31 @@ export default function JournalPage() {
   }, [trades]);
   const feedbackStats = useMemo(() => summarizeJournalFeedback(trades), [trades]);
   const learningPatterns = useMemo(() => analyzePrivateLearningPatterns(trades), [trades]);
+
+  async function saveExperimentDraft(pattern: PrivateLearningPattern) {
+    if (storageMode !== "cloud" || savingExperimentKey) return;
+    let draft;
+    try { draft = createPrivateExperimentDraft(pattern); } catch (cause) {
+      setExperimentError(cause instanceof Error ? cause.message : "This pattern is not ready for a research proposal."); return;
+    }
+    if (savedExperimentKeys.includes(draft.sourcePatternKey)) return;
+    setExperimentError("");
+    setSavingExperimentKey(draft.sourcePatternKey);
+    try {
+      const response = await fetch("/api/trader/experiments", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload: draft }),
+      });
+      const body: unknown = await response.json();
+      if (!response.ok) {
+        setExperimentError(isRecord(body) && typeof body.error === "string" ? body.error : "The private experiment draft could not be saved.");
+        return;
+      }
+      setSavedExperimentKeys((current) => [...current, draft.sourcePatternKey]);
+    } catch {
+      setExperimentError("The private experiment draft could not be saved. Please try again.");
+    } finally { setSavingExperimentKey(null); }
+  }
 
   function exportLocalArchive() {
     if (!localArchive.length) return;
@@ -384,9 +423,20 @@ export default function JournalPage() {
                 <p className="text-sm font-semibold text-white">{pattern.averageRealizedR > 0 ? "+" : ""}{pattern.averageRealizedR}R average</p>
                 <p className="text-[10px] text-slate-400">{pattern.winRate === null ? "No decisive outcomes" : pattern.winRate + "% win rate"}</p>
                 <p className="mt-1 text-[10px] text-slate-500">{pattern.reviewState === "review_candidate" ? "Sample ready for controlled review" : pattern.reviewState === "early_pattern" ? "Early pattern · gather more data" : "Insufficient sample · keep collecting"}</p>
+                {pattern.reviewState === "review_candidate" && storageMode === "cloud" && (() => {
+                  const key = [pattern.symbol, pattern.side, pattern.timeframe, pattern.session, pattern.setupType.toLowerCase(), pattern.strategy.toLowerCase()].join(":");
+                  const saved = savedExperimentKeys.includes(key);
+                  return <button type="button" disabled={savingExperimentKey !== null || saved}
+                    onClick={() => void saveExperimentDraft(pattern)}
+                    className="mt-2 rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-[10px] font-medium text-sky-200 disabled:opacity-50">
+                    {saved ? "Research draft saved" : savingExperimentKey === key ? "Saving draft..." : "Prepare private research draft"}
+                  </button>;
+                })()}
               </div>
             </div>)}
           </div>
+          {experimentError && <p role="alert" className="mt-3 text-xs text-rose-300">{experimentError}</p>}
+          {storageMode === "cloud" && <p className="mt-3 text-[10px] text-slate-500">Research drafts are private proposals only. They do not run experiments, alter active strategies or enter Shared Core.</p>}
         </section>}
 
         {storageMode === "cloud" && localArchive.length > 0 && <section className="panel mb-6 p-4 sm:p-5">
