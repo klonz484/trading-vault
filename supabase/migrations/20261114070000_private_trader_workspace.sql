@@ -40,7 +40,7 @@ create table if not exists public.trader_reasoning_reports (
   unique (owner_id, report_id, report_version),
   unique (owner_id, id),
   foreign key (owner_id, evidence_bundle_row_id)
-    references public.trader_evidence_bundles(owner_id, id) on delete restrict
+    references public.trader_evidence_bundles(owner_id, id) on delete cascade
 );
 
 create table if not exists public.trader_scenarios (
@@ -62,9 +62,9 @@ create table if not exists public.trader_scenarios (
   updated_at timestamptz not null default now(),
   unique (owner_id, scenario_id, scenario_version),
   foreign key (owner_id, evidence_bundle_row_id)
-    references public.trader_evidence_bundles(owner_id, id) on delete restrict,
+    references public.trader_evidence_bundles(owner_id, id) on delete cascade,
   foreign key (owner_id, reasoning_report_row_id)
-    references public.trader_reasoning_reports(owner_id, id) on delete restrict
+    references public.trader_reasoning_reports(owner_id, id) on delete cascade
 );
 
 create table if not exists public.trader_experiments (
