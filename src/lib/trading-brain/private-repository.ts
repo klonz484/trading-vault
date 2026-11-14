@@ -34,6 +34,12 @@ export interface SaveReasoningReportInput {
   payload: Json;
 }
 
+export interface SavePrivateExperimentInput {
+  experimentId: string;
+  version: string;
+  payload: Json;
+}
+
 export interface SaveScenarioInput {
   scenarioId: string;
   scenarioVersion: string;
@@ -141,6 +147,36 @@ export async function savePrivateScenario(input: SaveScenarioInput) {
     })
     .select("*")
     .single();
+}
+
+export async function savePrivateExperiment(input: SavePrivateExperimentInput) {
+  const context = await createUserScopedSupabase();
+  if (!context) return { data: null, error: new Error("Authentication required") };
+
+  return context.supabase
+    .from("trader_experiments")
+    .insert({
+      owner_id: context.userId,
+      experiment_id: input.experimentId,
+      version: input.version,
+      state: "proposed",
+      requires_owner_approval_for_release: true,
+      payload: input.payload,
+    })
+    .select("*")
+    .single();
+}
+
+export async function listPrivateExperiments(limit = 50) {
+  const context = await createUserScopedSupabase();
+  if (!context) return { data: null, error: new Error("Authentication required") };
+
+  return context.supabase
+    .from("trader_experiments")
+    .select("*")
+    .eq("owner_id", context.userId)
+    .order("updated_at", { ascending: false })
+    .limit(Math.min(Math.max(Math.trunc(limit), 1), 100));
 }
 
 export async function listPrivateScenarios(limit = 50) {

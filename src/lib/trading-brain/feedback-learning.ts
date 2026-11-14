@@ -77,6 +77,8 @@ export interface PrivateLearningPattern {
   session: string;
   setupType: string;
   strategy: string;
+  firstTradeDate: string;
+  lastTradeDate: string;
   sampleCount: number;
   wins: number;
   losses: number;
@@ -120,6 +122,8 @@ export function analyzePrivateLearningPatterns(
       session: items[0].session ?? "UNKNOWN",
       setupType: items[0].setupType?.trim() || "Unspecified",
       strategy: items[0].strategy?.trim() || "Unspecified",
+      firstTradeDate: items.map((trade) => trade.date).sort()[0],
+      lastTradeDate: items.map((trade) => trade.date).sort()[items.length - 1],
       sampleCount,
       wins,
       losses,
@@ -131,4 +135,68 @@ export function analyzePrivateLearningPatterns(
         : sampleCount >= 5 ? "early_pattern" as const : "insufficient_sample" as const,
     };
   }).sort((a, b) => a.symbol.localeCompare(b.symbol) || a.side.localeCompare(b.side) || a.timeframe.localeCompare(b.timeframe) || a.session.localeCompare(b.session));
+}
+
+
+export interface PrivateExperimentDraftPayload {
+  schemaVersion: 1;
+  scope: "private_trader";
+  hypothesis: string;
+  mechanism: string;
+  baseline: { kind: "journal_observation"; version: "journal-feedback-v1"; strategyVersion: "not_recorded" };
+  candidate: { version: null; ruleChanges: [] };
+  protocolVersion: "1.0";
+  sourcePatternKey: string;
+  sourcePattern: PrivateLearningPattern;
+  sampleDefinition: { included: string; currentSampleSize: number; targetSampleSize: 20; dateRange: { from: string; to: string } };
+  metricsDefinition: { primary: "average_realized_R"; secondary: ["win_rate", "win_loss_breakeven_counts"]; guardrails: string[] };
+  lifecycle: { state: "proposed"; approvedForResearch: false; automaticStrategyChanges: false; sharedCoreContribution: false };
+  limitations: string[];
+}
+
+/** Creates a research proposal only; it does not define or apply a strategy change. */
+export function createPrivateExperimentDraft(pattern: PrivateLearningPattern): PrivateExperimentDraftPayload {
+  if (pattern.reviewState !== "review_candidate" || pattern.sampleCount < 10) {
+    throw new Error("A private experiment draft requires at least ten eligible closed trades.");
+  }
+  const sourcePatternKey = [
+    pattern.symbol, pattern.side, pattern.timeframe, pattern.session,
+    pattern.setupType.toLowerCase(), pattern.strategy.toLowerCase(),
+  ].join(":");
+  const context = [pattern.symbol, pattern.side, pattern.timeframe, pattern.session.replace(/_/g, " "), pattern.setupType, pattern.strategy]
+    .filter((value) => value && value !== "Unspecified").join(" / ");
+  return {
+    schemaVersion: 1,
+    scope: "private_trader",
+    hypothesis: `Review whether outcomes for ${context} are stable enough to justify a separately tested strategy hypothesis.`,
+    mechanism: "Compare trader-recorded closed-trade outcomes within one consistent market context; this is observational evidence, not proof of causation.",
+    baseline: { kind: "journal_observation", version: "journal-feedback-v1", strategyVersion: "not_recorded" },
+    candidate: { version: null, ruleChanges: [] },
+    protocolVersion: "1.0",
+    sourcePatternKey,
+    sourcePattern: pattern,
+    sampleDefinition: {
+      included: "Closed journal trades with explicit feedback events and finite signed realized R, grouped by the exact context shown.",
+      currentSampleSize: pattern.sampleCount,
+      targetSampleSize: 20,
+      dateRange: { from: pattern.firstTradeDate, to: pattern.lastTradeDate },
+    },
+    metricsDefinition: {
+      primary: "average_realized_R",
+      secondary: ["win_rate", "win_loss_breakeven_counts"],
+      guardrails: [
+        "Do not treat a small or selected journal sample as statistically conclusive.",
+        "Do not claim net profitability when spread, commission and slippage are not captured.",
+        "Do not change active strategy rules from this proposal.",
+        "Do not contribute private records to Shared Core.",
+      ],
+    },
+    lifecycle: { state: "proposed", approvedForResearch: false, automaticStrategyChanges: false, sharedCoreContribution: false },
+    limitations: [
+      "No candidate rule change has been defined.",
+      "Strategy, market-data and engine baseline versions are not yet linked to these journal records.",
+      "The sample is observational and may contain selection bias.",
+      "A separate experiment protocol and approval are required before research execution.",
+    ],
+  };
 }
