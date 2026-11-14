@@ -160,8 +160,8 @@ export type Database = {
           owner_id: string;
           experiment_id: string;
           version: string;
-          state: string;
-          requires_owner_approval_for_release: boolean;
+          state: "proposed" | "designed" | "approved_for_research" | "running" | "completed" | "inconclusive" | "rejected" | "recommended";
+          requires_owner_approval_for_release: true;
           payload: Json;
         };
         Insert: {
@@ -169,16 +169,15 @@ export type Database = {
           owner_id: string;
           experiment_id: string;
           version: string;
-          state: string;
-          requires_owner_approval_for_release?: boolean;
+          state: "proposed" | "designed" | "approved_for_research" | "running" | "completed" | "inconclusive" | "rejected" | "recommended";
+          requires_owner_approval_for_release?: true;
           payload: Json;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           version?: string;
-          state?: string;
-          requires_owner_approval_for_release?: boolean;
+          state?: "proposed" | "designed" | "approved_for_research" | "running" | "completed" | "inconclusive" | "rejected" | "recommended";
           payload?: Json;
           updated_at?: string;
         };
