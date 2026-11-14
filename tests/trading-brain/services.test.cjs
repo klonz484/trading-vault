@@ -9,6 +9,9 @@ const {
   transitionScenario,
   validateScenario,
   adaptEngineEvent,
+  plannedRewardR,
+  recordJournalFeedback,
+  summarizeJournalFeedback,
 } = require("./fixtures.cjs");
 
 test("confirmed valid evidence receives four times provisional weight", () => {
@@ -113,4 +116,38 @@ test("engine adapter preserves provisional state and rejects premature confirmat
   );
   assert.equal(malformed.valid, false);
   assert.ok(malformed.issues.some((issue) => issue.code === "PROVISIONAL_HAS_CONFIRMATION_TIME"));
+});
+
+
+test("journal feedback snapshots the original plan and records target outcome as realized R", () => {
+  const trade = { id: "t1", date: "2026-11-14", symbol: "EURUSD", side: "BUY", entry: 1.1, stop: 1.095, target: 1.11, outcome: "OPEN", rMultiple: 2, notes: "" };
+  assert.equal(plannedRewardR(trade), 2);
+  const updated = recordJournalFeedback(trade, { eventId: "fb-1", kind: "take_profit_hit", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: 2, actualExitPrice: 1.11 });
+  assert.equal(updated.outcome, "WIN"); assert.equal(updated.realizedR, 2);
+  assert.deepEqual(updated.originalPlan, { date: trade.date, symbol: trade.symbol, side: trade.side, entry: trade.entry, stop: trade.stop, target: trade.target });
+  assert.equal(trade.outcome, "OPEN"); assert.equal(updated.feedbackEvents.length, 1);
+});
+test("stop-loss feedback records negative realized R", () => {
+  const trade = { id: "t2", date: "2026-11-14", symbol: "EURUSD", side: "SELL", entry: 1.1, stop: 1.105, target: 1.09, outcome: "OPEN", rMultiple: 2, notes: "" };
+  const updated = recordJournalFeedback(trade, { eventId: "fb-2", kind: "stop_loss_hit", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: -1, actualExitPrice: 1.105 });
+  assert.equal(updated.outcome, "LOSS"); assert.equal(updated.realizedR, -1);
+});
+test("partial take-profit appends feedback without closing remaining position", () => {
+  const trade = { id: "t3", date: "2026-11-14", symbol: "XAUUSD", side: "BUY", entry: 2600, stop: 2590, target: 2620, outcome: "OPEN", rMultiple: 2, notes: "" };
+  const updated = recordJournalFeedback(trade, { eventId: "fb-3", kind: "partial_take_profit", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: 1 });
+  assert.equal(updated.outcome, "OPEN"); assert.equal(updated.feedbackEvents.length, 1);
+});
+test("feedback rejects duplicate IDs and stop-loss with positive R", () => {
+  const trade = { id: "t4", date: "2026-11-14", symbol: "EURUSD", side: "BUY", entry: 1.1, stop: 1.095, target: 1.11, outcome: "OPEN", rMultiple: 2, notes: "" };
+  const event = { eventId: "fb-4", kind: "stop_loss_hit", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: -1 };
+  const once = recordJournalFeedback(trade, event);
+  assert.throws(() => recordJournalFeedback(once, event), /already been recorded/);
+  assert.throws(() => recordJournalFeedback(trade, { ...event, realizedR: 1 }), /negative realized R/);
+});
+test("feedback summary counts events by outcome category", () => {
+  const trades = [
+    { id: "t5", date: "2026-11-14", symbol: "EURUSD", side: "BUY", entry: 1.1, stop: 1.095, target: 1.11, outcome: "OPEN", rMultiple: 2, notes: "", feedbackEvents: [{ eventId: "a", kind: "take_profit_hit", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: 2 }] },
+    { id: "t6", date: "2026-11-14", symbol: "XAUUSD", side: "SELL", entry: 2600, stop: 2610, target: 2580, outcome: "OPEN", rMultiple: 2, notes: "", feedbackEvents: [{ eventId: "b", kind: "stop_loss_hit", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: -1 }] },
+  ];
+  assert.deepEqual(summarizeJournalFeedback(trades), { eventCount: 2, takeProfitHits: 1, stopLossHits: 1, partialTakeProfits: 0, manualCloses: 0, pendingReview: 2 });
 });

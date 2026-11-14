@@ -21,6 +21,7 @@ const { scoreEvidenceBundle } = require("../../src/lib/trading-brain/evidence-sc
 const { transitionScenario } = require("../../src/lib/trading-brain/scenario-lifecycle.ts");
 const { validateScenario } = require("../../src/lib/trading-brain/validation.ts");
 const { adaptEngineEvent } = require("../../src/lib/trading-brain/engine-event-adapter.ts");
+const { plannedRewardR, recordJournalFeedback, summarizeJournalFeedback } = require("../../src/lib/trading-brain/feedback-learning.ts");
 
 function evidence(overrides = {}) {
   return {
@@ -85,4 +86,4 @@ function scenario(overrides = {}) {
   };
 }
 
-module.exports = { assert, evidence, bundle, scenario, scoreEvidenceBundle, transitionScenario, validateScenario, adaptEngineEvent };
+module.exports = { assert, evidence, bundle, scenario, scoreEvidenceBundle, transitionScenario, validateScenario, adaptEngineEvent, plannedRewardR, recordJournalFeedback, summarizeJournalFeedback };

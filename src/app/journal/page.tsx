@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/Sidebar";
+import { plannedRewardR, recordJournalFeedback, summarizeJournalFeedback, type JournalFeedbackKind } from "@/lib/trading-brain/feedback-learning";
 import { JOURNAL_STORAGE_KEY, JournalTrade, readLocalList, writeLocalList } from "@/lib/workspace";
 
 type StorageMode = "loading" | "cloud" | "local";
@@ -41,6 +42,9 @@ function parseTrade(value: unknown): JournalTrade | null {
     outcome: trade.outcome as JournalTrade["outcome"],
     rMultiple: trade.rMultiple as number,
     notes: trade.notes,
+    ...(typeof trade.realizedR === "number" && Number.isFinite(trade.realizedR) ? { realizedR: trade.realizedR } : {}),
+    ...(isRecord(trade.originalPlan) ? { originalPlan: trade.originalPlan as JournalTrade["originalPlan"] } : {}),
+    ...(Array.isArray(trade.feedbackEvents) ? { feedbackEvents: trade.feedbackEvents as JournalTrade["feedbackEvents"] } : {}),
   };
 }
 
@@ -124,8 +128,9 @@ export default function JournalPage() {
     const wins = closed.filter((trade) => trade.outcome === "WIN").length;
     const losses = closed.filter((trade) => trade.outcome === "LOSS").length;
     const sum = closed.reduce((total, trade) => total + (
-      trade.outcome === "WIN" ? Math.abs(trade.rMultiple)
-        : trade.outcome === "LOSS" ? -Math.abs(trade.rMultiple) : 0
+      typeof trade.realizedR === "number" ? trade.realizedR
+        : trade.outcome === "WIN" ? Math.abs(trade.rMultiple)
+          : trade.outcome === "LOSS" ? -Math.abs(trade.rMultiple) : 0
     ), 0);
     return {
       total: trades.length,
@@ -136,6 +141,7 @@ export default function JournalPage() {
       netR: sum.toFixed(2),
     };
   }, [trades]);
+  const feedbackStats = useMemo(() => summarizeJournalFeedback(trades), [trades]);
 
   function exportLocalArchive() {
     if (!localArchive.length) return;
@@ -218,6 +224,48 @@ export default function JournalPage() {
     setOutcome("OPEN");
   }
 
+  async function recordOutcomeFeedback(trade: JournalTrade, kind: JournalFeedbackKind) {
+    if (busy || trade.outcome !== "OPEN") return;
+    let realizedR: number;
+    if (kind === "take_profit_hit" || kind === "partial_take_profit") {
+      try { realizedR = plannedRewardR(trade); } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "Check the trade levels before recording profit."); return;
+      }
+    } else if (kind === "stop_loss_hit") {
+      realizedR = -1;
+    } else {
+      const answer = window.prompt("Enter realized R (e.g. 1.2 for +1.2R or -0.5 for -0.5R):");
+      if (answer === null) return;
+      realizedR = Number(answer);
+      if (!Number.isFinite(realizedR)) { setError("Enter a valid realized R value. Use a minus sign for a loss."); return; }
+    }
+    const actualExitPrice = kind === "take_profit_hit" ? trade.target : kind === "stop_loss_hit" ? trade.stop : undefined;
+    let updated: JournalTrade;
+    try {
+      updated = recordJournalFeedback(trade, {
+        eventId: crypto.randomUUID(), kind, recordedAt: new Date().toISOString(), realizedR,
+        ...(actualExitPrice === undefined ? {} : { actualExitPrice }),
+      });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Feedback could not be recorded."); return;
+    }
+    setError("");
+    if (storageMode === "cloud") {
+      setBusy(true);
+      try {
+        const response = await fetch("/api/trader/journal", {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: trade.id, instrument: updated.symbol, occurredAt: new Date(updated.date + "T12:00:00").toISOString(), entryType: "trade", payload: { schemaVersion: 2, trade: updated } }),
+        });
+        const body: unknown = await response.json();
+        if (!response.ok) { setError(isRecord(body) && typeof body.error === "string" ? body.error : "Feedback could not be saved."); return; }
+      } catch {
+        setError("Feedback could not be saved. The trade remains unchanged."); return;
+      } finally { setBusy(false); }
+    }
+    setTrades((current) => current.map((item) => item.id === trade.id ? updated : item));
+  }
+
   function startEditing(trade: JournalTrade) {
     setEditingId(trade.id);
     setDate(trade.date);
@@ -277,6 +325,7 @@ export default function JournalPage() {
             { label: "Closed trades", value: stats.closed },
             { label: "Win rate", value: stats.closed ? stats.winRate + "%" : "—" },
             { label: "Net result", value: stats.closed ? (Number(stats.netR) > 0 ? "+" : "") + stats.netR + "R" : "—" },
+            { label: "Brain feedback events", value: feedbackStats.eventCount },
           ].map((item) => <div className="panel p-4 sm:p-5" key={item.label}>
             <p className="text-[10px] uppercase tracking-wider text-slate-500">{item.label}</p>
             <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
@@ -367,6 +416,18 @@ export default function JournalPage() {
                     </div>
                   </div>
                   {trade.notes && <p className="mt-3 text-xs leading-5 text-slate-400">{trade.notes}</p>}
+                  {trade.feedbackEvents && trade.feedbackEvents.length > 0 && <div className="mt-3 flex flex-wrap gap-2">
+                    {trade.feedbackEvents.map((event) => <span key={event.eventId} className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] text-slate-400">
+                      {event.kind.replaceAll("_", " ")}{typeof event.realizedR === "number" ? ` · ${event.realizedR > 0 ? "+" : ""}${event.realizedR.toFixed(2)}R` : ""}
+                    </span>)}
+                    <span className="text-[10px] text-slate-500">Private Brain review queue · no automatic strategy change</span>
+                  </div>}
+                  {trade.outcome === "OPEN" && <div className="mt-4 flex flex-wrap gap-2">
+                    <button type="button" disabled={busy} onClick={() => void recordOutcomeFeedback(trade, "take_profit_hit")} className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-300 disabled:opacity-50">Take-profit hit</button>
+                    <button type="button" disabled={busy} onClick={() => void recordOutcomeFeedback(trade, "stop_loss_hit")} className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-medium text-rose-300 disabled:opacity-50">Stop-loss hit</button>
+                    <button type="button" disabled={busy} onClick={() => void recordOutcomeFeedback(trade, "partial_take_profit")} className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-300 disabled:opacity-50">Partial take-profit</button>
+                    <button type="button" disabled={busy} onClick={() => void recordOutcomeFeedback(trade, "manual_close")} className="btn-secondary disabled:opacity-50">Closed manually</button>
+                  </div>}
                 </article>)}
               </div>}
           </section>

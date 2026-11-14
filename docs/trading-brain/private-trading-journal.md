@@ -19,15 +19,16 @@ A journal trade should progressively support:
 1. **Identity and context:** instrument, date/time, session, timeframe, direction, strategy, setup type, and optional linked Scanner/Brain scenario IDs.
 2. **Trade plan:** entry, stop, target, planned risk, planned reward-to-risk, and the reason the setup qualified.
 3. **Execution:** actual entry/exit, actual stop/target changes, position sizing, fees or spread when known, and manual MT5 execution notes.
-4. **Outcome:** open, win, loss, breakeven, cancelled, or missed; realized R and monetary result when supplied by the trader.
-5. **Evidence:** before/after chart screenshots, timeframe, capture time, and optional notes. Images must use the private `trader-charts` bucket and owner-scoped paths.
-6. **Review:** what went well, what went wrong, rule adherence, emotional state, mistakes, and one concrete lesson.
+4. **Outcome:** open, take-profit hit, stop-loss hit, manual close, partial take-profit, breakeven, expired, or not taken; realized R and monetary result when supplied by the trader.
+5. **Learning feedback:** append-only outcome events, timestamps, actual exit price when known, realized R, and an immutable snapshot of the original plan. Partial take-profit feedback does not close the remaining position.
+6. **Evidence:** before/after chart screenshots, timeframe, capture time, and optional notes. Images must use the private `trader-charts` bucket and owner-scoped paths.
+7. **Review:** what went well, what went wrong, rule adherence, emotional state, mistakes, and one concrete lesson.
 
 Fields that the trader did not supply must remain unknown rather than being inferred. Planned R and realized R are distinct. A trade's win/loss status must not be inferred from a target price alone.
 
 ## Performance analysis
 
-The Journal may calculate descriptive metrics from recorded data:
+The Journal may calculate descriptive metrics from recorded data. Signed realized R is preferred when explicitly captured; legacy records without it retain their existing outcome-based calculation:
 
 - trade count and closed-trade count;
 - win/loss/breakeven distribution;
@@ -48,7 +49,8 @@ The private learning workflow may identify repeated patterns and propose experim
 - **Implemented in UI:** Journal page attempts private cloud loading and uses the private API for create/update/delete when an authenticated Development session is available. Existing entries can be edited, including changing an open trade to its final outcome. It falls back to browser-local storage when signed out or when cloud access is unavailable; deletion requires confirmation. If cloud mode is active, older local records remain visible in a separate device archive and can be exported as JSON without being uploaded.
 - **Preservation:** local browser entries are not automatically uploaded, overwritten, or deleted. The local and cloud stores are intentionally separate.
 - **Not yet verified end to end:** Development runtime variables, real sign-in session, and authenticated journal create/list/delete using a dedicated test identity.
-- **Not yet implemented:** richer execution and psychology fields, chart attachment UI, export/import of old local records, automated performance breakdowns, and private learning experiments sourced from journal records.
+- **Implemented in code:** a private feedback helper validates and appends outcome events, preserves the original plan snapshot, calculates planned reward R for target hits, records negative R for stop hits, supports partial take-profit without closing the remaining position, and requires an explicit signed R value for manual closes. The Journal exposes these actions on open trades and stores feedback in the same owner-scoped journal record.
+- **Not yet implemented or verified end to end:** a background Brain consumer, persistent experiment runs sourced from these events, automated skill-change recommendations, chart attachment UI, and authenticated runtime verification. Feedback is recorded for private review; it does not itself change strategy rules.
 
 ## Acceptance and safety checks
 
@@ -59,3 +61,10 @@ The private learning workflow may identify repeated patterns and propose experim
 5. Existing local records remain untouched until the trader explicitly chooses a reviewed import/export action.
 6. Private journal data is not copied to Shared Core by default.
 7. No Journal operation can execute a broker order or change MT5/RCG queue state.
+
+
+## Journal-to-Brain feedback event contract
+
+The first implementation uses four event kinds: `take_profit_hit`, `stop_loss_hit`, `partial_take_profit`, and `manual_close`. Each event has a unique ID and timestamp; realized R is signed (positive for profit, negative for loss, zero for breakeven). Target hits use target-to-stop distance to calculate planned R, stop hits record -1R, and manual closes ask the trader for realized R. A partial target event leaves the trade open.
+
+The first feedback event snapshots the original plan. Duplicate event IDs, invalid timestamps, invalid prices, and outcome/R sign mismatches are rejected. Historical feedback remains private. The current implementation records a review-queue marker only; it does not claim that an asynchronous learning worker has processed the event or that any strategy has improved.
