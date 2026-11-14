@@ -72,6 +72,10 @@ export function summarizeJournalFeedback(trades: readonly JournalFeedbackTrade[]
 export interface PrivateLearningPattern {
   symbol: string;
   side: "BUY" | "SELL";
+  timeframe: string;
+  session: string;
+  setupType: string;
+  strategy: string;
   sampleCount: number;
   wins: number;
   losses: number;
@@ -93,7 +97,11 @@ export function analyzePrivateLearningPatterns(
   for (const trade of trades) {
     if (trade.outcome === "OPEN" || !trade.feedbackEvents?.length ||
         typeof trade.realizedR !== "number" || !Number.isFinite(trade.realizedR)) continue;
-    const key = `${trade.symbol.toUpperCase()}:${trade.side}`;
+    const timeframe = trade.timeframe ?? "UNSPECIFIED";
+    const session = trade.session ?? "UNKNOWN";
+    const setupType = trade.setupType?.trim().toLowerCase() || "unspecified";
+    const strategy = trade.strategy?.trim().toLowerCase() || "unspecified";
+    const key = [trade.symbol.toUpperCase(), trade.side, timeframe, session, setupType, strategy].join(":");
     groups.set(key, [...(groups.get(key) ?? []), trade]);
   }
 
@@ -107,6 +115,10 @@ export function analyzePrivateLearningPatterns(
     return {
       symbol: items[0].symbol.toUpperCase(),
       side: items[0].side,
+      timeframe: items[0].timeframe ?? "UNSPECIFIED",
+      session: items[0].session ?? "UNKNOWN",
+      setupType: items[0].setupType?.trim() || "Unspecified",
+      strategy: items[0].strategy?.trim() || "Unspecified",
       sampleCount,
       wins,
       losses,
@@ -117,5 +129,5 @@ export function analyzePrivateLearningPatterns(
         ? "review_candidate" as const
         : sampleCount >= 5 ? "early_pattern" as const : "insufficient_sample" as const,
     };
-  }).sort((a, b) => a.symbol.localeCompare(b.symbol) || a.side.localeCompare(b.side));
+  }).sort((a, b) => a.symbol.localeCompare(b.symbol) || a.side.localeCompare(b.side) || a.timeframe.localeCompare(b.timeframe) || a.session.localeCompare(b.session));
 }

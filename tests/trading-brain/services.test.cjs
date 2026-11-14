@@ -169,4 +169,17 @@ test("private learning patterns exclude open and unreviewed trades and disclose 
   assert.equal(patterns[0].losses, 2);
   assert.equal(patterns[0].winRate, 60);
   assert.equal(patterns[0].reviewState, "early_pattern");
+  assert.equal(patterns[0].timeframe, "UNSPECIFIED");
+});
+
+
+test("private learning patterns separate different market contexts", () => {
+  const base = { date: "2026-11-14", symbol: "EURUSD", side: "BUY", entry: 1.1, stop: 1.095, target: 1.11, rMultiple: 1, notes: "", outcome: "WIN", realizedR: 1, feedbackEvents: [{ eventId: "f", kind: "take_profit_hit", recordedAt: "2026-11-14T12:00:00.000Z", realizedR: 1 }] };
+  const patterns = analyzePrivateLearningPatterns([
+    { ...base, id: "a", timeframe: "M15", session: "LONDON", setupType: "MSS retest", strategy: "Trend continuation" },
+    { ...base, id: "b", timeframe: "H1", session: "NEW_YORK", setupType: "Liquidity sweep", strategy: "Reversal" },
+  ]);
+  assert.equal(patterns.length, 2);
+  assert.ok(patterns.some((item) => item.timeframe === "M15" && item.session === "LONDON"));
+  assert.ok(patterns.some((item) => item.timeframe === "H1" && item.session === "NEW_YORK"));
 });

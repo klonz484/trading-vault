@@ -42,6 +42,10 @@ function parseTrade(value: unknown): JournalTrade | null {
     outcome: trade.outcome as JournalTrade["outcome"],
     rMultiple: trade.rMultiple as number,
     notes: trade.notes,
+    ...(typeof trade.timeframe === "string" ? { timeframe: trade.timeframe } : {}),
+    ...(typeof trade.session === "string" && ["ASIA", "LONDON", "NEW_YORK", "LONDON_NEW_YORK_OVERLAP", "UNKNOWN"].includes(trade.session) ? { session: trade.session as JournalTrade["session"] } : {}),
+    ...(typeof trade.setupType === "string" ? { setupType: trade.setupType } : {}),
+    ...(typeof trade.strategy === "string" ? { strategy: trade.strategy } : {}),
     ...(typeof trade.realizedR === "number" && Number.isFinite(trade.realizedR) ? { realizedR: trade.realizedR } : {}),
     ...(isRecord(trade.originalPlan) ? { originalPlan: trade.originalPlan as JournalTrade["originalPlan"] } : {}),
     ...(Array.isArray(trade.feedbackEvents) ? { feedbackEvents: trade.feedbackEvents as JournalTrade["feedbackEvents"] } : {}),
@@ -77,6 +81,10 @@ export default function JournalPage() {
   const [outcome, setOutcome] = useState<JournalTrade["outcome"]>("OPEN");
   const [rMultiple, setRMultiple] = useState("2");
   const [notes, setNotes] = useState("");
+  const [timeframe, setTimeframe] = useState("M15");
+  const [session, setSession] = useState<NonNullable<JournalTrade["session"]>>("UNKNOWN");
+  const [setupType, setSetupType] = useState("");
+  const [strategy, setStrategy] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -177,6 +185,10 @@ export default function JournalPage() {
       outcome,
       rMultiple: values[3],
       notes: notes.trim(),
+      timeframe,
+      session,
+      ...(setupType.trim() ? { setupType: setupType.trim().slice(0, 50) } : {}),
+      ...(strategy.trim() ? { strategy: strategy.trim().slice(0, 50) } : {}),
       originalPlan: existingTrade?.originalPlan ?? {
         date, symbol: symbol.toUpperCase().trim(), side, entry: values[0], stop: values[1], target: values[2],
       },
@@ -228,6 +240,10 @@ export default function JournalPage() {
     setStop("");
     setTarget("");
     setNotes("");
+    setSetupType("");
+    setStrategy("");
+    setTimeframe("M15");
+    setSession("UNKNOWN");
     setOutcome("OPEN");
   }
 
@@ -290,6 +306,10 @@ export default function JournalPage() {
     setOutcome(trade.outcome);
     setRMultiple(String(trade.rMultiple));
     setNotes(trade.notes);
+    setTimeframe(trade.timeframe ?? "M15");
+    setSession(trade.session ?? "UNKNOWN");
+    setSetupType(trade.setupType ?? "");
+    setStrategy(trade.strategy ?? "");
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -349,7 +369,7 @@ export default function JournalPage() {
           <div className="mb-4">
             <h2 className="section-title">Private Brain learning review</h2>
             <p className="mt-1 text-xs text-slate-500">
-              Descriptive patterns from closed trades with recorded feedback. {storageMode === "cloud" ? "Based on your private cloud journal." : "Device-only analysis; sign in to make feedback available to your private cloud Brain."}
+              Patterns are separated by instrument, direction, timeframe, session, setup and strategy where recorded. More precise context helps the Brain compare like with like. Descriptive patterns from closed trades with recorded feedback. {storageMode === "cloud" ? "Based on your private cloud journal." : "Device-only analysis; sign in to make feedback available to your private cloud Brain."}
               {" "}These observations do not automatically change a strategy.
             </p>
           </div>
@@ -357,6 +377,7 @@ export default function JournalPage() {
             {learningPatterns.map((pattern) => <div key={pattern.symbol + pattern.side} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.07] bg-white/[0.02] p-3">
               <div>
                 <p className="text-sm font-semibold text-white">{pattern.symbol} · {pattern.side}</p>
+                <p className="mt-1 text-[10px] text-slate-400">{pattern.timeframe} · {pattern.session.replaceAll("_", " ")} · {pattern.setupType} · {pattern.strategy}</p>
                 <p className="mt-1 text-[10px] text-slate-500">{pattern.sampleCount} feedback-linked closed trades · {pattern.wins} wins · {pattern.losses} losses · {pattern.breakeven} breakeven</p>
               </div>
               <div className="text-right">
@@ -413,10 +434,18 @@ export default function JournalPage() {
               <label className="field-label">Target price<input className="field-control" type="number" step="any" value={target} onChange={(event) => setTarget(event.target.value)} required /></label>
               <label className="field-label">Result (R)<input className="field-control" type="number" min="0" step="0.1" value={rMultiple} onChange={(event) => setRMultiple(event.target.value)} required /></label>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="field-label">Timeframe<select className="field-control" value={timeframe} onChange={(event) => setTimeframe(event.target.value)}><option>M5</option><option>M15</option><option>M30</option><option>H1</option><option>H4</option><option>D1</option></select></label>
+              <label className="field-label">Trading session<select className="field-control" value={session} onChange={(event) => setSession(event.target.value as NonNullable<JournalTrade["session"]>)}><option value="UNKNOWN">Not specified</option><option value="ASIA">Asia</option><option value="LONDON">London</option><option value="NEW_YORK">New York</option><option value="LONDON_NEW_YORK_OVERLAP">London / New York overlap</option></select></label>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="field-label">Setup type (optional)<input className="field-control" value={setupType} onChange={(event) => setSetupType(event.target.value)} maxLength={50} placeholder="e.g. MSS retest" /></label>
+              <label className="field-label">Strategy (optional)<input className="field-control" value={strategy} onChange={(event) => setStrategy(event.target.value)} maxLength={50} placeholder="e.g. London reversal" /></label>
+            </div>
             <label className="field-label">Trade reasoning and lessons<textarea className="field-control min-h-24 resize-y" value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1200} placeholder="Why did you take this trade? Which confirmations were present? What did you learn?" /></label>
             {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
             <button className="btn-primary w-full" type="submit" disabled={!ready || busy || storageMode === "loading"}>{busy ? "Saving..." : editingId ? "Update journal entry" : "Save journal entry"}</button>
-            {editingId && <button className="btn-secondary w-full" type="button" disabled={busy} onClick={() => { setEditingId(null); setError(""); setEntry(""); setStop(""); setTarget(""); setNotes(""); setOutcome("OPEN"); setDate(new Date().toISOString().slice(0, 10)); setSymbol("EURUSD"); setSide("BUY"); setRMultiple("2"); }}>Cancel editing</button>}
+            {editingId && <button className="btn-secondary w-full" type="button" disabled={busy} onClick={() => { setEditingId(null); setError(""); setEntry(""); setStop(""); setTarget(""); setNotes(""); setSetupType(""); setStrategy(""); setTimeframe("M15"); setSession("UNKNOWN"); setOutcome("OPEN"); setDate(new Date().toISOString().slice(0, 10)); setSymbol("EURUSD"); setSide("BUY"); setRMultiple("2"); }}>Cancel editing</button>}
             <p className="text-[10px] leading-4 text-slate-500">
               {storageMode === "cloud"
                 ? "Entries are saved to your authenticated private account."

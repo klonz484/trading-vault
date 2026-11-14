@@ -9,6 +9,10 @@ export type JournalTrade = {
   outcome: "OPEN" | "WIN" | "LOSS" | "BREAKEVEN";
   rMultiple: number;
   notes: string;
+  timeframe?: string;
+  session?: "ASIA" | "LONDON" | "NEW_YORK" | "LONDON_NEW_YORK_OVERLAP" | "UNKNOWN";
+  setupType?: string;
+  strategy?: string;
   realizedR?: number;
   originalPlan?: { date: string; symbol: string; side: "BUY" | "SELL"; entry: number; stop: number; target: number };
   feedbackEvents?: Array<{ eventId: string; kind: "take_profit_hit" | "stop_loss_hit" | "partial_take_profit" | "manual_close"; recordedAt: string; realizedR?: number; actualExitPrice?: number; note?: string }>;
