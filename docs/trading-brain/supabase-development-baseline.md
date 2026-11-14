@@ -63,8 +63,9 @@ The performance advisor currently reports unused indexes on the early-stage deve
 
 ## Not yet implemented
 
-- Supabase Auth UI and application session integration.
-- Server-side repository/API layer connecting the app to these tables.
+- Authentication UI and account sign-in/sign-up flows.
+- Development environment variables are not yet configured in the deployment or local runtime.
+- Existing journal/scanner screens still use browser localStorage; they have not yet been switched to the private repository.
 - Automated two-user RLS denial tests using real test identities.
 - Chart upload/download UI and signed URL workflow.
 - Shared Core release and owner-approval tables/workflow.
@@ -74,11 +75,12 @@ The MT5 ingestion tables remain separate from private trader records. The Shared
 
 ## Next implementation sequence
 
-1. Add the Supabase server/browser client integration without exposing service-role secrets.
-2. Implement typed repositories for private profiles, evidence bundles, reports, scenarios, experiments, and journal entries.
-3. Add isolated test identities and prove cross-user SELECT/INSERT/UPDATE/DELETE denial, including ownership reassignment and Storage object path attacks.
-4. Build chart upload and signed-read flows against the private bucket.
-5. Keep Shared Core writes behind a controlled server-side release path and explicit owner approval.
+1. Configure Development-only Supabase public URL and publishable key in the runtime; no service-role key is required for user-scoped access.
+2. Complete sign-in UI and keep public sign-up disabled until Auth password protection and abuse controls are reviewed.
+3. Connect existing journal screens to the typed user-scoped repository and remove localStorage as the authoritative store only after a verified migration path.
+4. Add isolated test identities and prove cross-user SELECT/INSERT/UPDATE/DELETE denial, including ownership reassignment and Storage object path attacks.
+5. Build chart upload and signed-read flows against the private bucket.
+6. Keep Shared Core writes behind a controlled server-side release path and explicit owner approval.
 
 ## Safety boundary
 
